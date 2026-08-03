@@ -1,0 +1,185 @@
+<!DOCTYPE html><html lang="zh-CN"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Digital Legacy - Administrator Home</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-surface": "#191c1e",
+                        "text-secondary": "#475569",
+                        "status-setup": "#64748B",
+                        "on-tertiary": "#ffffff",
+                        "on-error-container": "#93000a",
+                        "error-container": "#ffdad6",
+                        "text-primary": "#0F172A",
+                        "on-primary": "#ffffff",
+                        "surface-container-high": "#e6e8ea",
+                        "surface-tint": "#565e74",
+                        "primary": "#000000",
+                        "tertiary-container": "#2a1700",
+                        "inverse-surface": "#2d3133",
+                        "surface-container-low": "#f2f4f6",
+                        "on-secondary": "#ffffff",
+                        "primary-fixed-dim": "#bec6e0",
+                        "on-background": "#191c1e",
+                        "on-error": "#ffffff",
+                        "primary-container": "#131b2e",
+                        "tertiary-fixed-dim": "#ffb95f",
+                        "on-secondary-fixed": "#002113",
+                        "background": "#f7f9fb",
+                        "surface-dim": "#d8dadc",
+                        "on-tertiary-fixed": "#2a1700",
+                        "tertiary-fixed": "#ffddb8",
+                        "status-alert": "#EA580C",
+                        "inverse-on-surface": "#eff1f3",
+                        "on-primary-fixed-variant": "#3f465c",
+                        "status-critical": "#DC2626",
+                        "status-armed": "#10B981",
+                        "surface-variant": "#e0e3e5",
+                        "secondary-fixed-dim": "#4edea3",
+                        "primary-fixed": "#dae2fd",
+                        "status-recovery": "#F59E0B",
+                        "surface-container": "#eceef0",
+                        "surface-container-highest": "#e0e3e5",
+                        "outline-variant": "#c6c6cd",
+                        "surface-bright": "#f7f9fb",
+                        "on-tertiary-container": "#b87500",
+                        "on-tertiary-fixed-variant": "#653e00",
+                        "outline": "#76777d",
+                        "on-secondary-container": "#00714d",
+                        "secondary": "#006c49",
+                        "on-primary-fixed": "#131b2e",
+                        "secondary-fixed": "#6ffbbe",
+                        "error": "#ba1a1a",
+                        "surface-container-lowest": "#ffffff",
+                        "surface": "#f7f9fb",
+                        "tertiary": "#000000",
+                        "on-secondary-fixed-variant": "#005236",
+                        "border-subtle": "#E2E8F0",
+                        "secondary-container": "#6cf8bb",
+                        "inverse-primary": "#bec6e0",
+                        "on-primary-container": "#7c839b",
+                        "on-surface-variant": "#45464d"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "margin-mobile": "16px",
+                        "margin-desktop": "40px",
+                        "unit": "8px",
+                        "container-max": "1024px",
+                        "gutter": "24px"
+                    },
+                    "fontFamily": {
+                        "legal-text": ["Inter"],
+                        "label-mono": ["JetBrains Mono"],
+                        "headline-lg": ["Inter"],
+                        "display-countdown": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "body-md": ["Inter"]
+                    },
+                    "fontSize": {
+                        "legal-text": ["15px", { "lineHeight": "26px", "letterSpacing": "0.01em", "fontWeight": "400" }],
+                        "label-mono": ["14px", { "lineHeight": "20px", "fontWeight": "500" }],
+                        "headline-lg": ["32px", { "lineHeight": "40px", "fontWeight": "600" }],
+                        "display-countdown": ["48px", { "lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+                        "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-surface text-on-surface font-legal-text text-legal-text min-h-screen antialiased flex flex-col selection:bg-primary-fixed selection:text-on-primary-fixed">
+<!-- TopAppBar -->
+<!-- Shell Border Ban: Using subtle shadow/background shift instead of border-b -->
+<header class="fixed w-full top-0 z-40 bg-surface-container-lowest shadow-[0_1px_2px_rgba(0,0,0,0.03)] flex justify-between items-center px-margin-mobile py-4 transition-all duration-300">
+<div class="font-headline-md text-headline-md font-bold text-primary tracking-tight">
+            Digital Legacy
+        </div>
+<div class="flex items-center gap-3">
+<!-- Trailing Primary Action -->
+<div class="flex items-center bg-status-armed/10 px-3 py-1.5 rounded-full border border-status-armed/20">
+<span class="w-2 h-2 rounded-full bg-status-armed mr-2 animate-pulse"></span>
+<span class="font-label-mono text-label-mono text-status-armed font-bold tracking-wider">ARMED</span>
+</div>
+<!-- Trailing Icon Action -->
+<button class="text-primary hover:bg-surface-container-low transition-colors rounded-full p-2 scale-95 active:duration-150 flex items-center justify-center">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">account_circle</span>
+</button>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="flex-grow flex flex-col pt-24 pb-24 px-margin-mobile relative overflow-hidden">
+<!-- Background Utilitarian Grid/Rings for "Mechanical Certainty" feel -->
+<div class="absolute inset-0 pointer-events-none flex items-center justify-center opacity-30 z-0">
+<div class="w-72 h-72 rounded-full border border-outline-variant"></div>
+<div class="absolute w-96 h-96 rounded-full border border-outline-variant border-dashed opacity-50"></div>
+</div>
+<div class="relative z-10 flex flex-col items-center justify-center flex-grow w-full max-w-sm mx-auto">
+<!-- Status Details / Countdown Insight -->
+<div class="mb-12 flex flex-col items-center w-full">
+<span class="font-label-mono text-label-mono text-text-secondary uppercase tracking-widest mb-3">System Countdown</span>
+<div class="bg-surface-container border border-border-subtle rounded-xl w-full px-6 py-5 shadow-sm text-center flex flex-col items-center justify-center gap-1">
+<span class="font-body-md text-body-md text-text-secondary">距离截止时间还有</span>
+<div class="flex items-baseline gap-2">
+<span class="font-display-countdown text-display-countdown text-primary tabular-nums tracking-tighter">52</span>
+<span class="font-body-lg text-body-lg text-primary font-semibold">小时</span>
+</div>
+</div>
+</div>
+<!-- Primary Check-in Action (Large, One-Handed Optimized) -->
+<div class="flex flex-col items-center justify-center w-full">
+<button class="group relative flex flex-col items-center justify-center w-56 h-56 rounded-full bg-primary text-on-primary shadow-xl hover:shadow-2xl transition-all duration-300 active:scale-95 active:duration-150 focus:outline-none focus:ring-4 focus:ring-primary-fixed-dim">
+<!-- Concentric interaction rings -->
+<div class="absolute inset-0 rounded-full border-2 border-primary/20 scale-105 group-hover:scale-110 transition-transform duration-500 ease-out"></div>
+<span class="material-symbols-outlined text-5xl mb-4" style="font-variation-settings: 'FILL' 1;">fingerprint</span>
+<span class="font-headline-md text-headline-md font-bold tracking-widest">点击签到</span>
+</button>
+<p class="mt-8 font-legal-text text-legal-text text-text-secondary text-center opacity-80 max-w-xs">
+                    完成签到以确认您的存活状态，并重置系统的数字遗产执行倒计时。
+                </p>
+</div>
+</div>
+</main>
+<!-- BottomNavBar -->
+<!-- Shell Border Ban: Using shadow/bg shift instead of border-t -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center h-[72px] bg-surface shadow-[0_-4px_20px_rgba(0,0,0,0.04)] px-2 pb-safe transition-all">
+<!-- Active Tab: 首页 -->
+<a class="flex flex-col items-center justify-center text-primary bg-surface-container-high rounded-xl px-4 py-2 transition-all w-[72px]" href="#">
+<span class="material-symbols-outlined mb-1" style="font-variation-settings: 'FILL' 1;">home</span>
+<span class="font-label-mono text-label-mono text-[12px] font-bold">首页</span>
+</a>
+<!-- Inactive Tab: 联系人 -->
+<a class="flex flex-col items-center justify-center text-text-secondary hover:bg-surface-container-low rounded-xl px-4 py-2 transition-all scale-95 active:duration-100 w-[72px]" href="#">
+<span class="material-symbols-outlined mb-1" style="font-variation-settings: 'FILL' 0;">contacts</span>
+<span class="font-label-mono text-label-mono text-[12px]">联系人</span>
+</a>
+<!-- Inactive Tab: 文件 -->
+<a class="flex flex-col items-center justify-center text-text-secondary hover:bg-surface-container-low rounded-xl px-4 py-2 transition-all scale-95 active:duration-100 w-[72px]" href="#">
+<span class="material-symbols-outlined mb-1" style="font-variation-settings: 'FILL' 0;">description</span>
+<span class="font-label-mono text-label-mono text-[12px]">文件</span>
+</a>
+<!-- Inactive Tab: 设置 -->
+<a class="flex flex-col items-center justify-center text-text-secondary hover:bg-surface-container-low rounded-xl px-4 py-2 transition-all scale-95 active:duration-100 w-[72px]" href="#">
+<span class="material-symbols-outlined mb-1" style="font-variation-settings: 'FILL' 0;">settings</span>
+<span class="font-label-mono text-label-mono text-[12px]">设置</span>
+</a>
+</nav>
+</body></html>

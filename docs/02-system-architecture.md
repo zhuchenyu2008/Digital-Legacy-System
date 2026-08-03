@@ -3,7 +3,7 @@
 > 文档状态：设计基线  
 > 业务时区：`Asia/Shanghai`  
 > 关联需求：[产品需求文档](./01-product-requirements.md)  
-> 数据与接口：[数据库设计](./03-database-design.md) · [API 接口设计](./04-api-design.md) · [安全与隐私设计](./05-security-privacy.md)
+> 数据与接口：[数据库设计](./03-database-design.md) · [API 接口设计](./04-api-design.md) · [安全与隐私设计](./05-security-privacy.md) · [页面设计与交互规格](./06-page-specifications.md)
 
 ## 1. 架构结论
 
@@ -395,4 +395,3 @@ OWASP 明确把 ZIP bomb、路径遍历、恶意解析器输入和公开大文�
 5. 不允许测试模式复用正式公开对象前缀或正式收件人列表。
 6. 不允许发布后存在管理删除 API、数据库级联删除或对象生命周期自动清理规则。
 7. 不允许把搜索引擎 `noindex` 描述成阻止第三方复制的访问控制。
-

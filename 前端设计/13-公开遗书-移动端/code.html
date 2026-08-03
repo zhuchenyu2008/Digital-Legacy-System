@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+
+<html class="light" lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Aethelgard Legacy - Public Legacy Release</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "primary-fixed": "#dae2fd",
+                        "background": "#f7f9fb",
+                        "secondary": "#006c49",
+                        "text-secondary": "#475569",
+                        "on-secondary-container": "#00714d",
+                        "tertiary-fixed-dim": "#ffb95f",
+                        "on-primary-fixed": "#131b2e",
+                        "inverse-surface": "#2d3133",
+                        "surface": "#f7f9fb",
+                        "on-error": "#ffffff",
+                        "text-primary": "#0F172A",
+                        "surface-dim": "#d8dadc",
+                        "inverse-on-surface": "#eff1f3",
+                        "surface-container-low": "#f2f4f6",
+                        "inverse-primary": "#bec6e0",
+                        "tertiary": "#000000",
+                        "primary": "#000000",
+                        "outline": "#76777d",
+                        "status-alert": "#EA580C",
+                        "on-background": "#191c1e",
+                        "surface-container": "#eceef0",
+                        "status-critical": "#DC2626",
+                        "on-tertiary-container": "#b87500",
+                        "secondary-container": "#6cf8bb",
+                        "on-secondary-fixed-variant": "#005236",
+                        "tertiary-fixed": "#ffddb8",
+                        "status-armed": "#10B981",
+                        "on-primary-fixed-variant": "#3f465c",
+                        "on-tertiary": "#ffffff",
+                        "on-primary-container": "#7c839b",
+                        "on-secondary": "#ffffff",
+                        "surface-tint": "#565e74",
+                        "status-recovery": "#F59E0B",
+                        "on-surface-variant": "#45464d",
+                        "on-primary": "#ffffff",
+                        "secondary-fixed-dim": "#4edea3",
+                        "border-subtle": "#E2E8F0",
+                        "error": "#ba1a1a",
+                        "secondary-fixed": "#6ffbbe",
+                        "primary-container": "#131b2e",
+                        "on-error-container": "#93000a",
+                        "status-setup": "#64748B",
+                        "outline-variant": "#c6c6cd",
+                        "surface-bright": "#f7f9fb",
+                        "on-secondary-fixed": "#002113",
+                        "surface-container-lowest": "#ffffff",
+                        "on-surface": "#191c1e",
+                        "surface-variant": "#e0e3e5",
+                        "error-container": "#ffdad6",
+                        "primary-fixed-dim": "#bec6e0",
+                        "on-tertiary-fixed-variant": "#653e00",
+                        "tertiary-container": "#2a1700",
+                        "surface-container-highest": "#e0e3e5",
+                        "on-tertiary-fixed": "#2a1700",
+                        "surface-container-high": "#e6e8ea"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "unit": "8px",
+                        "gutter": "24px",
+                        "margin-desktop": "40px",
+                        "container-max": "1024px",
+                        "margin-mobile": "16px"
+                    },
+                    "fontFamily": {
+                        "headline-md": ["Inter", "sans-serif"],
+                        "body-lg": ["Inter", "sans-serif"],
+                        "label-mono": ["JetBrains Mono", "monospace"],
+                        "headline-lg": ["Inter", "sans-serif"],
+                        "display-countdown": ["Inter", "sans-serif"],
+                        "body-md": ["Inter", "sans-serif"],
+                        "legal-text": ["Inter", "sans-serif"]
+                    },
+                    "fontSize": {
+                        "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+                        "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+                        "label-mono": ["14px", { "lineHeight": "20px", "fontWeight": "500" }],
+                        "headline-lg": ["32px", { "lineHeight": "40px", "fontWeight": "600" }],
+                        "display-countdown": ["48px", { "lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "legal-text": ["15px", { "lineHeight": "26px", "letterSpacing": "0.01em", "fontWeight": "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-background text-on-background min-h-screen font-body-md antialiased pb-24">
+<!-- Header Section -->
+<header class="px-margin-mobile py-6 border-b border-border-subtle bg-surface-container-lowest">
+<div class="flex items-center justify-between mb-4">
+<h1 class="font-headline-md text-headline-md text-primary">数字遗产公开遗书</h1>
+<span class="inline-flex items-center px-2 py-1 rounded text-xs font-semibold bg-primary text-on-primary">
+                RELEASED / 已发布
+            </span>
+</div>
+<p class="font-body-md text-body-md text-text-secondary mb-4">
+            David Chen (owner_name) 的数字遗产已于 2024-11-20 14:00:00 UTC 正式发布。根据既定协议，此文档及其关联文件现在是不可篡改且可公开验证的。
+        </p>
+<div class="inline-flex items-center gap-2 bg-surface-container-low px-3 py-1.5 rounded-DEFAULT">
+<span class="material-symbols-outlined text-sm text-status-setup">policy</span>
+<span class="font-label-mono text-label-mono text-status-setup text-xs">X-ROBOTS-TAG: NOINDEX, NOFOLLOW</span>
+</div>
+</header>
+<!-- Main Content Container -->
+<main class="px-margin-mobile py-8 space-y-8">
+<!-- Will Document Card -->
+<section class="bg-surface-container-lowest border border-border-subtle rounded-lg shadow-sm">
+<div class="border-b border-border-subtle px-4 py-3 bg-surface-container-low rounded-t-lg flex items-center gap-2">
+<span class="material-symbols-outlined text-text-secondary">description</span>
+<h2 class="font-label-mono text-label-mono text-text-secondary">will.md</h2>
+</div>
+<div class="p-6">
+<div class="font-legal-text text-legal-text text-on-background space-y-4 max-w-prose mx-auto text-center md:text-left">
+<p>致我最亲爱的人，</p>
+<p>如果您正在阅读这封信，这意味着我已经离开了这个世界。我深知这可能会给您带来悲痛，但我希望这份数字遗产能够为您带来一丝慰藉和指引。</p>
+<p>我将我一生中最珍贵的数字资产，包括照片、日记、未完成的手稿，以及一些重要的账户信息，都存放在了这个保险库中。我希望这些能够帮助您更好地了解我，也能为您未来的生活提供一些实际的帮助。</p>
+<p>请妥善保管这些资料，它们是我留给这个世界最后的印记。</p>
+<p class="pt-4 text-right">— David Chen</p>
+</div>
+</div>
+</section>
+<!-- ZIP Download Card -->
+<section class="bg-surface-container-lowest border border-border-subtle rounded-lg shadow-sm p-5 space-y-4">
+<div class="flex items-start gap-4">
+<div class="bg-surface-container-low p-3 rounded-DEFAULT flex-shrink-0">
+<span class="material-symbols-outlined text-primary text-3xl">folder_zip</span>
+</div>
+<div class="flex-grow">
+<h3 class="font-body-lg text-body-lg text-primary font-semibold">ZIP 下载地址</h3>
+<p class="font-body-md text-body-md text-text-secondary">大小: 1.2 GB</p>
+</div>
+</div>
+<div class="bg-surface-container py-3 px-4 rounded-DEFAULT overflow-hidden">
+<p class="font-label-mono text-label-mono text-xs text-text-secondary mb-1">SHA-256 Checksum:</p>
+<p class="font-label-mono text-label-mono text-xs break-all text-on-surface">e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855</p>
+</div>
+<button class="w-full bg-primary text-on-primary py-3 rounded-lg font-body-md text-body-md font-semibold flex items-center justify-center gap-2 hover:bg-surface-tint transition-colors">
+<span class="material-symbols-outlined">download</span>
+                Download Full Archive
+            </button>
+</section>
+<!-- Audit Timeline Section -->
+<section class="bg-surface-container-lowest border border-border-subtle rounded-lg shadow-sm p-5">
+<h3 class="font-body-lg text-body-lg text-primary font-semibold mb-6 flex items-center gap-2">
+<span class="material-symbols-outlined text-text-secondary">history</span>
+                脱敏审计时间线
+            </h3>
+<div class="relative pl-6 border-l border-border-subtle space-y-8">
+<!-- Timeline Item 1 -->
+<div class="relative">
+<div class="absolute -left-[31px] bg-background border border-border-subtle rounded-full w-4 h-4 mt-1"></div>
+<p class="font-label-mono text-label-mono text-xs text-text-secondary mb-1">2022-01-15 09:00:00 UTC</p>
+<h4 class="font-body-md text-body-md text-on-background font-semibold">PROTOCOL INITIALIZED</h4>
+<p class="font-label-mono text-label-mono text-xs text-text-secondary mt-1 break-all">Hash: 8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92</p>
+</div>
+<!-- Timeline Item 2 -->
+<div class="relative">
+<div class="absolute -left-[31px] bg-background border border-border-subtle rounded-full w-4 h-4 mt-1"></div>
+<p class="font-label-mono text-label-mono text-xs text-text-secondary mb-1">2022-01-16 10:30:00 UTC</p>
+<h4 class="font-body-md text-body-md text-on-background font-semibold">SYSTEM ARMED</h4>
+<p class="font-label-mono text-label-mono text-xs text-text-secondary mt-1 break-all">Hash: e12b5e28a52e9a5928f62f8e1248a39a4891b93f2f849c71933df91a56111456</p>
+</div>
+<!-- Timeline Item 3 -->
+<div class="relative">
+<div class="absolute -left-[31px] bg-background border border-border-subtle rounded-full w-4 h-4 mt-1"></div>
+<p class="font-label-mono text-label-mono text-xs text-text-secondary mb-1">2024-10-10 14:00:00 UTC</p>
+<h4 class="font-body-md text-body-md text-status-critical font-semibold">TRIGGER EVENT LOGGED</h4>
+<p class="font-label-mono text-label-mono text-xs text-text-secondary mt-1 break-all">Hash: a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3</p>
+</div>
+<!-- Timeline Item 4 -->
+<div class="relative">
+<div class="absolute -left-[31px] bg-primary border border-primary rounded-full w-4 h-4 mt-1"></div>
+<p class="font-label-mono text-label-mono text-xs text-text-secondary mb-1">2024-11-20 14:00:00 UTC</p>
+<h4 class="font-body-md text-body-md text-status-armed font-semibold">FINAL RELEASE</h4>
+<p class="font-label-mono text-label-mono text-xs text-text-secondary mt-1 break-all">Hash: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855</p>
+</div>
+</div>
+</section>
+</main>
+</body></html>

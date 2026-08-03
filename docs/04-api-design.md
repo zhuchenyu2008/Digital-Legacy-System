@@ -4,7 +4,7 @@
 > 基础路径：`/api/v1`  
 > 字符编码：UTF-8  
 > 业务时区：输入输出时间均为 RFC 3339 UTC，同时在展示字段提供北京时间文本  
-> 关联文档：[产品需求](./01-product-requirements.md) · [系统架构](./02-system-architecture.md) · [数据库设计](./03-database-design.md) · [安全与隐私](./05-security-privacy.md)
+> 关联文档：[产品需求](./01-product-requirements.md) · [系统架构](./02-system-architecture.md) · [数据库设计](./03-database-design.md) · [安全与隐私](./05-security-privacy.md) · [页面规格](./06-page-specifications.md)
 
 ## 1. API 原则
 

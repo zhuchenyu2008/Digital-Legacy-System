@@ -1,0 +1,307 @@
+<!DOCTYPE html><html class="light" lang="zh-CN"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>文件管理 - Digital Legacy System</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-container-high": "#e6e8ea",
+                        "on-tertiary-fixed-variant": "#653e00",
+                        "surface-tint": "#565e74",
+                        "on-background": "#191c1e",
+                        "primary-fixed": "#dae2fd",
+                        "secondary-container": "#6cf8bb",
+                        "on-secondary-fixed": "#002113",
+                        "status-alert": "#EA580C",
+                        "on-error": "#ffffff",
+                        "on-surface": "#191c1e",
+                        "status-recovery": "#F59E0B",
+                        "inverse-surface": "#2d3133",
+                        "text-primary": "#0F172A",
+                        "outline": "#76777d",
+                        "on-primary-container": "#7c839b",
+                        "status-critical": "#DC2626",
+                        "inverse-on-surface": "#eff1f3",
+                        "text-secondary": "#475569",
+                        "on-tertiary-container": "#b87500",
+                        "on-tertiary": "#ffffff",
+                        "surface-container-low": "#f2f4f6",
+                        "surface-dim": "#d8dadc",
+                        "surface-variant": "#e0e3e5",
+                        "on-primary-fixed": "#131b2e",
+                        "on-primary": "#ffffff",
+                        "outline-variant": "#c6c6cd",
+                        "on-tertiary-fixed": "#2a1700",
+                        "on-secondary-container": "#00714d",
+                        "primary": "#000000",
+                        "error-container": "#ffdad6",
+                        "on-secondary-fixed-variant": "#005236",
+                        "primary-fixed-dim": "#bec6e0",
+                        "tertiary": "#000000",
+                        "on-primary-fixed-variant": "#3f465c",
+                        "status-setup": "#64748B",
+                        "secondary-fixed": "#6ffbbe",
+                        "on-surface-variant": "#45464d",
+                        "border-subtle": "#E2E8F0",
+                        "tertiary-fixed-dim": "#ffb95f",
+                        "error": "#ba1a1a",
+                        "on-error-container": "#93000a",
+                        "inverse-primary": "#bec6e0",
+                        "tertiary-fixed": "#ffddb8",
+                        "surface-container": "#eceef0",
+                        "surface-bright": "#f7f9fb",
+                        "surface": "#f7f9fb",
+                        "status-armed": "#10B981",
+                        "secondary": "#006c49",
+                        "on-secondary": "#ffffff",
+                        "secondary-fixed-dim": "#4edea3",
+                        "primary-container": "#131b2e",
+                        "tertiary-container": "#2a1700",
+                        "background": "#f7f9fb",
+                        "surface-container-lowest": "#ffffff",
+                        "surface-container-highest": "#e0e3e5"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "margin-mobile": "16px",
+                        "container-max": "1024px",
+                        "unit": "8px",
+                        "gutter": "24px",
+                        "margin-desktop": "40px"
+                    },
+                    "fontFamily": {
+                        "headline-md": ["Inter"],
+                        "display-countdown": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "label-mono": ["JetBrains Mono"],
+                        "body-md": ["Inter"],
+                        "legal-text": ["Inter"],
+                        "headline-lg": ["Inter"]
+                    },
+                    "fontSize": {
+                        "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+                        "display-countdown": ["48px", { "lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+                        "label-mono": ["14px", { "lineHeight": "20px", "fontWeight": "500" }],
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "legal-text": ["15px", { "lineHeight": "26px", "letterSpacing": "0.01em", "fontWeight": "400" }],
+                        "headline-lg": ["32px", { "lineHeight": "40px", "fontWeight": "600" }]
+                    }
+                }
+            }
+        }
+    </script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<style>
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-background text-text-primary antialiased flex flex-col min-h-screen">
+<!-- TopAppBar -->
+<header class="bg-surface-container-lowest dark:bg-surface-container-highest border-b border-border-subtle dark:border-outline-variant docked full-width top-0 z-50">
+<div class="flex justify-between items-center w-full px-margin-mobile md:px-margin-desktop py-4">
+<div class="flex items-center gap-4">
+<span class="font-headline-md text-headline-md font-bold text-primary dark:text-on-surface tracking-tight">Digital Legacy</span>
+</div>
+<div class="flex items-center gap-6">
+<!-- Navigation (Desktop only) -->
+<nav class="hidden md:flex gap-6">
+<a class="text-text-secondary dark:text-surface-variant hover:bg-surface-container-low dark:hover:bg-surface-container transition-colors rounded px-2 py-1" href="#">首页</a>
+<a class="text-text-secondary dark:text-surface-variant hover:bg-surface-container-low dark:hover:bg-surface-container transition-colors rounded px-2 py-1" href="#">联系人</a>
+<a class="text-primary dark:text-secondary-fixed font-semibold" href="#">文件</a>
+<a class="text-text-secondary dark:text-surface-variant hover:bg-surface-container-low dark:hover:bg-surface-container transition-colors rounded px-2 py-1" href="#">设置</a>
+</nav>
+<div class="flex items-center gap-4">
+<span class="font-label-mono text-label-mono bg-status-armed text-on-primary px-2 py-1 rounded uppercase tracking-wider">ARMED</span>
+<button class="hover:bg-surface-container-low dark:hover:bg-surface-container transition-colors scale-95 active:duration-150 p-2 rounded-full">
+<span class="material-symbols-outlined text-primary dark:text-inverse-primary" data-icon="account_circle">account_circle</span>
+</button>
+</div>
+</div>
+</div>
+</header>
+<!-- Main Content Wrapper -->
+<main class="flex-grow flex flex-col items-center pt-8 pb-32 px-margin-mobile md:px-margin-desktop w-full">
+<div class="w-full max-w-[container-max] flex flex-col gap-8">
+<!-- Page Header -->
+<div class="mb-8 flex items-center justify-between">
+<div>
+<h1 class="font-headline-lg text-headline-lg text-primary mb-2 flex items-center gap-3">
+                    文件管理
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-status-armed/10 text-status-armed border border-status-armed/20 uppercase tracking-wider">
+                        ARMED
+                    </span>
+</h1>
+<p class="font-body-md text-body-md text-text-secondary">加密存储您的数字遗产 ZIP 包，并预览 will.md 正文。</p>
+</div>
+</div>
+<!-- Two Column Layout -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-12">
+<!-- Left Column (Upload & Preview) -->
+<div class="lg:col-span-2 flex flex-col gap-6">
+<!-- Encryption Status -->
+<div class="bg-surface-container-lowest border border-border-subtle rounded-lg p-4 flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-status-armed/10 flex items-center justify-center text-status-armed shrink-0">
+<span class="material-symbols-outlined" data-icon="lock" data-weight="fill" style="font-variation-settings: 'FILL' 1;">lock</span>
+</div>
+<div>
+<h3 class="font-body-md text-body-md font-semibold text-primary">浏览器端加密已就绪</h3>
+<p class="font-body-md text-body-md text-text-secondary text-sm">所有文件将在本地加密，仅密文上传至服务器。</p>
+</div>
+</div>
+<!-- Dropzone -->
+<div class="border-2 border-dashed border-outline-variant hover:border-primary transition-colors rounded-xl bg-surface-container-lowest p-8 flex flex-col items-center justify-center text-center cursor-pointer group h-64 relative overflow-hidden">
+<div class="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+<div class="w-16 h-16 rounded-full bg-surface-variant flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-3xl text-text-secondary" data-icon="cloud_upload">cloud_upload</span>
+</div>
+<h3 class="font-body-lg text-body-lg font-medium text-primary mb-2">点击或拖拽 ZIP 文件至此</h3>
+<p class="font-body-md text-body-md text-text-secondary">仅支持 ZIP 格式，需包含 will.md</p>
+</div>
+<!-- will.md Preview -->
+<div class="bg-surface-container-lowest border border-border-subtle rounded-lg flex flex-col h-80">
+<div class="border-b border-border-subtle p-4 bg-surface-container-low flex items-center justify-between">
+<h3 class="font-body-md text-body-md font-semibold flex items-center gap-2">
+<span class="material-symbols-outlined text-sm" data-icon="visibility">visibility</span>
+                            will.md 预览
+                        </h3>
+</div>
+<div class="p-6 flex-grow flex items-center justify-center bg-surface-bright">
+<div class="text-center text-text-secondary">
+<span class="material-symbols-outlined text-4xl mb-2 opacity-50" data-icon="article">article</span>
+<p class="font-body-md text-body-md">待上传 will.md 预览区</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Right Column (Current Version & Integrity) -->
+<div class="flex flex-col gap-6">
+<!-- Active Version Card -->
+<div class="bg-surface-container-lowest border border-border-subtle rounded-lg p-6 shadow-sm relative overflow-hidden">
+<div class="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-bl-full -z-10"></div>
+<div class="flex items-start justify-between mb-6">
+<div>
+<h3 class="text-sm font-medium text-text-secondary uppercase tracking-wider mb-1">当前有效版本</h3>
+<div class="font-headline-lg text-headline-lg text-primary font-bold">V1</div>
+</div>
+<span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-primary-container text-on-primary-container">
+<span class="material-symbols-outlined text-sm" data-icon="check_circle">check_circle</span>
+</span>
+</div>
+<div class="space-y-4">
+<div>
+<div class="text-xs text-text-secondary mb-1">上传时间</div>
+<div class="font-body-md text-body-md text-primary">2023-10-25 14:30:00 UTC</div>
+</div>
+<div>
+<div class="text-xs text-text-secondary mb-1">SHA-256</div>
+<div class="font-label-mono text-label-mono text-primary bg-surface-container-low p-2 rounded border border-border-subtle break-all text-xs">
+                                e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+                            </div>
+</div>
+</div>
+</div>
+<!-- Security Checks -->
+<div class="bg-surface-container-lowest border border-border-subtle rounded-lg p-6">
+<h3 class="font-body-md text-body-md font-semibold mb-4 flex items-center gap-2 border-b border-border-subtle pb-2">
+<span class="material-symbols-outlined" data-icon="security">security</span>
+                        安全校验
+                    </h3>
+<ul class="space-y-3 font-label-mono text-label-mono text-sm">
+<li class="flex items-center justify-between">
+<span class="text-text-secondary flex items-center gap-2"><span class="w-1.5 h-1.5 bg-text-secondary rounded-full"></span> ZIP 格式验证</span>
+<span class="text-status-armed">[PASS]</span>
+</li>
+<li class="flex items-center justify-between">
+<span class="text-text-secondary flex items-center gap-2"><span class="w-1.5 h-1.5 bg-text-secondary rounded-full"></span> will.md 存在性</span>
+<span class="text-status-armed">[PASS]</span>
+</li>
+<li class="flex items-center justify-between">
+<span class="text-text-secondary flex items-center gap-2"><span class="w-1.5 h-1.5 bg-text-secondary rounded-full"></span> 密钥分片状态</span>
+<span class="text-primary">[READY]</span>
+</li>
+</ul>
+</div>
+<!-- Activate Action -->
+<button class="w-full py-4 bg-surface-variant text-text-secondary font-medium rounded-lg cursor-not-allowed flex items-center justify-center gap-2 border border-border-subtle" disabled="">
+<span class="material-symbols-outlined" data-icon="publish">publish</span>
+                    激活新版本
+                </button>
+<p class="text-xs text-center text-text-secondary">加密激活需输入主密码</p>
+</div>
+</div>
+<!-- Version History Table -->
+<div class="bg-surface-container-lowest border border-border-subtle rounded-lg overflow-hidden">
+<div class="p-4 border-b border-border-subtle bg-surface-container-low">
+<h3 class="font-body-lg text-body-lg font-semibold flex items-center gap-2">
+<span class="material-symbols-outlined" data-icon="history">history</span>
+                    历史版本记录
+                </h3>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="border-b border-border-subtle text-sm text-text-secondary uppercase tracking-wider font-medium">
+<th class="p-4 font-normal">版本号</th>
+<th class="p-4 font-normal">激活时间</th>
+<th class="p-4 font-normal">文件摘要 (SHA-256)</th>
+<th class="p-4 font-normal">状态</th>
+</tr>
+</thead>
+<tbody class="font-label-mono text-label-mono text-sm divide-y divide-border-subtle">
+<tr class="hover:bg-surface-bright transition-colors">
+<td class="p-4 text-primary font-bold">V1</td>
+<td class="p-4 text-text-secondary">2023-10-25 14:30:00</td>
+<td class="p-4 text-text-secondary truncate max-w-[200px]" title="e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855">e3b0c442...b855</td>
+<td class="p-4">
+<span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-status-armed/10 text-status-armed border border-status-armed/20">
+                                    当前有效
+                                </span>
+</td>
+</tr>
+<tr class="hover:bg-surface-bright transition-colors opacity-60">
+<td class="p-4 text-primary">V0 (Draft)</td>
+<td class="p-4 text-text-secondary">2023-10-20 09:15:22</td>
+<td class="p-4 text-text-secondary truncate max-w-[200px]" title="8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92">8d969eef...6c92</td>
+<td class="p-4">
+<span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-surface-variant text-text-secondary border border-outline-variant">
+                                    已删除
+                                </span>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+</main>
+<!-- BottomNavBar (Mobile Only) -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full z-50 flex justify-around items-center h-16 bg-surface dark:bg-inverse-surface px-4 pb-safe border-t border-border-subtle dark:border-outline-variant">
+<a class="flex flex-col items-center justify-center text-text-secondary dark:text-surface-variant scale-95 active:duration-100 transition-all hover:bg-surface-container-low px-3 py-1 rounded-xl" href="#">
+<span class="material-symbols-outlined" data-icon="home">home</span>
+<span class="font-label-mono text-label-mono mt-1 text-[10px]">首页</span>
+</a>
+<a class="flex flex-col items-center justify-center text-text-secondary dark:text-surface-variant scale-95 active:duration-100 transition-all hover:bg-surface-container-low px-3 py-1 rounded-xl" href="#">
+<span class="material-symbols-outlined" data-icon="contacts">contacts</span>
+<span class="font-label-mono text-label-mono mt-1 text-[10px]">联系人</span>
+</a>
+<a class="flex flex-col items-center justify-center text-primary dark:text-secondary-fixed bg-surface-container-high dark:bg-surface-container-low rounded-xl px-3 py-1 scale-95 active:duration-100 transition-all hover:bg-surface-container-low" href="#">
+<span class="material-symbols-outlined" data-icon="description">description</span>
+<span class="font-label-mono text-label-mono mt-1 text-[10px]">文件</span>
+</a>
+<a class="flex flex-col items-center justify-center text-text-secondary dark:text-surface-variant scale-95 active:duration-100 transition-all hover:bg-surface-container-low px-3 py-1 rounded-xl" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span class="font-label-mono text-label-mono mt-1 text-[10px]">设置</span>
+</a>
+</nav>
+</body></html>

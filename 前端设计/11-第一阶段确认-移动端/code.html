@@ -1,0 +1,317 @@
+<!DOCTYPE html><html class="light" lang="zh-CN"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport">
+<title>First Confirmation Phase</title>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "on-error": "#ffffff",
+                      "primary-fixed-dim": "#bec6e0",
+                      "outline-variant": "#c6c6cd",
+                      "status-armed": "#10B981",
+                      "surface-variant": "#e0e3e5",
+                      "on-primary-container": "#7c839b",
+                      "surface-container-low": "#f2f4f6",
+                      "error-container": "#ffdad6",
+                      "surface-dim": "#d8dadc",
+                      "surface-container": "#eceef0",
+                      "surface-container-highest": "#e0e3e5",
+                      "status-setup": "#64748B",
+                      "primary-container": "#131b2e",
+                      "tertiary-fixed": "#ffddb8",
+                      "status-alert": "#EA580C",
+                      "on-secondary-fixed": "#002113",
+                      "on-background": "#191c1e",
+                      "on-error-container": "#93000a",
+                      "on-primary-fixed": "#131b2e",
+                      "on-primary-fixed-variant": "#3f465c",
+                      "text-secondary": "#475569",
+                      "on-tertiary": "#ffffff",
+                      "error": "#ba1a1a",
+                      "outline": "#76777d",
+                      "background": "#f7f9fb",
+                      "status-critical": "#DC2626",
+                      "border-subtle": "#E2E8F0",
+                      "on-tertiary-fixed-variant": "#653e00",
+                      "on-secondary-container": "#00714d",
+                      "inverse-primary": "#bec6e0",
+                      "surface-container-lowest": "#ffffff",
+                      "tertiary-fixed-dim": "#ffb95f",
+                      "tertiary-container": "#2a1700",
+                      "on-primary": "#ffffff",
+                      "secondary-fixed": "#6ffbbe",
+                      "primary": "#000000",
+                      "on-secondary": "#ffffff",
+                      "tertiary": "#000000",
+                      "secondary-container": "#6cf8bb",
+                      "inverse-surface": "#2d3133",
+                      "surface-bright": "#f7f9fb",
+                      "on-secondary-fixed-variant": "#005236",
+                      "inverse-on-surface": "#eff1f3",
+                      "status-recovery": "#F59E0B",
+                      "surface": "#f7f9fb",
+                      "secondary-fixed-dim": "#4edea3",
+                      "on-surface-variant": "#45464d",
+                      "text-primary": "#0F172A",
+                      "secondary": "#006c49",
+                      "primary-fixed": "#dae2fd",
+                      "surface-tint": "#565e74",
+                      "on-tertiary-fixed": "#2a1700",
+                      "on-tertiary-container": "#b87500",
+                      "surface-container-high": "#e6e8ea",
+                      "on-surface": "#191c1e"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.125rem",
+                      "lg": "0.25rem",
+                      "xl": "0.5rem",
+                      "full": "0.75rem"
+              },
+              "spacing": {
+                      "gutter": "24px",
+                      "margin-desktop": "40px",
+                      "container-max": "1024px",
+                      "margin-mobile": "16px",
+                      "unit": "8px"
+              },
+              "fontFamily": {
+                      "label-mono": [
+                              "JetBrains Mono"
+                      ],
+                      "headline-lg": [
+                              "Inter"
+                      ],
+                      "display-countdown": [
+                              "Inter"
+                      ],
+                      "body-md": [
+                              "Inter"
+                      ],
+                      "headline-md": [
+                              "Inter"
+                      ],
+                      "body-lg": [
+                              "Inter"
+                      ],
+                      "legal-text": [
+                              "Inter"
+                      ]
+              },
+              "fontSize": {
+                      "label-mono": [
+                              "14px",
+                              {
+                                      "lineHeight": "20px",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "headline-lg": [
+                              "32px",
+                              {
+                                      "lineHeight": "40px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "display-countdown": [
+                              "48px",
+                              {
+                                      "lineHeight": "56px",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "body-md": [
+                              "16px",
+                              {
+                                      "lineHeight": "24px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "headline-md": [
+                              "24px",
+                              {
+                                      "lineHeight": "32px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "body-lg": [
+                              "18px",
+                              {
+                                      "lineHeight": "28px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "legal-text": [
+                              "15px",
+                              {
+                                      "lineHeight": "26px",
+                                      "letterSpacing": "0.01em",
+                                      "fontWeight": "400"
+                              }
+                      ]
+              }
+      },
+          },
+        }
+    </script>
+<style>
+        .pulse-bg {
+            animation: pulse-red 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes pulse-red {
+            0%, 100% { background-color: rgba(220, 38, 38, 0.05); }
+            50% { background-color: rgba(220, 38, 38, 0.15); }
+        }
+        
+        .progress-ring__circle {
+            transition: stroke-dashoffset 0.35s;
+            transform: rotate(-90deg);
+            transform-origin: 50% 50%;
+        }
+        
+        /* Mobile Specific Overrides */
+        body { padding-bottom: 80px; } /* Space for Bottom Nav */
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="bg-background text-on-background min-h-screen relative pulse-bg flex flex-col font-body-md text-body-md">
+<!-- Top Navigation -->
+<header class="bg-surface border-b border-border-subtle fixed top-0 w-full z-50">
+<div class="flex justify-between items-center w-full px-4 h-16">
+<span class="font-headline-md text-[18px] md:text-headline-md font-bold text-primary">Digital Legacy</span>
+<div class="flex items-center gap-3">
+<div class="flex items-center px-2 py-1 bg-status-armed/10 border border-status-armed/20 rounded-full">
+<span class="w-1.5 h-1.5 rounded-full bg-status-armed animate-pulse mr-1.5"></span>
+<span class="font-label-mono text-[10px] text-status-armed uppercase">ARMED - 确认中</span>
+</div>
+<div class="flex gap-1.5">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 0;">notifications</span>
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 0;">account_circle</span>
+</div>
+</div>
+</div>
+</header>
+<!-- Main Content Area -->
+<main class="flex-1 w-full max-w-[1024px] mx-auto px-margin-mobile pt-24 pb-gutter flex flex-col gap-8">
+<!-- Hero Section: Status & Progress -->
+<section class="flex flex-col items-center text-center">
+<div class="relative w-40 h-40 flex items-center justify-center mb-6">
+<svg class="w-full h-full absolute inset-0" viewBox="0 0 120 120">
+<circle class="text-surface-variant stroke-current" cx="60" cy="60" fill="transparent" r="54" stroke-width="8"></circle>
+<circle class="text-status-alert stroke-current progress-ring__circle" cx="60" cy="60" fill="transparent" r="54" stroke-dasharray="339.292" stroke-dashoffset="113.097" stroke-linecap="round" stroke-width="8"></circle>
+</svg>
+<div class="flex flex-col items-center">
+<span class="font-display-countdown text-display-countdown text-text-primary">2/3</span>
+<span class="font-label-mono text-label-mono text-text-secondary mt-1">确认进度</span>
+</div>
+</div>
+<h1 class="font-headline-lg text-headline-lg text-text-primary mb-3">生存状态确认中</h1>
+<p class="font-body-lg text-body-md text-text-secondary mb-6">
+            系统已进入“第一阶段确认”。目前已有 2 名紧急联系人响应，还需 1 人确认以正式启动数字遗产交接程序。
+        </p>
+<div class="flex flex-col w-full gap-3">
+<button class="w-full px-6 py-3.5 bg-primary text-on-primary font-bold rounded hover:opacity-90 transition-all duration-200">
+                紧急联系人登录
+            </button>
+<button class="w-full px-6 py-3.5 border border-border-subtle bg-surface text-text-primary font-bold rounded hover:bg-surface-container-low transition-all duration-200">
+                查看操作手册
+            </button>
+</div>
+</section>
+<!-- Bento Grid Info Section -->
+<section class="flex flex-col gap-4">
+<!-- Privacy Lock -->
+<div class="p-5 bg-surface-container-low border border-border-subtle rounded-xl flex flex-col gap-3">
+<span class="material-symbols-outlined text-text-secondary" style="font-variation-settings: 'FILL' 0;">privacy_tip</span>
+<h3 class="font-headline-md text-[18px] font-bold text-text-primary">身份完全隐藏</h3>
+<p class="font-body-md text-sm text-text-secondary">
+                为保护所有参与者的隐私，系统不会在此页面显示任何联系人的具体身份、姓名或位置信息。
+            </p>
+</div>
+<!-- Protocol Logic -->
+<div class="p-5 bg-surface-container-low border border-border-subtle rounded-xl flex flex-col gap-3">
+<h3 class="font-headline-md text-[18px] font-bold text-text-primary">70% 阈值门限逻辑</h3>
+<p class="font-body-md text-sm text-text-secondary">
+                根据 PRD-DEATH1 协议，遗产释放流程仅在超过 70% 的预设联系人独立确认“不可挽回状态”后方可启动。此逻辑旨在防止误操作或单方面恶意申报。
+            </p>
+<div class="flex gap-3 mt-2">
+<div class="px-2.5 py-1.5 bg-surface-container-highest rounded border border-outline-variant">
+<span class="font-label-mono text-xs text-on-surface-variant">门限：70%</span>
+</div>
+<div class="px-2.5 py-1.5 bg-surface-container-highest rounded border border-outline-variant">
+<span class="font-label-mono text-xs text-on-surface-variant">当前：66.7%</span>
+</div>
+</div>
+</div>
+<!-- Admin Action (Termination) -->
+<div class="p-5 bg-surface-container-low border border-border-subtle rounded-xl flex flex-col gap-4 mt-2">
+<div>
+<h3 class="font-headline-md text-[18px] font-bold text-text-primary mb-2">如果您是管理员本人</h3>
+<p class="font-body-md text-sm text-text-secondary">
+                    若此流程系误触或测试启动，请立即进行生物识别登录以终止“生存确认”流程。终止操作将被永久记录在不可篡改的审计日志中。
+                </p>
+</div>
+<button class="w-full px-6 py-3.5 bg-status-critical text-on-error font-bold rounded hover:opacity-90 transition-all duration-200">
+                立即终止流程
+            </button>
+</div>
+</section>
+<!-- Audit Timeline -->
+<section class="mt-4 px-2">
+<h4 class="font-label-mono text-xs text-text-secondary uppercase tracking-widest mb-6">Immutable Chain of Custody</h4>
+<div class="border-l-2 border-border-subtle pl-6 relative flex flex-col gap-6">
+<!-- Audit Item 1 -->
+<div class="relative">
+<div class="absolute -left-[31px] top-1 w-3 h-3 bg-status-armed rounded-full border-2 border-background"></div>
+<span class="font-label-mono text-[11px] text-text-secondary block mb-1">2024-05-24 09:12:04 UTC</span>
+<p class="font-body-md text-sm text-text-primary">联系人 #1 (身份已加密) 提交生存状态确认</p>
+</div>
+<!-- Audit Item 2 -->
+<div class="relative">
+<div class="absolute -left-[31px] top-1 w-3 h-3 bg-status-armed rounded-full border-2 border-background"></div>
+<span class="font-label-mono text-[11px] text-text-secondary block mb-1">2024-05-24 10:45:12 UTC</span>
+<p class="font-body-md text-sm text-text-primary">联系人 #2 (身份已加密) 提交生存状态确认</p>
+</div>
+<!-- Pending Item -->
+<div class="relative opacity-50">
+<div class="absolute -left-[31px] top-1 w-3 h-3 bg-surface-container-highest rounded-full border-2 border-background"></div>
+<span class="font-label-mono text-[11px] text-text-secondary block mb-1">PENDING...</span>
+<p class="font-body-md text-sm text-text-secondary italic">等待后续确认中</p>
+</div>
+</div>
+</section>
+</main>
+<!-- Bottom Navigation Bar (Shared Component) -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center h-16 bg-surface px-4 pb-safe border-t border-border-subtle shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+<!-- Tab 1: 首页 -->
+<button class="flex flex-col items-center justify-center text-primary bg-surface-container-high rounded-xl px-3 py-1 scale-95 active:duration-100 transition-all">
+<span class="material-symbols-outlined" data-icon="home" style="font-variation-settings: 'FILL' 1;">home</span>
+<span class="font-label-mono text-label-mono text-[10px] mt-0.5">首页</span>
+</button>
+<!-- Tab 2: 联系人 -->
+<button class="flex flex-col items-center justify-center text-text-secondary hover:bg-surface-container-low transition-all rounded-xl px-3 py-1 active:scale-95">
+<span class="material-symbols-outlined" data-icon="contacts" style="font-variation-settings: 'FILL' 0;">contacts</span>
+<span class="font-label-mono text-label-mono text-[10px] mt-0.5">联系人</span>
+</button>
+<!-- Tab 3: 文件 -->
+<button class="flex flex-col items-center justify-center text-text-secondary hover:bg-surface-container-low transition-all rounded-xl px-3 py-1 active:scale-95">
+<span class="material-symbols-outlined" data-icon="description" style="font-variation-settings: 'FILL' 0;">description</span>
+<span class="font-label-mono text-label-mono text-[10px] mt-0.5">文件</span>
+</button>
+<!-- Tab 4: 设置 -->
+<button class="flex flex-col items-center justify-center text-text-secondary hover:bg-surface-container-low transition-all rounded-xl px-3 py-1 active:scale-95">
+<span class="material-symbols-outlined" data-icon="settings" style="font-variation-settings: 'FILL' 0;">settings</span>
+<span class="font-label-mono text-label-mono text-[10px] mt-0.5">设置</span>
+</button>
+</nav>
+</body></html>

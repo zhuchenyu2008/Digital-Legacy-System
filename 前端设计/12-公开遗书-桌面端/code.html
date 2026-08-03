@@ -1,0 +1,276 @@
+<!DOCTYPE html><html class="light" lang="en" style=""><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Digital Legacy - Public Release</title>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries,typography"></script>
+<!-- Tailwind Config -->
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                            "outline-variant": "#c6c6cd",
+                            "on-tertiary-fixed": "#2a1700",
+                            "primary-fixed-dim": "#bec6e0",
+                            "status-recovery": "#F59E0B",
+                            "tertiary-container": "#2a1700",
+                            "surface-container-highest": "#e0e3e5",
+                            "tertiary-fixed-dim": "#ffb95f",
+                            "on-error": "#ffffff",
+                            "on-secondary": "#ffffff",
+                            "secondary-fixed": "#6ffbbe",
+                            "primary-container": "#131b2e",
+                            "on-secondary-container": "#00714d",
+                            "background": "#f7f9fb",
+                            "text-secondary": "#475569",
+                            "on-secondary-fixed-variant": "#005236",
+                            "tertiary-fixed": "#ffddb8",
+                            "status-armed": "#10B981",
+                            "primary": "#000000",
+                            "secondary-fixed-dim": "#4edea3",
+                            "on-primary-fixed": "#131b2e",
+                            "surface-container-high": "#e6e8ea",
+                            "surface-dim": "#d8dadc",
+                            "surface": "#f7f9fb",
+                            "on-secondary-fixed": "#002113",
+                            "text-primary": "#0F172A",
+                            "border-subtle": "#E2E8F0",
+                            "inverse-on-surface": "#eff1f3",
+                            "tertiary": "#000000",
+                            "surface-container": "#eceef0",
+                            "surface-container-low": "#f2f4f6",
+                            "on-surface-variant": "#45464d",
+                            "inverse-primary": "#bec6e0",
+                            "secondary-container": "#6cf8bb",
+                            "outline": "#76777d",
+                            "on-tertiary-container": "#b87500",
+                            "on-background": "#191c1e",
+                            "secondary": "#006c49",
+                            "on-primary": "#ffffff",
+                            "on-tertiary-fixed-variant": "#653e00",
+                            "on-tertiary": "#ffffff",
+                            "surface-bright": "#f7f9fb",
+                            "surface-variant": "#e0e3e5",
+                            "status-critical": "#DC2626",
+                            "on-primary-container": "#7c839b",
+                            "status-alert": "#EA580C",
+                            "primary-fixed": "#dae2fd",
+                            "on-surface": "#191c1e",
+                            "surface-tint": "#565e74",
+                            "inverse-surface": "#2d3133",
+                            "error-container": "#ffdad6",
+                            "on-error-container": "#93000a",
+                            "error": "#ba1a1a",
+                            "on-primary-fixed-variant": "#3f465c",
+                            "surface-container-lowest": "#ffffff",
+                            "status-setup": "#64748B"
+                    },
+                    "borderRadius": {
+                            "DEFAULT": "0.125rem",
+                            "lg": "0.25rem",
+                            "xl": "0.5rem",
+                            "full": "0.75rem"
+                    },
+                    "spacing": {
+                            "margin-desktop": "40px",
+                            "container-max": "1024px",
+                            "margin-mobile": "16px",
+                            "gutter": "24px",
+                            "unit": "8px"
+                    },
+                    "fontFamily": {
+                            "body-lg": ["Inter"],
+                            "legal-text": ["Inter"],
+                            "headline-lg": ["Inter"],
+                            "body-md": ["Inter"],
+                            "headline-md": ["Inter"],
+                            "display-countdown": ["Inter"],
+                            "label-mono": ["JetBrains Mono"]
+                    },
+                    "fontSize": {
+                            "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                            "legal-text": ["15px", {"lineHeight": "26px", "letterSpacing": "0.01em", "fontWeight": "400"}],
+                            "headline-lg": ["32px", {"lineHeight": "40px", "fontWeight": "600"}],
+                            "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                            "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                            "display-countdown": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                            "label-mono": ["14px", {"lineHeight": "20px", "fontWeight": "500"}]
+                    }
+                }
+            }
+        }
+    </script>
+<!-- Google Fonts for JetBrains Mono and Inter -->
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .markdown-content p { margin-bottom: 1.5em; }
+        .markdown-content h1, .markdown-content h2 { margin-top: 2em; margin-bottom: 1em; font-weight: 600; }
+        .markdown-content ul { list-style-type: disc; padding-left: 2em; margin-bottom: 1.5em; }
+    </style>
+</head>
+<body class="bg-background text-on-surface font-body-md antialiased min-h-screen flex flex-col">
+<!-- TopAppBar -->
+<header class="bg-surface-container-lowest text-primary font-headline-md text-headline-md font-semibold border-b border-border-subtle sticky top-0 z-50">
+<div class="flex justify-between items-center w-full px-margin-desktop max-w-container-max mx-auto h-16">
+<div class="flex items-center gap-4">
+<span class="text-headline-md font-headline-md font-bold text-primary tracking-tight">Digital Legacy</span>
+<span class="bg-primary-container text-on-primary-container font-label-mono text-label-mono px-3 py-1 rounded-full text-xs font-bold tracking-wider uppercase border border-primary-fixed">
+                    RELEASED / 已发布
+                </span>
+</div>
+<div class="flex items-center gap-4">
+<span class="text-on-surface-variant font-label-mono text-xs hidden md:inline-flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">verified_user</span> Authenticated Public Node
+                </span>
+</div>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="flex-grow w-full max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop py-12 space-y-16">
+<!-- Hero Section -->
+<section class="text-center space-y-6">
+<div class="inline-flex items-center justify-center bg-surface-container border border-border-subtle rounded-full px-4 py-1.5 mb-4">
+<span class="material-symbols-outlined text-[16px] text-text-secondary mr-2">public</span>
+<span class="font-label-mono text-label-mono text-text-secondary uppercase">X-Robots-Tag: noindex, nofollow</span>
+</div>
+<h1 class="font-headline-lg text-headline-lg text-text-primary tracking-tight">数字遗产公开遗书</h1>
+<p class="font-body-lg text-body-lg text-text-secondary max-w-2xl mx-auto">David Chen (owner_name) 的数字遗产已于 <span class="font-label-mono">2024-11-20 14:00:00 UTC</span> 正式发布。根据既定协议，此文档及其关联文件现在是不可篡改且可公开验证的。</p>
+</section>
+<!-- Document Container (will.md) -->
+<section class="bg-surface-container-lowest border border-border-subtle rounded-xl overflow-hidden shadow-sm">
+<div class="bg-surface-container-low border-b border-border-subtle px-8 py-4 flex justify-between items-center">
+<div class="flex items-center gap-3 text-text-secondary">
+<span class="material-symbols-outlined">description</span>
+<span class="font-label-mono text-label-mono font-bold">will.md</span>
+</div>
+<button class="text-primary font-label-mono text-label-mono hover:bg-surface-container-high px-3 py-1.5 rounded transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">content_copy</span> Copy Raw
+                </button>
+</div>
+<div class="p-8 md:p-12 font-legal-text text-legal-text text-text-primary markdown-content max-w-3xl mx-auto leading-relaxed bg-[#FAFAFA]">
+<h1 class="text-2xl mb-6">致我最亲爱的人</h1>
+<p class="">如果你们读到这封信，说明数字遗产协议已经完成了它的最终指令。请不要悲伤，这是一场漫长旅程的必然终点。我在这段代码中留下了我最后想说的话，以及那些我无法带走的数字印记。</p>
+<p class="">在这个加密包中，你们会找到：</p>
+<ul>
+<li class="">我的个人财务账户访问指令及主密码种子。</li>
+<li class="">存放着家庭回忆的云端相册完整备份。</li>
+<li class="">我未完成的几个开源项目的交接文档。</li>
+</ul>
+<p class="">我一直相信技术的理性能为感性的告别带来一丝确定性。这个系统忠实地等待了规定的时间，验证了联系人的确认，并最终解开了这把锁。</p>
+<p class="">请妥善保管这些密钥。生活继续，爱意永存。</p>
+<p class="text-right mt-12 font-semibold">David Chen<br><span class="font-label-mono text-xs text-text-secondary font-normal">Signed: 2023-05-12</span></p>
+</div>
+</section>
+<!-- Download & Verification Grid -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+<!-- Download Card -->
+<section class="bg-surface-container-lowest border border-border-subtle rounded-xl p-8 flex flex-col justify-between">
+<div>
+<div class="flex items-center gap-3 mb-6">
+<div class="p-3 bg-secondary-container text-on-secondary-container rounded-lg">
+<span class="material-symbols-outlined" style="font-variation-settings: &quot;FILL&quot; 1;">folder_zip</span>
+</div>
+<h2 class="font-headline-md text-[20px] font-semibold text-text-primary">ZIP 下载地址</h2>
+</div>
+<p class="font-body-md text-text-secondary mb-8">完整的加密存档包含协议中定义的所有关联文档、媒体文件和加密证明。</p>
+<div class="space-y-4 mb-8">
+<div class="flex justify-between items-center py-3 border-b border-border-subtle">
+<span class="font-label-mono text-label-mono text-text-secondary">文件大小 (Size)</span>
+<span class="font-label-mono text-label-mono font-bold text-primary">1.2 GB</span>
+</div>
+<div class="flex flex-col gap-2 py-3 border-b border-border-subtle">
+<span class="font-label-mono text-label-mono text-text-secondary">SHA-256 摘要 (Checksum)</span>
+<div class="bg-surface-container-low p-3 rounded font-label-mono text-xs text-primary break-all border border-border-subtle relative group">
+                                e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+                                <button class="absolute top-2 right-2 p-1 bg-surface-container-lowest border border-border-subtle rounded opacity-0 group-hover:opacity-100 transition-opacity" title="Copy Checksum">
+<span class="material-symbols-outlined text-[14px]">content_copy</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<button class="w-full bg-primary text-on-primary font-body-lg py-4 rounded-lg font-semibold hover:bg-opacity-90 transition-all flex justify-center items-center gap-2">
+<span class="material-symbols-outlined">download</span> Download Full Archive
+                </button>
+</section>
+<!-- Audit Trail -->
+<section class="bg-surface-container-lowest border border-border-subtle rounded-xl p-8">
+<div class="flex items-center gap-3 mb-8">
+<span class="material-symbols-outlined text-text-secondary">history</span>
+<h2 class="font-headline-md text-[20px] font-semibold text-text-primary">脱敏审计时间线</h2>
+</div>
+<div class="relative border-l-2 border-border-subtle ml-3 space-y-8 pb-4">
+<!-- Event: Setup -->
+<div class="relative pl-8">
+<div class="absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-surface-container-lowest border-2 border-border-subtle"></div>
+<div class="flex flex-col gap-1">
+<div class="flex justify-between items-start">
+<span class="font-label-mono text-label-mono text-primary font-bold">PROTOCOL INITIALIZED</span>
+<span class="font-label-mono text-xs text-text-secondary">2023-01-15</span>
+</div>
+<span class="font-body-md text-sm text-text-secondary">Initial payload encrypted and rules defined.</span>
+</div>
+</div>
+<!-- Event: Armed -->
+<div class="relative pl-8">
+<div class="absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-surface-container-lowest border-2 border-status-armed"></div>
+<div class="flex flex-col gap-1">
+<div class="flex items-center gap-2">
+<span class="font-label-mono text-label-mono text-status-armed font-bold">SYSTEM ARMED</span>
+<span class="material-symbols-outlined text-[14px] text-status-armed" title="Verified">verified</span>
+</div>
+<div class="flex justify-between items-start mt-1">
+<span class="font-body-md text-sm text-text-secondary">Heartbeat monitor activated.</span>
+<span class="font-label-mono text-xs text-text-secondary">2023-05-12</span>
+</div>
+</div>
+</div>
+<!-- Event: Triggered -->
+<div class="relative pl-8">
+<div class="absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-surface-container-lowest border-2 border-status-alert"></div>
+<div class="flex flex-col gap-1">
+<div class="flex items-center gap-2">
+<span class="font-label-mono text-label-mono text-status-alert font-bold">TRIGGER EVENT LOGGED</span>
+</div>
+<div class="flex justify-between items-start mt-1">
+<span class="font-body-md text-sm text-text-secondary">3/3 Key Contacts confirmed status.</span>
+<span class="font-label-mono text-xs text-text-secondary">2024-11-19</span>
+</div>
+<div class="mt-2 bg-surface-container-low p-2 rounded text-xs font-label-mono text-text-secondary border border-border-subtle flex items-center gap-2">
+<span class="material-symbols-outlined text-[14px]">lock_clock</span> 24h Countdown Initiated
+                            </div>
+</div>
+</div>
+<!-- Event: Released -->
+<div class="relative pl-8">
+<div class="absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-primary border-2 border-primary"></div>
+<div class="flex flex-col gap-1">
+<div class="flex items-center gap-2">
+<span class="font-label-mono text-label-mono text-primary font-bold">FINAL RELEASE</span>
+<span class="material-symbols-outlined text-[14px] text-primary">done_all</span>
+</div>
+<div class="flex justify-between items-start mt-1">
+<span class="font-body-md text-sm text-text-primary font-medium">Payload decrypted and published.</span>
+<span class="font-label-mono text-xs text-text-secondary">2024-11-20</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+</div>
+</main>
+<!-- Footer -->
+
+
+
+</body></html>

@@ -1,0 +1,242 @@
+<!DOCTYPE html><html lang="zh-CN"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>管理员设置 - Digital Legacy</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "status-setup": "#64748B",
+                    "on-secondary-fixed-variant": "#005236",
+                    "on-error": "#ffffff",
+                    "text-primary": "#0F172A",
+                    "tertiary": "#000000",
+                    "surface-container": "#eceef0",
+                    "secondary-container": "#6cf8bb",
+                    "status-recovery": "#F59E0B",
+                    "on-primary": "#ffffff",
+                    "on-background": "#191c1e",
+                    "surface-tint": "#565e74",
+                    "surface-container-high": "#e6e8ea",
+                    "inverse-primary": "#bec6e0",
+                    "status-alert": "#EA580C",
+                    "tertiary-container": "#2a1700",
+                    "status-armed": "#10B981",
+                    "surface-container-highest": "#e0e3e5",
+                    "on-secondary": "#ffffff",
+                    "on-primary-container": "#7c839b",
+                    "outline-variant": "#c6c6cd",
+                    "on-secondary-fixed": "#002113",
+                    "status-critical": "#DC2626",
+                    "on-tertiary-fixed-variant": "#653e00",
+                    "on-tertiary-fixed": "#2a1700",
+                    "error-container": "#ffdad6",
+                    "text-secondary": "#475569",
+                    "secondary-fixed-dim": "#4edea3",
+                    "on-tertiary": "#ffffff",
+                    "secondary-fixed": "#6ffbbe",
+                    "inverse-on-surface": "#eff1f3",
+                    "inverse-surface": "#2d3133",
+                    "outline": "#76777d",
+                    "on-tertiary-container": "#b87500",
+                    "on-surface": "#191c1e",
+                    "surface-variant": "#e0e3e5",
+                    "primary-fixed": "#dae2fd",
+                    "surface-container-lowest": "#ffffff",
+                    "on-secondary-container": "#00714d",
+                    "error": "#ba1a1a",
+                    "surface-container-low": "#f2f4f6",
+                    "surface": "#f7f9fb",
+                    "primary-container": "#131b2e",
+                    "primary": "#000000",
+                    "background": "#f7f9fb",
+                    "on-error-container": "#93000a",
+                    "primary-fixed-dim": "#bec6e0",
+                    "surface-dim": "#d8dadc",
+                    "border-subtle": "#E2E8F0",
+                    "on-primary-fixed-variant": "#3f465c",
+                    "tertiary-fixed": "#ffddb8",
+                    "tertiary-fixed-dim": "#ffb95f",
+                    "secondary": "#006c49",
+                    "on-surface-variant": "#45464d",
+                    "surface-bright": "#f7f9fb",
+                    "on-primary-fixed": "#131b2e"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "spacing": {
+                    "container-max": "1024px",
+                    "unit": "8px",
+                    "margin-desktop": "40px",
+                    "margin-mobile": "16px",
+                    "gutter": "24px"
+            },
+            "fontFamily": {
+                    "body-lg": [
+                            "Inter"
+                    ],
+                    "display-countdown": [
+                            "Inter"
+                    ],
+                    "label-mono": [
+                            "JetBrains Mono"
+                    ],
+                    "headline-lg": [
+                            "Inter"
+                    ],
+                    "legal-text": [
+                            "Inter"
+                    ],
+                    "headline-md": [
+                            "Inter"
+                    ],
+                    "body-md": [
+                            "Inter"
+                    ]
+            },
+            "fontSize": {
+                    "body-lg": [
+                            "18px",
+                            {
+                                    "lineHeight": "28px",
+                                    "fontWeight": "400"
+                            }
+                    ],
+                    "display-countdown": [
+                            "48px",
+                            {
+                                    "lineHeight": "56px",
+                                    "letterSpacing": "-0.02em",
+                                    "fontWeight": "700"
+                            }
+                    ],
+                    "label-mono": [
+                            "14px",
+                            {
+                                    "lineHeight": "20px",
+                                    "fontWeight": "500"
+                            }
+                    ],
+                    "headline-lg": [
+                            "32px",
+                            {
+                                    "lineHeight": "40px",
+                                    "fontWeight": "600"
+                            }
+                    ],
+                    "legal-text": [
+                            "15px",
+                            {
+                                    "lineHeight": "26px",
+                                    "letterSpacing": "0.01em",
+                                    "fontWeight": "400"
+                            }
+                    ],
+                    "headline-md": [
+                            "24px",
+                            {
+                                    "lineHeight": "32px",
+                                    "fontWeight": "600"
+                            }
+                    ],
+                    "body-md": [
+                            "16px",
+                            {
+                                    "lineHeight": "24px",
+                                    "fontWeight": "400"
+                            }
+                    ]
+            }
+        },
+        },
+      }
+    </script>
+<style>
+        /* Custom scrollbar for webkit */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #E2E8F0;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #c6c6cd;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="bg-background text-text-primary font-body-md min-h-screen flex flex-col pb-[80px]">
+<!-- TopAppBar (Center-aligned Alert) -->
+<!-- TopAppBar (Brand) -->
+<header class="fixed w-full z-30 bg-surface-container-lowest border-b border-border-subtle flex justify-between items-center px-margin-mobile md:px-margin-desktop py-4 top-0">
+<div class="font-headline-md text-headline-md font-bold text-primary">
+            Digital Legacy
+        </div>
+<div class="flex items-center gap-4">
+<span class="text-[12px] font-bold tracking-widest uppercase bg-status-armed/10 text-status-armed px-2 py-1 rounded">
+                ARMED
+            </span>
+<button class="text-primary hover:bg-surface-container-low transition-colors rounded-full p-1 scale-95 active:duration-150">
+<span class="material-symbols-outlined text-primary">account_circle</span>
+</button>
+</div>
+</header>
+<!-- Main Canvas (Mobile Optimized Settings Layout) -->
+<main class="flex-1 w-full max-w-container-max mx-auto px-margin-mobile pt-20">
+<!-- Page Header -->
+<div class="mb-6">
+<h1 class="font-headline-lg text-headline-lg text-primary">设置</h1>
+<p class="font-body-md text-body-md text-text-secondary mt-1">管理系统配置与安全策略</p>
+</div>
+<!-- Settings Groups -->
+<div class="space-y-6">
+<!-- Profile Group -->
+<section class="bg-surface-container-lowest rounded-xl border border-border-subtle overflow-hidden"><div class="px-4 py-3 border-b border-border-subtle bg-surface-container-low"><h2 class="font-label-mono text-label-mono text-text-secondary uppercase tracking-wider">个人资料</h2></div><div class="divide-y divide-border-subtle"><button class="w-full flex items-center justify-between px-4 py-4 hover:bg-surface-container-low transition-colors active:bg-surface-dim"><div class="flex items-center gap-3"><span class="material-symbols-outlined text-text-secondary">person</span><div class="text-left"><p class="font-body-md text-body-md text-text-primary">姓名</p><p class="font-label-mono text-label-mono text-text-secondary text-[12px]">System Admin</p></div></div><span class="material-symbols-outlined text-text-secondary opacity-50">chevron_right</span></button><button class="w-full flex items-center justify-between px-4 py-4 hover:bg-surface-container-low transition-colors active:bg-surface-dim"><div class="flex items-center gap-3"><span class="material-symbols-outlined text-text-secondary">mail</span><div class="text-left"><p class="font-body-md text-body-md text-text-primary">主邮箱 (用于身份验证)</p><p class="font-label-mono text-label-mono text-text-secondary text-[12px]">admin@digitallegacy.sys</p></div></div><span class="material-symbols-outlined text-text-secondary opacity-50">chevron_right</span></button><button class="w-full flex items-center justify-between px-4 py-4 hover:bg-surface-container-low transition-colors active:bg-surface-dim"><div class="flex items-center gap-3"><span class="material-symbols-outlined text-text-secondary">alternate_email</span><div class="text-left"><p class="font-body-md text-body-md text-text-primary">备用邮箱</p><p class="font-label-mono text-label-mono text-text-secondary text-[12px]">backup@example.com</p></div></div><span class="material-symbols-outlined text-text-secondary opacity-50">chevron_right</span></button></div></section>
+<!-- Core Configuration Group -->
+<section class="bg-surface-container-lowest rounded-xl border border-border-subtle overflow-hidden"><div class="px-4 py-3 border-b border-border-subtle bg-surface-container-low"><h2 class="font-label-mono text-label-mono text-text-secondary uppercase tracking-wider">核心配置</h2></div><div class="divide-y divide-border-subtle"><button class="w-full flex items-center justify-between px-4 py-4 hover:bg-surface-container-low transition-colors active:bg-surface-dim"><div class="flex items-center gap-3"><span class="material-symbols-outlined text-text-secondary">timer</span><div class="text-left"><p class="font-body-md text-body-md text-text-primary">未签到触发阈值 (天)</p><p class="font-label-mono text-label-mono text-text-secondary text-[12px]">3 天</p></div></div><span class="material-symbols-outlined text-text-secondary opacity-50">chevron_right</span></button><button class="w-full flex items-center justify-between px-4 py-4 hover:bg-surface-container-low transition-colors active:bg-surface-dim"><div class="flex items-center gap-3"><span class="material-symbols-outlined text-text-secondary">public</span><div class="text-left"><p class="font-body-md text-body-md text-text-primary">系统时区</p><p class="font-label-mono text-label-mono text-text-secondary text-[12px]">Asia/Shanghai (北京时间)</p></div></div><span class="material-symbols-outlined text-text-secondary opacity-50">chevron_right</span></button></div></section>
+<!-- SMTP Configuration Group -->
+<section class="bg-surface-container-lowest rounded-xl border border-border-subtle overflow-hidden"><div class="px-4 py-3 border-b border-border-subtle bg-surface-container-low flex justify-between items-center"><h2 class="font-label-mono text-label-mono text-text-secondary uppercase tracking-wider">SMTP 服务</h2><span class="flex items-center gap-1 text-[12px] font-bold text-status-armed"><span class="material-symbols-outlined text-[14px]">check_circle</span>已连接</span></div><div class="divide-y divide-border-subtle"><button class="w-full flex items-center justify-between px-4 py-4 hover:bg-surface-container-low transition-colors active:bg-surface-dim"><div class="flex items-center gap-3"><span class="material-symbols-outlined text-text-secondary">dns</span><div class="text-left"><p class="font-body-md text-body-md text-text-primary">服务器地址</p><p class="font-label-mono text-label-mono text-text-secondary text-[12px]">smtp.example.com : 465</p></div></div><span class="material-symbols-outlined text-text-secondary opacity-50">chevron_right</span></button><button class="w-full flex items-center justify-between px-4 py-4 hover:bg-surface-container-low transition-colors active:bg-surface-dim"><div class="flex items-center gap-3"><span class="material-symbols-outlined text-text-secondary">mail</span><div class="text-left"><p class="font-body-md text-body-md text-text-primary">发件人邮箱</p><p class="font-label-mono text-label-mono text-text-secondary text-[12px]">noreply@digitallegacy.sys</p></div></div><span class="material-symbols-outlined text-text-secondary opacity-50">chevron_right</span></button><button class="w-full flex items-center justify-between px-4 py-4 hover:bg-surface-container-low transition-colors active:bg-surface-dim"><div class="flex items-center gap-3"><span class="material-symbols-outlined text-text-secondary">lock</span><div class="text-left"><p class="font-body-md text-body-md text-text-primary">加密方式</p><p class="font-label-mono text-label-mono text-text-secondary text-[12px]">SSL</p></div></div><span class="material-symbols-outlined text-text-secondary opacity-50">chevron_right</span></button><button class="w-full flex items-center justify-between px-4 py-4 hover:bg-surface-container-low transition-colors active:bg-surface-dim"><div class="flex items-center gap-3"><span class="material-symbols-outlined text-text-secondary">person</span><div class="text-left"><p class="font-body-md text-body-md text-text-primary">用户名</p><p class="font-label-mono text-label-mono text-text-secondary text-[12px]">apikey</p></div></div><span class="material-symbols-outlined text-text-secondary opacity-50">chevron_right</span></button><button class="w-full flex items-center justify-between px-4 py-4 hover:bg-surface-container-low transition-colors active:bg-surface-dim"><div class="flex items-center gap-3"><span class="material-symbols-outlined text-text-secondary">key</span><div class="text-left"><p class="font-body-md text-body-md text-text-primary">密码 / API Key</p><p class="font-label-mono text-label-mono text-text-secondary text-[12px]">••••••••</p></div></div><span class="material-symbols-outlined text-text-secondary opacity-50">chevron_right</span></button><button class="w-full flex items-center justify-center px-4 py-4 hover:bg-surface-container-low transition-colors active:bg-surface-dim text-primary font-bold gap-2"><span class="material-symbols-outlined text-[18px]">send</span>发送测试邮件</button></div></section>
+<!-- Security Group -->
+<section class="bg-surface-container-lowest rounded-xl border border-border-subtle overflow-hidden mb-8"><div class="px-4 py-3 border-b border-border-subtle bg-surface-container-low"><h2 class="font-label-mono text-label-mono text-text-secondary uppercase tracking-wider">安全与审计</h2></div><div class="divide-y divide-border-subtle"><div class="w-full flex items-center justify-between px-4 py-4"><div class="flex items-center gap-3"><span class="material-symbols-outlined text-status-alert">warning</span><div class="text-left"><p class="font-body-md text-body-md text-text-primary">不可撤回风险确认</p><p class="font-label-mono text-label-mono text-text-secondary text-[12px]">确认 RELEASE 状态不可逆转</p></div></div><div class="relative inline-block w-12 h-6 rounded-full bg-status-armed cursor-pointer transition-colors"><div class="absolute left-1 top-1 w-4 h-4 rounded-full bg-white transition-transform transform translate-x-6"></div></div></div><button class="w-full flex items-center justify-between px-4 py-4 hover:bg-surface-container-low transition-colors active:bg-surface-dim"><div class="flex items-center gap-3"><span class="material-symbols-outlined text-status-critical">delete_forever</span><div class="text-left"><p class="font-body-md text-body-md text-status-critical">重置系统</p><p class="font-label-mono text-label-mono text-text-secondary text-[12px]">清除所有数据并恢复初始状态</p></div></div><span class="material-symbols-outlined text-text-secondary opacity-50">chevron_right</span></button></div></section>
+</div>
+</main>
+<!-- BottomNavBar (Mobile Only) -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full z-50 flex justify-around items-center h-16 bg-surface px-4 pb-safe border-t border-border-subtle">
+<a class="flex flex-col items-center justify-center text-text-secondary hover:bg-surface-container-low transition-all scale-95 active:duration-100 p-2 rounded-lg" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: &quot;FILL&quot; 0;">home</span>
+<span class="font-label-mono text-[10px] mt-1">首页</span>
+</a>
+<a class="flex flex-col items-center justify-center text-text-secondary hover:bg-surface-container-low transition-all scale-95 active:duration-100 p-2 rounded-lg" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: &quot;FILL&quot; 0;">contacts</span>
+<span class="font-label-mono text-[10px] mt-1">联系人</span>
+</a>
+<a class="flex flex-col items-center justify-center text-text-secondary hover:bg-surface-container-low transition-all scale-95 active:duration-100 p-2 rounded-lg" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: &quot;FILL&quot; 0;">description</span>
+<span class="font-label-mono text-[10px] mt-1">文件</span>
+</a>
+<a class="flex flex-col items-center justify-center text-primary bg-surface-container-high rounded-xl px-3 py-1 scale-95 active:duration-100" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: &quot;FILL&quot; 1;">settings</span>
+<span class="font-label-mono text-[10px] mt-1 font-bold">设置</span>
+</a>
+</nav>
+
+
+</body></html>

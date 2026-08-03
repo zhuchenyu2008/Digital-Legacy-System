@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+
+<html class="light" lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>【重要】请确认 {owner_name} 的联络状态</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "error": "#ba1a1a",
+                      "on-error": "#ffffff",
+                      "on-primary-fixed": "#131b2e",
+                      "on-tertiary-fixed": "#2a1700",
+                      "background": "#f7f9fb",
+                      "secondary-fixed": "#6ffbbe",
+                      "inverse-surface": "#2d3133",
+                      "tertiary-fixed": "#ffddb8",
+                      "on-secondary": "#ffffff",
+                      "on-error-container": "#93000a",
+                      "on-secondary-fixed": "#002113",
+                      "on-background": "#191c1e",
+                      "text-secondary": "#475569",
+                      "surface-tint": "#565e74",
+                      "status-recovery": "#F59E0B",
+                      "on-secondary-fixed-variant": "#005236",
+                      "outline": "#76777d",
+                      "surface-container-low": "#f2f4f6",
+                      "surface-container-high": "#e6e8ea",
+                      "on-primary-container": "#7c839b",
+                      "tertiary-container": "#2a1700",
+                      "tertiary-fixed-dim": "#ffb95f",
+                      "text-primary": "#0F172A",
+                      "border-subtle": "#E2E8F0",
+                      "status-alert": "#EA580C",
+                      "on-tertiary": "#ffffff",
+                      "surface-variant": "#e0e3e5",
+                      "primary": "#000000",
+                      "outline-variant": "#c6c6cd",
+                      "tertiary": "#000000",
+                      "error-container": "#ffdad6",
+                      "status-setup": "#64748B",
+                      "secondary": "#006c49",
+                      "on-primary-fixed-variant": "#3f465c",
+                      "on-tertiary-fixed-variant": "#653e00",
+                      "secondary-fixed-dim": "#4edea3",
+                      "surface-container-lowest": "#ffffff",
+                      "surface-bright": "#f7f9fb",
+                      "on-tertiary-container": "#b87500",
+                      "on-surface": "#191c1e",
+                      "status-armed": "#10B981",
+                      "primary-container": "#131b2e",
+                      "surface-container": "#eceef0",
+                      "on-primary": "#ffffff",
+                      "on-surface-variant": "#45464d",
+                      "surface-container-highest": "#e0e3e5",
+                      "surface": "#f7f9fb",
+                      "on-secondary-container": "#00714d",
+                      "inverse-on-surface": "#eff1f3",
+                      "primary-fixed-dim": "#bec6e0",
+                      "status-critical": "#DC2626",
+                      "secondary-container": "#6cf8bb",
+                      "surface-dim": "#d8dadc",
+                      "primary-fixed": "#dae2fd",
+                      "inverse-primary": "#bec6e0"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.125rem",
+                      "lg": "0.25rem",
+                      "xl": "0.5rem",
+                      "full": "0.75rem"
+              },
+              "spacing": {
+                      "gutter": "24px",
+                      "container-max": "1024px",
+                      "margin-mobile": "16px",
+                      "margin-desktop": "40px",
+                      "unit": "8px"
+              },
+              "fontFamily": {
+                      "body-lg": [
+                              "Inter"
+                      ],
+                      "label-mono": [
+                              "JetBrains Mono"
+                      ],
+                      "body-md": [
+                              "Inter"
+                      ],
+                      "legal-text": [
+                              "Inter"
+                      ],
+                      "headline-lg": [
+                              "Inter"
+                      ],
+                      "display-countdown": [
+                              "Inter"
+                      ],
+                      "headline-md": [
+                              "Inter"
+                      ]
+              },
+              "fontSize": {
+                      "body-lg": [
+                              "18px",
+                              {
+                                      "lineHeight": "28px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "label-mono": [
+                              "14px",
+                              {
+                                      "lineHeight": "20px",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "body-md": [
+                              "16px",
+                              {
+                                      "lineHeight": "24px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "legal-text": [
+                              "15px",
+                              {
+                                      "lineHeight": "26px",
+                                      "letterSpacing": "0.01em",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "headline-lg": [
+                              "32px",
+                              {
+                                      "lineHeight": "40px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "display-countdown": [
+                              "48px",
+                              {
+                                      "lineHeight": "56px",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "headline-md": [
+                              "24px",
+                              {
+                                      "lineHeight": "32px",
+                                      "fontWeight": "600"
+                              }
+                      ]
+              }
+            }
+          }
+        }
+    </script>
+<style>
+        body {
+            background-color: #f2f4f6; /* surface-container-low */
+            margin: 0;
+            padding: 0;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        .email-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            border: 1px solid #E2E8F0; /* border-subtle */
+            border-radius: 0.25rem;
+            overflow: hidden;
+        }
+        .header {
+            padding: 32px 40px;
+            border-bottom: 1px solid #E2E8F0; /* border-subtle */
+            text-align: center;
+        }
+        .content {
+            padding: 48px 40px;
+        }
+        .footer {
+            padding: 32px 40px;
+            background-color: #f2f4f6; /* surface-container-low */
+            border-top: 1px solid #E2E8F0; /* border-subtle */
+        }
+    </style>
+</head>
+<body class="bg-surface-container-low font-body-md text-body-md text-text-primary p-4 md:p-8">
+<div class="email-container shadow-sm mt-8 mb-8 border-status-critical"><div class="bg-status-critical text-on-error p-4 text-center font-bold tracking-tight text-body-md">SYSTEM ALERT: SURVIVAL STATUS CONFIRMATION REQUIRED</div>
+<!-- Header -->
+<div class="header bg-surface-container-lowest">
+<h1 class="font-headline-md text-headline-md font-bold text-primary m-0 tracking-tight">Digital Legacy System</h1>
+</div>
+<!-- Content -->
+<div class="content bg-surface-container-lowest">
+<div class="inline-block bg-error-container text-on-error-container font-label-mono text-label-mono px-3 py-1 rounded mb-4 font-bold">STRICTLY CONFIDENTIAL / URGENT</div><h2 class="font-headline-lg text-headline-lg font-semibold text-text-primary mb-6 font-bold">【重要】请确认 {owner_name} 的联络状态</h2>
+<p class="font-body-lg text-body-lg text-text-primary mb-6">{owner_name} 已超过预设期限未完成签到，<span class="font-bold text-status-critical">系统现已进入第一次确认流程</span>。</p>
+<div class="bg-surface p-6 rounded border border-border-subtle mb-8">
+<p class="font-body-md text-body-md text-text-secondary m-0">
+                    请根据你实际掌握的情况，在网站中选择“可能或确认已经离世”或“仍然健在”，并输入你的姓名、密码及指定确认文字。
+                </p>
+</div>
+<div class="text-center">
+<a class="inline-block bg-primary text-on-primary font-body-md text-body-md font-medium px-8 py-4 rounded hover:bg-primary-container hover:text-on-primary-container transition-colors duration-200 no-underline px-12" href="{action_url}">
+                    进入确认页面
+                </a>
+</div>
+</div>
+<!-- Footer -->
+<div class="footer bg-surface-container-low">
+<p class="font-legal-text text-legal-text text-text-secondary m-0 text-center">
+                本流程没有自动到期时间。邮件链接本身不会作出确认。
+            </p>
+<div class="mt-6 pt-6 border-t border-border-subtle text-center">
+<p class="font-label-mono text-label-mono text-outline m-0">
+                    © 2024 Digital Legacy System. All rights reserved. Secure &amp; Immutable.
+                </p>
+</div>
+</div>
+</div>
+</body></html>

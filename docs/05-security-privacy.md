@@ -2,7 +2,7 @@
 
 > 文档状态：安全基线  
 > 保护对象：遗书 ZIP、密码和密钥、流程状态、联系人个人信息、邮件入口、审计记录  
-> 关联文档：[产品需求](./01-product-requirements.md) · [系统架构](./02-system-architecture.md) · [数据库设计](./03-database-design.md) · [API 设计](./04-api-design.md)
+> 关联文档：[产品需求](./01-product-requirements.md) · [系统架构](./02-system-architecture.md) · [数据库设计](./03-database-design.md) · [API 设计](./04-api-design.md) · [页面规格](./06-page-specifications.md)
 
 ## 1. 安全结论
 

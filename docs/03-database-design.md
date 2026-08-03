@@ -2,7 +2,7 @@
 
 > 数据库：PostgreSQL  
 > 默认时区：数据库会话使用 UTC，业务展示使用 `Asia/Shanghai`  
-> 关联文档：[产品需求](./01-product-requirements.md) · [系统架构](./02-system-architecture.md) · [API 设计](./04-api-design.md) · [安全与隐私](./05-security-privacy.md)
+> 关联文档：[产品需求](./01-product-requirements.md) · [系统架构](./02-system-architecture.md) · [API 设计](./04-api-design.md) · [安全与隐私](./05-security-privacy.md) · [页面规格](./06-page-specifications.md)
 
 ## 1. 设计原则
 

@@ -4,7 +4,7 @@
 > 适用版本：V1（一次性完整交付）  
 > 默认业务时区：北京时间 `Asia/Shanghai`（UTC+8）  
 > 目标读者：项目所有者、开发人员、AI 编码代理  
-> 关联文档：[系统架构设计](./02-system-architecture.md) · [数据库设计](./03-database-design.md) · [API 接口设计](./04-api-design.md) · [安全与隐私设计](./05-security-privacy.md)
+> 关联文档：[系统架构设计](./02-system-architecture.md) · [数据库设计](./03-database-design.md) · [API 接口设计](./04-api-design.md) · [安全与隐私设计](./05-security-privacy.md) · [页面设计与交互规格](./06-page-specifications.md)
 
 ## 1. 产品定义
 

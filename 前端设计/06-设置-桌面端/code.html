@@ -1,0 +1,275 @@
+<!DOCTYPE html><html lang="zh-CN"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>设置 - Digital Legacy</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "status-setup": "#64748B",
+                        "on-secondary-fixed-variant": "#005236",
+                        "on-error": "#ffffff",
+                        "text-primary": "#0F172A",
+                        "tertiary": "#000000",
+                        "surface-container": "#eceef0",
+                        "secondary-container": "#6cf8bb",
+                        "status-recovery": "#F59E0B",
+                        "on-primary": "#ffffff",
+                        "on-background": "#191c1e",
+                        "surface-tint": "#565e74",
+                        "surface-container-high": "#e6e8ea",
+                        "inverse-primary": "#bec6e0",
+                        "status-alert": "#EA580C",
+                        "tertiary-container": "#2a1700",
+                        "status-armed": "#10B981",
+                        "surface-container-highest": "#e0e3e5",
+                        "on-secondary": "#ffffff",
+                        "on-primary-container": "#7c839b",
+                        "outline-variant": "#c6c6cd",
+                        "on-secondary-fixed": "#002113",
+                        "status-critical": "#DC2626",
+                        "on-tertiary-fixed-variant": "#653e00",
+                        "on-tertiary-fixed": "#2a1700",
+                        "error-container": "#ffdad6",
+                        "text-secondary": "#475569",
+                        "secondary-fixed-dim": "#4edea3",
+                        "on-tertiary": "#ffffff",
+                        "secondary-fixed": "#6ffbbe",
+                        "inverse-on-surface": "#eff1f3",
+                        "inverse-surface": "#2d3133",
+                        "outline": "#76777d",
+                        "on-tertiary-container": "#b87500",
+                        "on-surface": "#191c1e",
+                        "surface-variant": "#e0e3e5",
+                        "primary-fixed": "#dae2fd",
+                        "surface-container-lowest": "#ffffff",
+                        "on-secondary-container": "#00714d",
+                        "error": "#ba1a1a",
+                        "surface-container-low": "#f2f4f6",
+                        "surface": "#f7f9fb",
+                        "primary-container": "#131b2e",
+                        "primary": "#000000",
+                        "background": "#f7f9fb",
+                        "on-error-container": "#93000a",
+                        "primary-fixed-dim": "#bec6e0",
+                        "surface-dim": "#d8dadc",
+                        "border-subtle": "#E2E8F0",
+                        "on-primary-fixed-variant": "#3f465c",
+                        "tertiary-fixed": "#ffddb8",
+                        "tertiary-fixed-dim": "#ffb95f",
+                        "secondary": "#006c49",
+                        "on-surface-variant": "#45464d",
+                        "surface-bright": "#f7f9fb",
+                        "on-primary-fixed": "#131b2e"
+                    },
+                    borderRadius: {
+                        DEFAULT: "0.125rem",
+                        lg: "0.25rem",
+                        xl: "0.5rem",
+                        full: "0.75rem"
+                    },
+                    spacing: {
+                        "container-max": "1024px",
+                        "unit": "8px",
+                        "margin-desktop": "40px",
+                        "margin-mobile": "16px",
+                        "gutter": "24px"
+                    },
+                    fontFamily: {
+                        "body-lg": ["Inter"],
+                        "display-countdown": ["Inter"],
+                        "label-mono": ["JetBrains Mono"],
+                        "headline-lg": ["Inter"],
+                        "legal-text": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "body-md": ["Inter"]
+                    },
+                    fontSize: {
+                        "body-lg": ["18px", { lineHeight: "28px", fontWeight: "400" }],
+                        "display-countdown": ["48px", { lineHeight: "56px", letterSpacing: "-0.02em", fontWeight: "700" }],
+                        "label-mono": ["14px", { lineHeight: "20px", fontWeight: "500" }],
+                        "headline-lg": ["32px", { lineHeight: "40px", fontWeight: "600" }],
+                        "legal-text": ["15px", { lineHeight: "26px", letterSpacing: "0.01em", fontWeight: "400" }],
+                        "headline-md": ["24px", { lineHeight: "32px", fontWeight: "600" }],
+                        "body-md": ["16px", { lineHeight: "24px", fontWeight: "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-surface text-text-primary font-body-md min-h-screen flex flex-col antialiased">
+<!-- TopAppBar -->
+<header class="bg-surface dark:bg-inverse-surface text-primary dark:text-inverse-primary docked full-width top-0 border-b border-border-subtle dark:border-outline flat no shadows font-headline-md text-headline-md font-body-md text-body-md">
+<div class="flex justify-between items-center w-full px-margin-desktop max-w-container-max mx-auto h-16">
+<div class="flex items-center space-x-8">
+<div class="font-headline-md text-headline-md font-bold text-primary dark:text-inverse-primary">
+                    Digital Legacy
+                </div>
+<nav class="hidden md:flex space-x-6 items-center pt-1">
+<a class="text-text-secondary dark:text-on-surface-variant hover:text-primary dark:hover:text-inverse-primary transition-colors pb-1" href="#">首页</a>
+<a class="text-text-secondary dark:text-on-surface-variant hover:text-primary dark:hover:text-inverse-primary transition-colors pb-1" href="#">联系人</a>
+<a class="text-text-secondary dark:text-on-surface-variant hover:text-primary dark:hover:text-inverse-primary transition-colors pb-1" href="#">文件</a>
+<a class="text-primary dark:text-inverse-primary font-bold border-b-2 border-primary dark:border-inverse-primary pb-1 hover:text-primary dark:hover:text-inverse-primary transition-colors Active: opacity-80 transition-all duration-200" href="#">设置</a>
+</nav>
+</div>
+<div class="flex items-center space-x-4">
+<span class="inline-flex items-center px-2 py-1 rounded bg-status-armed/10 text-status-armed text-xs font-bold uppercase tracking-wider">
+                    ARMED
+                </span>
+<button class="text-text-secondary hover:text-primary transition-colors">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">notifications</span>
+</button>
+<button class="text-text-secondary hover:text-primary transition-colors">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">account_circle</span>
+</button>
+</div>
+</div>
+</header>
+<!-- Main Content -->
+<main class="flex-grow w-full px-margin-desktop max-w-container-max mx-auto py-12">
+<div class="mb-10">
+<h1 class="font-headline-lg text-headline-lg text-text-primary">设置</h1>
+<p class="text-text-secondary mt-2">管理系统参数与管理员信息。所有更改将在重新验证后生效。</p>
+</div>
+<div class="space-y-8">
+<!-- 管理员资料 -->
+<section class="bg-surface-container-lowest border border-border-subtle rounded-lg p-8">
+<h2 class="font-headline-md text-headline-md text-text-primary mb-6 flex items-center">
+<span class="material-symbols-outlined mr-2">person</span>
+                    管理员资料
+                </h2>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<div>
+<label class="block text-sm font-medium text-text-secondary mb-1">姓名</label>
+<input class="w-full bg-surface border border-outline-variant rounded px-3 py-2 text-text-primary focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors" disabled="" type="text" value="System Admin">
+</div>
+<div>
+<label class="block text-sm font-medium text-text-secondary mb-1">主邮箱 (用于身份验证)</label>
+<input class="w-full bg-surface border border-outline-variant rounded px-3 py-2 text-text-primary focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors" disabled="" type="email" value="admin@digitallegacy.sys">
+</div>
+<div class="md:col-span-2">
+<label class="block text-sm font-medium text-text-secondary mb-1">备用邮箱 (接收紧急通知，不可与主邮箱相同)</label>
+<input class="w-full bg-surface-container-lowest border border-border-subtle rounded px-3 py-2 text-text-primary focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors" type="email" value="backup@example.com">
+</div>
+</div>
+<div class="mt-6 pt-6 border-t border-border-subtle">
+<button class="bg-surface-container-low hover:bg-surface-container-high text-text-primary border border-border-subtle px-4 py-2 rounded font-medium transition-colors">
+                        修改主密码
+                    </button>
+</div>
+</section>
+<!-- 核心配置 -->
+<section class="bg-surface-container-lowest border border-border-subtle rounded-lg p-8">
+<h2 class="font-headline-md text-headline-md text-text-primary mb-6 flex items-center">
+<span class="material-symbols-outlined mr-2">settings</span>
+                    核心配置
+                </h2>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<div>
+<label class="block text-sm font-medium text-text-secondary mb-1">未签到触发阈值 (天)</label>
+<p class="text-xs text-text-secondary mb-2">连续未签到超过此天数，系统将进入 PENDING 状态。</p>
+<input class="w-full bg-surface-container-lowest border border-border-subtle rounded px-3 py-2 text-text-primary font-label-mono focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors" min="1" type="number" value="3">
+</div>
+<div>
+<label class="block text-sm font-medium text-text-secondary mb-1">系统时区</label>
+<p class="text-xs text-text-secondary mb-2">用于计算签到周期与时间戳记录。</p>
+<div class="w-full bg-surface border border-outline-variant rounded px-3 py-2 text-text-primary font-label-mono bg-opacity-50">
+                            Asia/Shanghai (北京时间)
+                        </div>
+</div>
+</div>
+</section>
+<!-- SMTP 邮件服务配置 -->
+<section class="bg-surface-container-lowest border border-border-subtle rounded-lg p-8">
+<h2 class="font-headline-md text-headline-md text-text-primary mb-6 flex items-center">
+<span class="material-symbols-outlined mr-2">mail</span>
+                    SMTP 邮件服务配置
+                </h2>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<div>
+<label class="block text-sm font-medium text-text-secondary mb-1">服务器地址</label>
+<input class="w-full bg-surface-container-lowest border border-border-subtle rounded px-3 py-2 text-text-primary font-label-mono focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors" type="text" value="smtp.example.com">
+</div>
+<div>
+<label class="block text-sm font-medium text-text-secondary mb-1">端口</label>
+<input class="w-full bg-surface-container-lowest border border-border-subtle rounded px-3 py-2 text-text-primary font-label-mono focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors" type="number" value="465">
+</div>
+<div>
+<label class="block text-sm font-medium text-text-secondary mb-1">发件人邮箱</label>
+<input class="w-full bg-surface-container-lowest border border-border-subtle rounded px-3 py-2 text-text-primary focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors" type="email" value="noreply@digitallegacy.sys">
+</div>
+<div>
+<label class="block text-sm font-medium text-text-secondary mb-1">加密方式</label>
+<select class="w-full bg-surface-container-lowest border border-border-subtle rounded px-3 py-2 text-text-primary focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors">
+<option>SSL</option>
+<option>TLS</option>
+<option>STARTTLS</option>
+<option>None</option>
+</select>
+</div>
+<div>
+<label class="block text-sm font-medium text-text-secondary mb-1">用户名</label>
+<input class="w-full bg-surface-container-lowest border border-border-subtle rounded px-3 py-2 text-text-primary focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors" type="text" value="apikey">
+</div>
+<div>
+<label class="block text-sm font-medium text-text-secondary mb-1">密码 / API Key</label>
+<input class="w-full bg-surface-container-lowest border border-border-subtle rounded px-3 py-2 text-text-primary font-label-mono focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors" type="password" value="********">
+</div>
+</div>
+<div class="mt-6 pt-6 border-t border-border-subtle flex justify-end">
+<button class="bg-surface-container-low hover:bg-surface-container-high text-text-primary border border-border-subtle px-4 py-2 rounded font-medium transition-colors flex items-center">
+<span class="material-symbols-outlined mr-2 text-sm">send</span>
+                        发送测试邮件
+                    </button>
+</div>
+</section>
+<!-- 系统安全 -->
+<section class="bg-surface-container-lowest border border-border-subtle rounded-lg p-8 border-l-4 border-l-status-alert">
+<h2 class="font-headline-md text-headline-md text-text-primary mb-6 flex items-center">
+<span class="material-symbols-outlined mr-2 text-status-alert">security</span>
+                    系统安全
+                </h2>
+<div class="flex items-start justify-between">
+<div class="pr-8">
+<h3 class="font-medium text-text-primary mb-1">不可撤回风险确认</h3>
+<p class="text-sm text-text-secondary">开启此项以确认您理解：一旦系统进入 RELEASE 状态，所有预设动作将不可逆转地执行。这是系统进入 ARMED 状态前的必要条件。</p>
+</div>
+<div class="pt-1">
+<label class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox">
+<div class="w-11 h-6 bg-surface-container-highest peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+</label>
+</div>
+</div>
+<div class="mt-8 flex justify-end space-x-4">
+<button class="px-6 py-2 border border-border-subtle text-text-primary rounded font-medium hover:bg-surface-container-low transition-colors">
+                        取消更改
+                    </button>
+<button class="px-6 py-2 bg-primary text-on-primary rounded font-medium hover:bg-primary/90 transition-colors">
+                        保存配置
+                    </button>
+</div>
+</section>
+</div>
+</main>
+<!-- Footer -->
+<footer class="bg-surface-container-low dark:bg-surface-dim border-t border-border-subtle dark:border-outline flat no shadows font-legal-text text-legal-text full-width bottom transition-colors duration-200 mt-auto">
+<div class="flex flex-col md:flex-row justify-between items-center w-full py-8 px-margin-desktop max-w-container-max mx-auto">
+<div class="text-text-secondary dark:text-on-surface-variant font-label-mono text-label-mono mb-4 md:mb-0">
+                © 2024 Digital Legacy System. All rights reserved. Secure &amp; Immutable.
+            </div>
+<div class="flex space-x-6">
+<a class="text-text-secondary dark:text-on-surface-variant hover:text-primary dark:hover:text-inverse-primary transition-colors duration-200" href="#">Legal</a>
+<a class="text-text-secondary dark:text-on-surface-variant hover:text-primary dark:hover:text-inverse-primary transition-colors duration-200" href="#">Privacy Policy</a>
+<a class="text-text-secondary dark:text-on-surface-variant hover:text-primary dark:hover:text-inverse-primary transition-colors duration-200" href="#">Audit Log</a>
+</div>
+</div>
+</footer>
+</body></html>

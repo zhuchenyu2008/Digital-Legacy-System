@@ -1,0 +1,379 @@
+<!DOCTYPE html><html lang="zh"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>联系人管理 - Digital Legacy</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "primary": "#000000",
+                      "surface-container-lowest": "#ffffff",
+                      "inverse-primary": "#bec6e0",
+                      "status-setup": "#64748B",
+                      "on-tertiary-fixed-variant": "#653e00",
+                      "on-secondary-fixed": "#002113",
+                      "surface": "#f7f9fb",
+                      "inverse-on-surface": "#eff1f3",
+                      "status-alert": "#EA580C",
+                      "status-recovery": "#F59E0B",
+                      "background": "#f7f9fb",
+                      "surface-container-highest": "#e0e3e5",
+                      "error-container": "#ffdad6",
+                      "error": "#ba1a1a",
+                      "tertiary": "#000000",
+                      "on-error-container": "#93000a",
+                      "on-error": "#ffffff",
+                      "on-background": "#191c1e",
+                      "inverse-surface": "#2d3133",
+                      "surface-container-high": "#e6e8ea",
+                      "primary-fixed": "#dae2fd",
+                      "on-primary-fixed": "#131b2e",
+                      "secondary-container": "#6cf8bb",
+                      "text-secondary": "#475569",
+                      "on-tertiary-fixed": "#2a1700",
+                      "on-tertiary": "#ffffff",
+                      "surface-variant": "#e0e3e5",
+                      "secondary": "#006c49",
+                      "on-secondary-fixed-variant": "#005236",
+                      "outline-variant": "#c6c6cd",
+                      "outline": "#76777d",
+                      "surface-tint": "#565e74",
+                      "primary-container": "#131b2e",
+                      "on-primary-container": "#7c839b",
+                      "tertiary-container": "#2a1700",
+                      "on-secondary": "#ffffff",
+                      "secondary-fixed": "#6ffbbe",
+                      "tertiary-fixed-dim": "#ffb95f",
+                      "tertiary-fixed": "#ffddb8",
+                      "surface-container": "#eceef0",
+                      "border-subtle": "#E2E8F0",
+                      "status-critical": "#DC2626",
+                      "on-surface-variant": "#45464d",
+                      "on-surface": "#191c1e",
+                      "on-secondary-container": "#00714d",
+                      "text-primary": "#0F172A",
+                      "on-tertiary-container": "#b87500",
+                      "on-primary": "#ffffff",
+                      "surface-container-low": "#f2f4f6",
+                      "surface-dim": "#d8dadc",
+                      "status-armed": "#10B981",
+                      "primary-fixed-dim": "#bec6e0",
+                      "secondary-fixed-dim": "#4edea3",
+                      "surface-bright": "#f7f9fb",
+                      "on-primary-fixed-variant": "#3f465c"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.125rem",
+                      "lg": "0.25rem",
+                      "xl": "0.5rem",
+                      "full": "0.75rem"
+              },
+              "spacing": {
+                      "unit": "8px",
+                      "margin-mobile": "16px",
+                      "container-max": "1024px",
+                      "gutter": "24px",
+                      "margin-desktop": "40px"
+              },
+              "fontFamily": {
+                      "body-md": [
+                              "Inter"
+                      ],
+                      "display-countdown": [
+                              "Inter"
+                      ],
+                      "headline-md": [
+                              "Inter"
+                      ],
+                      "body-lg": [
+                              "Inter"
+                      ],
+                      "headline-lg": [
+                              "Inter"
+                      ],
+                      "legal-text": [
+                              "Inter"
+                      ],
+                      "label-mono": [
+                              "JetBrains Mono"
+                      ]
+              },
+              "fontSize": {
+                      "body-md": [
+                              "16px",
+                              {
+                                      "lineHeight": "24px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "display-countdown": [
+                              "48px",
+                              {
+                                      "lineHeight": "56px",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "headline-md": [
+                              "24px",
+                              {
+                                      "lineHeight": "32px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "body-lg": [
+                              "18px",
+                              {
+                                      "lineHeight": "28px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "headline-lg": [
+                              "32px",
+                              {
+                                      "lineHeight": "40px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "legal-text": [
+                              "15px",
+                              {
+                                      "lineHeight": "26px",
+                                      "letterSpacing": "0.01em",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "label-mono": [
+                              "14px",
+                              {
+                                      "lineHeight": "20px",
+                                      "fontWeight": "500"
+                              }
+                      ]
+              }
+      },
+          },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .icon-fill {
+            font-variation-settings: 'FILL' 1;
+        }
+    </style>
+</head>
+<body class="bg-surface text-on-surface font-body-md min-h-screen flex flex-col">
+<!-- TopAppBar -->
+<header class="bg-surface-container-lowest dark:bg-surface-container-highest border-b border-border-subtle dark:border-outline-variant full-width top-0 z-40 relative">
+<div class="flex justify-between items-center w-full px-margin-mobile md:px-margin-desktop py-4">
+<div class="font-headline-md text-headline-md font-bold text-primary dark:text-on-surface">Digital Legacy</div>
+<div class="flex items-center gap-4">
+<span class="text-status-armed text-label-mono font-medium border border-status-armed px-2 py-1 rounded">ARMED</span>
+<button class="hover:bg-surface-container-low dark:hover:bg-surface-container transition-colors p-2 rounded-full scale-95 active:duration-150">
+<span class="material-symbols-outlined text-primary dark:text-inverse-primary" data-icon="account_circle">account_circle</span>
+</button>
+</div>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="flex-grow w-full max-w-[1024px] mx-auto px-margin-mobile md:px-margin-desktop py-8 md:py-12 pb-32">
+<div class="mb-10">
+<h1 class="font-headline-lg text-headline-lg text-primary mb-2">紧急联系人管理</h1>
+<p class="text-text-secondary font-body-md">配置您的数字遗产继承人及信任网络。</p>
+</div>
+<!-- Threshold Summary Card -->
+<div class="bg-surface-container-lowest border border-border-subtle rounded-xl p-6 md:p-8 mb-8 shadow-sm">
+<div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 border-b border-border-subtle pb-6">
+<div>
+<h2 class="font-headline-md text-headline-md text-primary">法定触发阈值</h2>
+<p class="text-text-secondary font-body-md mt-1">需要多方确认以解锁遗产</p>
+</div>
+<div class="mt-4 md:mt-0 px-4 py-2 bg-status-armed/10 border border-status-armed/30 rounded-lg flex items-center gap-2">
+<div class="w-2 h-2 rounded-full bg-status-armed"></div>
+<span class="text-status-armed font-label-mono font-bold tracking-wider">ARMED</span>
+</div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+<div class="flex flex-col">
+<span class="text-text-secondary font-label-mono mb-1">总有效人数</span>
+<span class="font-headline-lg text-headline-lg text-primary">3</span>
+<span class="text-xs text-text-secondary mt-1">最少 3 人</span>
+</div>
+<div class="flex flex-col">
+<span class="text-text-secondary font-label-mono mb-1">死亡确认门限</span>
+<span class="font-headline-lg text-headline-lg text-primary">3</span>
+<span class="text-xs text-text-secondary mt-1">门限: 3 (70%)</span>
+</div>
+<div class="flex flex-col">
+<span class="text-text-secondary font-label-mono mb-1">密码恢复门限</span>
+<span class="font-headline-lg text-headline-lg text-primary">2</span>
+<span class="text-xs text-text-secondary mt-1">门限: 2 (50%+1)</span>
+</div>
+</div>
+</div>
+<!-- Notes / Rules -->
+<div class="bg-surface-container-low border border-border-subtle rounded-lg p-5 mb-10 flex gap-4">
+<span class="material-symbols-outlined text-text-secondary" data-icon="info">info</span>
+<div class="font-legal-text text-legal-text text-text-secondary space-y-2">
+<p>• 联系人彼此不可见。他们无法查看名单上的其他人。</p>
+<p>• <span class="font-label-mono bg-surface-container-lowest px-1 border border-border-subtle rounded text-xs">待分片</span> 状态的联系人在您使用主密码重新分片前不计入门限。</p>
+<p>• 至少需要 3 名有效联系人以维持 <span class="text-status-armed font-medium">ARMED</span> 状态。</p>
+</div>
+</div>
+<!-- Contact List Header -->
+<div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+<h2 class="font-headline-md text-headline-md text-primary">受信任网络</h2>
+<button class="bg-primary text-on-primary hover:bg-primary/90 transition-colors px-6 py-2.5 rounded-lg font-body-md font-medium flex items-center gap-2">
+<span class="material-symbols-outlined" data-icon="person_add">person_add</span>
+                邀请新联系人
+            </button>
+</div>
+<!-- Contacts Table -->
+<div class="bg-surface-container-lowest border border-border-subtle rounded-xl overflow-hidden mb-12">
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-surface-container-low/50 border-b border-border-subtle">
+<th class="py-4 px-6 font-label-mono text-text-secondary font-medium tracking-wider text-xs uppercase">姓名与邮箱</th>
+<th class="py-4 px-6 font-label-mono text-text-secondary font-medium tracking-wider text-xs uppercase">状态</th>
+<th class="py-4 px-6 font-label-mono text-text-secondary font-medium tracking-wider text-xs uppercase">知情同意</th>
+<th class="py-4 px-6 font-label-mono text-text-secondary font-medium tracking-wider text-xs uppercase text-right">操作</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-border-subtle">
+<!-- Contact 1 -->
+<tr class="hover:bg-surface-container-low/30 transition-colors">
+<td class="py-4 px-6">
+<div class="font-body-md font-medium text-primary">张三</div>
+<div class="text-text-secondary text-sm">zhangsan@example.com</div>
+</td>
+<td class="py-4 px-6">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-label-mono bg-status-armed/10 text-status-armed border border-status-armed/20">
+<span class="w-1.5 h-1.5 rounded-full bg-status-armed"></span>
+                                    已激活
+                                </span>
+</td>
+<td class="py-4 px-6">
+<span class="font-label-mono text-xs text-text-secondary bg-surface-container border border-border-subtle px-2 py-1 rounded">已签署 (V1)</span>
+</td>
+<td class="py-4 px-6 text-right">
+<div class="flex justify-end gap-3">
+<button class="text-text-secondary hover:text-primary transition-colors tooltip-trigger" title="重新发送邀请邮件">
+<span class="material-symbols-outlined text-[20px]" data-icon="mail">mail</span>
+</button>
+<button class="text-text-secondary hover:text-status-critical transition-colors tooltip-trigger" title="删除联系人">
+<span class="material-symbols-outlined text-[20px]" data-icon="delete">delete</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Contact 2 -->
+<tr class="hover:bg-surface-container-low/30 transition-colors">
+<td class="py-4 px-6">
+<div class="font-body-md font-medium text-primary">李四</div>
+<div class="text-text-secondary text-sm">lisi@example.com</div>
+</td>
+<td class="py-4 px-6">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-label-mono bg-status-armed/10 text-status-armed border border-status-armed/20">
+<span class="w-1.5 h-1.5 rounded-full bg-status-armed"></span>
+                                    已激活
+                                </span>
+</td>
+<td class="py-4 px-6">
+<span class="font-label-mono text-xs text-text-secondary bg-surface-container border border-border-subtle px-2 py-1 rounded">已签署 (V1)</span>
+</td>
+<td class="py-4 px-6 text-right">
+<div class="flex justify-end gap-3">
+<button class="text-text-secondary hover:text-primary transition-colors tooltip-trigger" title="重新发送邀请邮件">
+<span class="material-symbols-outlined text-[20px]" data-icon="mail">mail</span>
+</button>
+<button class="text-text-secondary hover:text-status-critical transition-colors tooltip-trigger" title="删除联系人">
+<span class="material-symbols-outlined text-[20px]" data-icon="delete">delete</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Contact 3 -->
+<tr class="hover:bg-surface-container-low/30 transition-colors">
+<td class="py-4 px-6">
+<div class="font-body-md font-medium text-primary">王五</div>
+<div class="text-text-secondary text-sm">wangwu@example.com</div>
+</td>
+<td class="py-4 px-6">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-label-mono bg-status-armed/10 text-status-armed border border-status-armed/20">
+<span class="w-1.5 h-1.5 rounded-full bg-status-armed"></span>
+                                    已激活
+                                </span>
+</td>
+<td class="py-4 px-6">
+<span class="font-label-mono text-xs text-text-secondary bg-surface-container border border-border-subtle px-2 py-1 rounded">已签署 (V1)</span>
+</td>
+<td class="py-4 px-6 text-right">
+<div class="flex justify-end gap-3">
+<button class="text-text-secondary hover:text-primary transition-colors tooltip-trigger" title="重新发送邀请邮件">
+<span class="material-symbols-outlined text-[20px]" data-icon="mail">mail</span>
+</button>
+<button class="text-text-secondary hover:text-status-critical transition-colors tooltip-trigger" title="删除联系人">
+<span class="material-symbols-outlined text-[20px]" data-icon="delete">delete</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Contact 4 -->
+<tr class="hover:bg-surface-container-low/30 transition-colors bg-surface-container-lowest/50">
+<td class="py-4 px-6">
+<div class="font-body-md font-medium text-primary opacity-80">赵六</div>
+<div class="text-text-secondary text-sm">zhaoliu@example.com</div>
+</td>
+<td class="py-4 px-6">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-label-mono bg-status-setup/10 text-status-setup border border-status-setup/20">
+<span class="w-1.5 h-1.5 rounded-full bg-status-setup"></span>
+                                    待分片
+                                </span>
+</td>
+<td class="py-4 px-6">
+<span class="font-label-mono text-xs text-text-secondary bg-surface-container-low border border-border-subtle px-2 py-1 rounded border-dashed">待签署</span>
+</td>
+<td class="py-4 px-6 text-right">
+<div class="flex justify-end gap-3">
+<button class="text-text-secondary hover:text-primary transition-colors tooltip-trigger" title="发送邀请">
+<span class="material-symbols-outlined text-[20px]" data-icon="send">send</span>
+</button>
+<button class="text-text-secondary hover:text-status-critical transition-colors tooltip-trigger" title="删除联系人">
+<span class="material-symbols-outlined text-[20px]" data-icon="delete">delete</span>
+</button>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</main>
+<!-- BottomNavBar (Mobile Only) -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full z-50 flex justify-around items-center h-16 bg-surface dark:bg-inverse-surface px-4 pb-safe border-t border-border-subtle dark:border-outline-variant">
+<a class="flex flex-col items-center justify-center text-text-secondary dark:text-surface-variant hover:bg-surface-container-low dark:hover:bg-surface-container transition-all scale-95 active:duration-100 rounded-xl px-3 py-1" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="home">home</span>
+<span class="font-label-mono text-label-mono text-[10px]">首页</span>
+</a>
+<a class="flex flex-col items-center justify-center text-primary dark:text-secondary-fixed bg-surface-container-high dark:bg-surface-container-low hover:bg-surface-container-low dark:hover:bg-surface-container transition-all scale-95 active:duration-100 rounded-xl px-3 py-1" href="#">
+<span class="material-symbols-outlined mb-1 icon-fill" data-icon="contacts">contacts</span>
+<span class="font-label-mono text-label-mono text-[10px]">联系人</span>
+</a>
+<a class="flex flex-col items-center justify-center text-text-secondary dark:text-surface-variant hover:bg-surface-container-low dark:hover:bg-surface-container transition-all scale-95 active:duration-100 rounded-xl px-3 py-1" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="description">description</span>
+<span class="font-label-mono text-label-mono text-[10px]">文件</span>
+</a>
+<a class="flex flex-col items-center justify-center text-text-secondary dark:text-surface-variant hover:bg-surface-container-low dark:hover:bg-surface-container transition-all scale-95 active:duration-100 rounded-xl px-3 py-1" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="settings">settings</span>
+<span class="font-label-mono text-label-mono text-[10px]">设置</span>
+</a>
+</nav>
+</body></html>

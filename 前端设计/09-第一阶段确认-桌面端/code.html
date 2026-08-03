@@ -1,0 +1,255 @@
+<!DOCTYPE html><html lang="zh-CN" style=""><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "tertiary-container": "#2a1700",
+                    "surface-container-highest": "#e0e3e5",
+                    "on-error": "#ffffff",
+                    "text-secondary": "#475569",
+                    "on-tertiary-fixed": "#2a1700",
+                    "inverse-surface": "#2d3133",
+                    "text-primary": "#0F172A",
+                    "status-critical": "#DC2626",
+                    "surface-variant": "#e0e3e5",
+                    "secondary-fixed": "#6ffbbe",
+                    "inverse-on-surface": "#eff1f3",
+                    "surface-container": "#eceef0",
+                    "surface-container-high": "#e6e8ea",
+                    "on-secondary": "#ffffff",
+                    "on-primary-fixed-variant": "#3f465c",
+                    "surface-dim": "#d8dadc",
+                    "surface": "#f7f9fb",
+                    "status-alert": "#EA580C",
+                    "primary-container": "#131b2e",
+                    "on-tertiary": "#ffffff",
+                    "surface-bright": "#f7f9fb",
+                    "primary-fixed": "#dae2fd",
+                    "on-primary": "#ffffff",
+                    "on-primary-container": "#7c839b",
+                    "inverse-primary": "#bec6e0",
+                    "background": "#f7f9fb",
+                    "on-tertiary-container": "#b87500",
+                    "secondary-container": "#6cf8bb",
+                    "secondary": "#006c49",
+                    "status-recovery": "#F59E0B",
+                    "on-secondary-fixed-variant": "#005236",
+                    "surface-container-low": "#f2f4f6",
+                    "primary-fixed-dim": "#bec6e0",
+                    "on-error-container": "#93000a",
+                    "on-secondary-fixed": "#002113",
+                    "surface-tint": "#565e74",
+                    "tertiary": "#000000",
+                    "secondary-fixed-dim": "#4edea3",
+                    "on-tertiary-fixed-variant": "#653e00",
+                    "surface-container-lowest": "#ffffff",
+                    "status-armed": "#10B981",
+                    "outline-variant": "#c6c6cd",
+                    "on-surface-variant": "#45464d",
+                    "error-container": "#ffdad6",
+                    "outline": "#76777d",
+                    "primary": "#000000",
+                    "on-primary-fixed": "#131b2e",
+                    "tertiary-fixed-dim": "#ffb95f",
+                    "on-secondary-container": "#00714d",
+                    "tertiary-fixed": "#ffddb8",
+                    "border-subtle": "#E2E8F0",
+                    "on-surface": "#191c1e",
+                    "status-setup": "#64748B",
+                    "error": "#ba1a1a",
+                    "on-background": "#191c1e"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "spacing": {
+                    "margin-desktop": "40px",
+                    "container-max": "1024px",
+                    "unit": "8px",
+                    "margin-mobile": "16px",
+                    "gutter": "24px"
+            },
+            "fontFamily": {
+                    "label-mono": ["JetBrains Mono"],
+                    "display-countdown": ["Inter"],
+                    "legal-text": ["Inter"],
+                    "headline-md": ["Inter"],
+                    "headline-lg": ["Inter"],
+                    "body-lg": ["Inter"],
+                    "body-md": ["Inter"]
+            },
+            "fontSize": {
+                    "label-mono": ["14px", {"lineHeight": "20px", "fontWeight": "500"}],
+                    "display-countdown": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "legal-text": ["15px", {"lineHeight": "26px", "letterSpacing": "0.01em", "fontWeight": "400"}],
+                    "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                    "headline-lg": ["32px", {"lineHeight": "40px", "fontWeight": "600"}],
+                    "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                    "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .confirmation-ring {
+            transition: stroke-dashoffset 1s ease-in-out;
+        }
+        @keyframes emergency-pulse {
+          0% { background-color: rgba(220, 38, 38, 0.05); }
+          50% { background-color: rgba(220, 38, 38, 0.15); }
+          100% { background-color: rgba(220, 38, 38, 0.05); }
+        }
+        .animate-emergency {
+          animation: emergency-pulse 4s ease-in-out infinite;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body-md min-h-screen flex flex-col">
+<!-- Full-screen emergency pulsing effect -->
+<div class="fixed inset-0 pointer-events-none animate-emergency" style="z-index: -1;"></div>
+<!-- TopAppBar -->
+<header class="bg-surface dark:bg-inverse-surface border-b border-border-subtle dark:border-outline fixed top-0 w-full z-50">
+<div class="flex justify-between items-center w-full px-margin-desktop max-w-container-max mx-auto h-16">
+<div class="flex items-center gap-6">
+<span class="font-headline-md text-headline-md font-bold text-primary dark:text-inverse-primary">Digital Legacy</span>
+<nav class="hidden md:flex items-center gap-8">
+<span class="text-primary dark:text-inverse-primary font-bold border-b-2 border-primary dark:border-inverse-primary pb-1 font-body-md">首页</span>
+<span class="text-text-secondary dark:text-on-surface-variant hover:text-primary dark:hover:text-inverse-primary transition-colors font-body-md cursor-not-allowed">联系人</span>
+<span class="text-text-secondary dark:text-on-surface-variant hover:text-primary dark:hover:text-inverse-primary transition-colors font-body-md cursor-not-allowed">文件</span>
+<span class="text-text-secondary dark:text-on-surface-variant hover:text-primary dark:hover:text-inverse-primary transition-colors font-body-md cursor-not-allowed">设置</span>
+</nav>
+</div>
+<div class="flex items-center gap-4">
+<div class="flex items-center px-3 py-1 bg-status-armed/10 border border-status-armed/20 rounded-full">
+<span class="w-2 h-2 rounded-full bg-status-armed animate-pulse mr-2"></span>
+<span class="font-label-mono text-label-mono text-status-armed uppercase">ARMED - 确认中</span>
+</div>
+<div class="flex gap-2">
+<span class="material-symbols-outlined text-primary dark:text-inverse-primary cursor-pointer p-2 rounded-full hover:bg-surface-container-high transition-colors" data-icon="notifications">notifications</span>
+<span class="material-symbols-outlined text-primary dark:text-inverse-primary cursor-pointer p-2 rounded-full hover:bg-surface-container-high transition-colors" data-icon="account_circle">account_circle</span>
+</div>
+</div>
+</div>
+</header>
+<main class="flex-grow pt-32 pb-16 px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto w-full">
+<!-- Hero Section: Status & Progress -->
+<section class="mb-16 text-center">
+<div class="inline-block mb-8">
+<div class="relative w-48 h-48 mx-auto flex items-center justify-center">
+<svg class="absolute inset-0 transform -rotate-90 w-full h-full">
+<circle class="text-surface-container-high" cx="96" cy="96" fill="transparent" r="88" stroke="currentColor" stroke-width="8"></circle>
+<circle class="text-status-alert confirmation-ring" cx="96" cy="96" fill="transparent" r="88" stroke="currentColor" stroke-dasharray="552.92" stroke-dashoffset="184.3" stroke-width="8"></circle>
+</svg>
+<div class="flex flex-col items-center">
+<span class="font-display-countdown text-display-countdown text-text-primary">2 / 3</span>
+<span class="font-label-mono text-label-mono text-text-secondary uppercase">确认进度</span>
+</div>
+</div>
+</div>
+<h1 class="font-headline-lg text-headline-lg text-text-primary mb-4">生存状态确认中</h1>
+<p class="font-body-lg text-body-lg text-text-secondary max-w-2xl mx-auto mb-8">
+                系统已进入“第一阶段确认”。目前已有 2 名紧急联系人响应，还需 1 人确认以正式启动数字遗产交接程序。
+            </p>
+<div class="flex flex-col md:flex-row gap-4 justify-center items-center">
+<button class="w-full md:w-auto px-8 py-3 bg-primary text-on-primary font-bold hover:opacity-90 transition-all duration-200">
+                    紧急联系人登录
+                </button>
+<button class="w-full md:w-auto px-8 py-3 border border-border-subtle bg-surface hover:bg-surface-container-low transition-all duration-200 text-text-primary">
+                    查看操作手册
+                </button>
+</div>
+</section>
+<!-- Bento Grid Info Section -->
+<section class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
+<!-- Privacy Lock -->
+<div class="md:col-span-1 p-8 bg-surface-container-low border border-border-subtle">
+<span class="material-symbols-outlined text-text-secondary mb-4" data-icon="privacy_tip">privacy_tip</span>
+<h3 class="font-headline-md text-headline-md text-text-primary mb-2">身份完全隐藏</h3>
+<p class="font-body-md text-body-md text-text-secondary">
+                    为保护所有参与者的隐私，系统不会在此页面显示任何联系人的具体身份、姓名或位置信息。
+                </p>
+</div>
+<!-- Protocol Logic -->
+<div class="md:col-span-2 p-8 bg-surface-container-low border border-border-subtle">
+<div class="flex items-start gap-6">
+<div class="flex-grow">
+<h3 class="font-headline-md text-headline-md text-text-primary mb-4">70% 阈值门限逻辑</h3>
+<p class="font-body-md text-body-md text-text-secondary mb-4">
+                            根据 PRD-DEATH1 协议，遗产释放流程仅在超过 70% 的预设联系人独立确认“不可挽回状态”后方可启动。此逻辑旨在防止误操作或单方面恶意申报。
+                        </p>
+<div class="flex gap-4">
+<div class="px-3 py-2 bg-surface-container-highest rounded border border-outline-variant">
+<span class="font-label-mono text-label-mono text-on-surface-variant">门限：70%</span>
+</div>
+<div class="px-3 py-2 bg-surface-container-highest rounded border border-outline-variant">
+<span class="font-label-mono text-label-mono text-on-surface-variant">当前：66.7%</span>
+</div>
+</div>
+</div>
+<div class="hidden lg:block w-32 h-32 bg-surface-container-highest border border-outline-variant flex items-center justify-center">
+<span class="material-symbols-outlined text-4xl text-status-alert" data-icon="gavel">gavel</span>
+</div>
+</div>
+</div>
+<!-- Admin Action (Termination) -->
+<div class="md:col-span-3 p-8 bg-surface-container-low border border-border-subtle flex flex-col md:flex-row items-center justify-between gap-6">
+<div class="max-w-2xl">
+<h3 class="font-headline-md text-headline-md text-text-primary mb-2">如果您是管理员本人</h3>
+<p class="font-body-md text-body-md text-text-secondary">
+                        若此流程系误触或测试启动，请立即进行生物识别登录以终止“生存确认”流程。终止操作将被永久记录在不可篡改的审计日志中。
+                    </p>
+</div>
+<button class="whitespace-nowrap px-8 py-3 bg-status-critical text-on-error font-bold hover:opacity-90 transition-all duration-200">
+                    立即终止流程
+                </button>
+</div>
+</section>
+<!-- Audit Timeline Preview -->
+<section class="max-w-2xl mx-auto border-l-2 border-border-subtle pl-8 relative">
+<h4 class="font-label-mono text-label-mono text-text-secondary uppercase tracking-widest mb-8">Immutable Chain of Custody</h4>
+<div class="mb-8 relative">
+<div class="absolute -left-[41px] top-1 w-4 h-4 bg-status-armed rounded-full border-4 border-background"></div>
+<span class="font-label-mono text-label-mono text-text-secondary block mb-1">2024-05-24 09:12:04 UTC</span>
+<p class="font-body-md text-body-md text-text-primary">联系人 #1 (身份已加密) 提交生存状态确认</p>
+</div>
+<div class="mb-8 relative">
+<div class="absolute -left-[41px] top-1 w-4 h-4 bg-status-armed rounded-full border-4 border-background"></div>
+<span class="font-label-mono text-label-mono text-text-secondary block mb-1">2024-05-24 10:45:12 UTC</span>
+<p class="font-body-md text-body-md text-text-primary">联系人 #2 (身份已加密) 提交生存状态确认</p>
+</div>
+<div class="relative opacity-50">
+<div class="absolute -left-[41px] top-1 w-4 h-4 bg-surface-container-highest rounded-full border-4 border-background"></div>
+<span class="font-label-mono text-label-mono text-text-secondary block mb-1">PENDING...</span>
+<p class="font-body-md text-body-md text-text-secondary italic">等待后续确认中</p>
+</div>
+</section>
+</main>
+<!-- Footer -->
+<script>
+        // Micro-interaction for the progress ring
+        window.addEventListener('DOMContentLoaded', () => {
+            const circle = document.querySelector('.confirmation-ring');
+            if (circle) {
+                // Set to 66% (2/3) offset logic
+                // Radius is 88, circumference is ~552.92
+                // (1 - 2/3) * 552.92 = 184.3
+                circle.style.strokeDashoffset = '184.3';
+            }
+        });
+    </script>
+</body></html>

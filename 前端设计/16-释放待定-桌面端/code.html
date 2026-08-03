@@ -1,0 +1,312 @@
+<!DOCTYPE html><html class="light" lang="zh-CN" style=""><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Digital Legacy - 释放待定</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "border-subtle": "#E2E8F0",
+                        "on-tertiary-container": "#b87500",
+                        "status-armed": "#10B981",
+                        "on-secondary": "#ffffff",
+                        "surface-variant": "#e0e3e5",
+                        "on-error-container": "#93000a",
+                        "error": "#ba1a1a",
+                        "text-primary": "#0F172A",
+                        "background": "#f7f9fb",
+                        "on-error": "#ffffff",
+                        "on-primary": "#ffffff",
+                        "on-secondary-container": "#00714d",
+                        "status-recovery": "#F59E0B",
+                        "on-tertiary-fixed-variant": "#653e00",
+                        "secondary-container": "#6cf8bb",
+                        "on-secondary-fixed-variant": "#005236",
+                        "text-secondary": "#475569",
+                        "on-secondary-fixed": "#002113",
+                        "on-primary-fixed": "#131b2e",
+                        "surface-container-low": "#f2f4f6",
+                        "tertiary-fixed-dim": "#ffb95f",
+                        "on-surface": "#191c1e",
+                        "on-background": "#191c1e",
+                        "status-critical": "#DC2626",
+                        "primary": "#000000",
+                        "tertiary-container": "#2a1700",
+                        "primary-container": "#131b2e",
+                        "primary-fixed-dim": "#bec6e0",
+                        "primary-fixed": "#dae2fd",
+                        "error-container": "#ffdad6",
+                        "secondary-fixed": "#6ffbbe",
+                        "surface-container-lowest": "#ffffff",
+                        "surface-bright": "#f7f9fb",
+                        "secondary": "#006c49",
+                        "inverse-primary": "#bec6e0",
+                        "surface-container-highest": "#e0e3e5",
+                        "on-tertiary-fixed": "#2a1700",
+                        "surface-dim": "#d8dadc",
+                        "on-primary-fixed-variant": "#3f465c",
+                        "status-alert": "#EA580C",
+                        "on-primary-container": "#7c839b",
+                        "on-tertiary": "#ffffff",
+                        "tertiary": "#000000",
+                        "surface-container-high": "#e6e8ea",
+                        "outline-variant": "#c6c6cd",
+                        "outline": "#76777d",
+                        "inverse-on-surface": "#eff1f3",
+                        "inverse-surface": "#2d3133",
+                        "surface-container": "#eceef0",
+                        "secondary-fixed-dim": "#4edea3",
+                        "on-surface-variant": "#45464d",
+                        "tertiary-fixed": "#ffddb8",
+                        "surface-tint": "#565e74",
+                        "surface": "#f7f9fb",
+                        "status-setup": "#64748B"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "gutter": "24px",
+                        "container-max": "1024px",
+                        "margin-mobile": "16px",
+                        "unit": "8px",
+                        "margin-desktop": "40px"
+                    },
+                    "fontFamily": {
+                        "legal-text": ["Inter"],
+                        "label-mono": ["JetBrains Mono"],
+                        "headline-md": ["Inter"],
+                        "headline-lg": ["Inter"],
+                        "body-md": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "display-countdown": ["Inter"]
+                    },
+                    "fontSize": {
+                        "legal-text": ["15px", {"lineHeight": "26px", "letterSpacing": "0.01em", "fontWeight": "400"}],
+                        "label-mono": ["14px", {"lineHeight": "20px", "fontWeight": "500"}],
+                        "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                        "headline-lg": ["32px", {"lineHeight": "40px", "fontWeight": "600"}],
+                        "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                        "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                        "display-countdown": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700"}]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        @keyframes pulse-red {
+            0% { background-color: rgba(220, 38, 38, 0.02); }
+            50% { background-color: rgba(220, 38, 38, 0.08); }
+            100% { background-color: rgba(220, 38, 38, 0.02); }
+        }
+        @keyframes flash-red {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+        .animate-pulse-red { animation: pulse-red 2s infinite ease-in-out; }
+        .animate-flash-red { animation: flash-red 1s infinite cubic-bezier(0.4, 0, 0.6, 1); }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .hold-btn-active {
+            transform: scale(0.98);
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
+        }
+    </style>
+</head>
+<body class="bg-background text-text-primary font-body-md selection:bg-status-critical selection:text-white">
+<!-- TopAppBar -->
+<header class="fixed top-0 left-0 right-0 z-50 bg-surface border-b border-border-subtle h-16">
+<div class="flex justify-between items-center w-full px-margin-desktop max-w-container-max mx-auto h-full">
+<div class="flex items-center gap-8">
+<span class="font-headline-md text-headline-md font-bold text-primary">Digital Legacy</span>
+<nav class="hidden md:flex items-center gap-6">
+<a class="text-primary font-bold border-b-2 border-primary pb-1 font-body-md text-body-md transition-all" href="#">首页</a>
+<a class="text-text-secondary hover:text-primary transition-colors font-body-md text-body-md" href="#">联系人</a>
+<a class="text-text-secondary hover:text-primary transition-colors font-body-md text-body-md" href="#">文件</a>
+<a class="text-text-secondary hover:text-primary transition-colors font-body-md text-body-md" href="#">设置</a>
+</nav>
+</div>
+<div class="flex items-center gap-4">
+<div class="flex items-center gap-2 bg-status-armed/10 px-3 py-1 rounded-full animate-flash-red">
+<span class="w-2 h-2 rounded-full bg-status-armed"></span>
+<span class="font-label-mono text-label-mono text-status-armed font-bold">ARMED (PENDING)</span>
+</div>
+<span class="material-symbols-outlined text-text-secondary hover:text-primary cursor-pointer transition-colors" data-icon="notifications">notifications</span>
+<span class="material-symbols-outlined text-text-secondary hover:text-primary cursor-pointer transition-colors" data-icon="account_circle">account_circle</span>
+</div>
+</div>
+</header>
+<!-- Main Content Area -->
+<main class="pt-16 min-h-screen relative overflow-hidden animate-pulse-red">
+<!-- Emergency Banner -->
+<div class="bg-status-critical text-white py-3 px-margin-desktop text-center font-label-mono text-label-mono tracking-widest animate-flash-red">
+            SYSTEM STATUS: RELEASE PENDING — FINAL 24-HOUR WINDOW
+        </div>
+<div class="max-w-container-max mx-auto px-margin-desktop py-12 relative z-10">
+<!-- Warning Header -->
+<div class="text-center mb-12">
+<div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-status-critical/10 mb-6">
+<span class="material-symbols-outlined text-status-critical text-[40px]" data-icon="warning" style="font-variation-settings: &quot;FILL&quot; 1;">warning</span>
+</div>
+<h1 class="font-headline-lg text-headline-lg mb-4">最终释放确认阶段</h1>
+<p class="max-w-2xl mx-auto text-text-secondary font-body-lg text-body-lg">
+                    已检测到受信任联系人的 70% 确认阈值。除非您在以下倒计时结束前手动干预，否则您的数字遗产将在倒计时结束后自动向指定的继承人释放。
+                </p>
+</div>
+<!-- Central Countdown Timer -->
+<div class="bg-white border-2 border-status-critical rounded-xl p-12 mb-12 shadow-sm text-center relative">
+<div class="absolute -top-4 left-1/2 -translate-x-1/2 bg-white px-4 font-label-mono text-label-mono text-status-critical font-bold">
+                    自动释放倒计时
+                </div>
+<div class="font-display-countdown text-display-countdown text-primary tabular-nums tracking-tighter" id="countdown">23:56:07</div>
+<div class="flex justify-center gap-24 mt-4 font-label-mono text-label-mono text-text-secondary uppercase">
+<span class="">Hours</span>
+<span class="">Minutes</span>
+<span class="">Seconds</span>
+</div>
+</div>
+<!-- Bento Layout for Actions & Logs -->
+<div class="grid grid-cols-1 md:grid-cols-12 gap-gutter">
+<!-- Termination Action (Critical Section) -->
+<div class="md:col-span-8 bg-inverse-surface text-white rounded-xl p-8 flex flex-col justify-between border-4 border-status-critical shadow-2xl">
+<div>
+<div class="flex items-center gap-3 mb-6">
+<span class="material-symbols-outlined text-status-critical" data-icon="gpp_maybe" style="font-variation-settings: &quot;FILL&quot; 1;">gpp_maybe</span>
+<h2 class="font-headline-md text-headline-md">立即终止流程</h2>
+</div>
+<p class="text-surface-variant font-body-md text-body-md mb-8">
+                            如果您处于安全状态且这是误报，请在下方输入主密码并长按确认键。此操作将立即锁定系统并重置所有验证状态为“安全”。
+                        </p>
+<div class="space-y-4">
+<label class="block">
+<span class="font-label-mono text-label-mono text-surface-variant uppercase mb-2 block">Master Access Password</span>
+<input class="w-full bg-white/5 border border-white/20 rounded-lg py-4 px-4 font-label-mono focus:ring-2 focus:ring-status-critical focus:border-transparent text-white placeholder:text-white/20" placeholder="••••••••••••" type="password">
+</label>
+</div>
+</div>
+<div class="mt-12">
+<button class="w-full bg-status-critical hover:bg-red-700 text-white font-bold py-6 rounded-lg transition-all duration-200 select-none cursor-pointer flex flex-col items-center justify-center gap-1 active:hold-btn-active" id="terminate-btn">
+<span class="font-headline-md text-headline-md">长按 3 秒以终止释放</span>
+<span class="font-label-mono text-label-mono opacity-80">HOLD TO TERMINATE PROCESS</span>
+</button>
+<div class="w-full bg-white/10 h-1 mt-4 rounded-full overflow-hidden">
+<div class="bg-white h-full w-0 transition-all duration-100 ease-linear" id="hold-progress" style="width: 0%;"></div>
+</div>
+</div>
+</div>
+<!-- Audit Trail Side Block -->
+<div class="md:col-span-4 space-y-gutter">
+<div class="bg-white border border-border-subtle rounded-xl p-6">
+<h3 class="font-label-mono text-label-mono text-text-secondary uppercase mb-6 flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]" data-icon="history">history</span>
+                            最新审计日志
+                        </h3>
+<div class="space-y-6">
+<div class="relative pl-6 border-l-2 border-status-critical">
+<div class="absolute -left-[9px] top-0 w-4 h-4 bg-status-critical rounded-full border-2 border-white"></div>
+<div class="font-label-mono text-label-mono text-status-critical font-bold mb-1">PHASE_02_TRIGGERED</div>
+<div class="text-text-secondary text-xs font-label-mono mb-2">2024-05-24 14:22:01 UTC</div>
+<p class="text-text-primary text-sm font-body-md mb-2">已达到 70% 确认阈值。系统自动切换至释放待定状态。</p>
+<div class="bg-background p-2 rounded font-label-mono text-[10px] break-all text-text-secondary border border-border-subtle">
+                                    HASH: 8f2b7...d9e11
+                                </div>
+</div>
+<div class="relative pl-6 border-l-2 border-border-subtle">
+<div class="absolute -left-[9px] top-0 w-4 h-4 bg-border-subtle rounded-full border-2 border-white"></div>
+<div class="font-label-mono text-label-mono text-text-secondary font-bold mb-1">PHASE_01_COMPLETE</div>
+<div class="text-text-secondary text-xs font-label-mono mb-2">2024-05-24 09:15:44 UTC</div>
+<div class="bg-background p-2 rounded font-label-mono text-[10px] break-all text-text-secondary">
+                                    HASH: a410c...33fb2
+                                </div>
+</div>
+</div>
+<button class="w-full mt-8 py-2 text-text-secondary hover:text-primary font-label-mono text-label-mono border border-border-subtle rounded transition-colors uppercase">
+                            查看完整不可篡改日志
+                        </button>
+</div>
+<div class="bg-white border border-border-subtle rounded-xl p-6">
+<h3 class="font-label-mono text-label-mono text-text-secondary uppercase mb-4">紧急终止说明</h3>
+<ul class="space-y-3">
+<li class="flex items-center gap-3 text-sm">
+<span class="material-symbols-outlined text-text-secondary" data-icon="info">info</span>
+<span class="flex-1 font-body-md">只有管理员主密码可终止流程</span>
+</li>
+<li class="flex items-center gap-3 text-sm">
+<span class="material-symbols-outlined text-text-secondary" data-icon="security">security</span>
+<span class="flex-1 font-body-md">终止后系统将立即返回 ARMED 状态</span>
+</li>
+<li class="flex items-center gap-3 text-sm">
+<span class="material-symbols-outlined text-text-secondary" data-icon="notification_important">notification_important</span>
+<span class="flex-1 font-body-md">系统会同步通知所有紧急联系人</span>
+</li>
+</ul>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Footer -->
+
+<script>
+        // Countdown Timer Logic
+        let secondsLeft = 23 * 3600 + 59 * 60 + 59;
+        const countdownEl = document.getElementById('countdown');
+
+        function updateTimer() {
+            const h = Math.floor(secondsLeft / 3600);
+            const m = Math.floor((secondsLeft % 3600) / 60);
+            const s = Math.floor(secondsLeft % 60);
+            
+            countdownEl.textContent = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+            
+            if (secondsLeft > 0) {
+                secondsLeft--;
+            }
+        }
+        setInterval(updateTimer, 1000);
+        updateTimer();
+
+        // Hold to Terminate Logic
+        const terminateBtn = document.getElementById('terminate-btn');
+        const holdProgress = document.getElementById('hold-progress');
+        let holdTimer = null;
+        let progress = 0;
+
+        function startHold() {
+            holdTimer = setInterval(() => {
+                progress += 3.33; // Approx 3 seconds
+                holdProgress.style.width = `${progress}%`;
+                if (progress >= 100) {
+                    clearInterval(holdTimer);
+                    alert('系统终止请求已发送。正在重新验证主权限...');
+                    window.location.reload();
+                }
+            }, 100);
+        }
+
+        function cancelHold() {
+            clearInterval(holdTimer);
+            progress = 0;
+            holdProgress.style.width = '0%';
+        }
+
+        terminateBtn.addEventListener('mousedown', startHold);
+        terminateBtn.addEventListener('mouseup', cancelHold);
+        terminateBtn.addEventListener('mouseleave', cancelHold);
+        terminateBtn.addEventListener('touchstart', (e) => { e.preventDefault(); startHold(); });
+        terminateBtn.addEventListener('touchend', cancelHold);
+    </script>
+
+
+</body></html>
