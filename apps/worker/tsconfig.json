@@ -2,9 +2,15 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "composite": true,
-    "noEmit": true
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "rootDir": "src",
+    "outDir": "dist",
+    "tsBuildInfoFile": "dist/.tsbuildinfo",
+    "types": ["node"]
   },
-  "files": [],
+  "include": ["src/**/*.ts"],
+  "exclude": ["src/**/*.test.ts"],
   "references": [
     { "path": "../../packages/application" },
     { "path": "../../packages/contracts" },

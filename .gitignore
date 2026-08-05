@@ -7,6 +7,7 @@ build/
 coverage/
 .turbo/
 .cache/
+.next/
 .corepack/
 .corepack-bin/
 ops/secrets/generated/

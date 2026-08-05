@@ -1,10 +1,16 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "composite": true,
-    "lib": ["ES2024", "DOM", "DOM.Iterable"],
-    "noEmit": true
+    "allowJs": true,
+    "incremental": true,
+    "jsx": "preserve",
+    "lib": ["DOM", "DOM.Iterable", "ES2024"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "noEmit": true,
+    "plugins": [{ "name": "next" }],
+    "types": ["node"]
   },
-  "files": [],
-  "references": [{ "path": "../../packages/contracts" }, { "path": "../../packages/crypto" }]
+  "include": ["next-env.d.ts", "src/**/*.ts", "src/**/*.tsx"],
+  "exclude": ["node_modules", "src/**/*.test.ts", "src/**/*.test.tsx"]
 }

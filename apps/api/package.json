@@ -4,13 +4,21 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "tsc -b"
+    "build": "tsc -b",
+    "test": "vitest run --config vitest.config.ts"
   },
   "dependencies": {
+    "@fastify/helmet": "13.1.0",
     "@dls/application": "workspace:*",
     "@dls/contracts": "workspace:*",
     "@dls/email-templates": "workspace:*",
     "@dls/persistence": "workspace:*",
-    "@dls/storage": "workspace:*"
+    "@dls/storage": "workspace:*",
+    "@nestjs/common": "11.1.28",
+    "@nestjs/core": "11.1.28",
+    "@nestjs/platform-fastify": "11.1.28",
+    "fastify": "5.11.2",
+    "reflect-metadata": "0.2.2",
+    "rxjs": "7.8.2"
   }
 }
