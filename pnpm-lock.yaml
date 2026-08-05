@@ -40,6 +40,115 @@ importers:
         specifier: 4.1.10
         version: 4.1.10(@vitest/coverage-v8@4.1.10)(vite@8.2.0(esbuild@0.28.1)(tsx@4.23.5))
 
+  apps/api:
+    dependencies:
+      '@dls/application':
+        specifier: workspace:*
+        version: link:../../packages/application
+      '@dls/contracts':
+        specifier: workspace:*
+        version: link:../../packages/contracts
+      '@dls/email-templates':
+        specifier: workspace:*
+        version: link:../../packages/email-templates
+      '@dls/persistence':
+        specifier: workspace:*
+        version: link:../../packages/persistence
+      '@dls/storage':
+        specifier: workspace:*
+        version: link:../../packages/storage
+
+  apps/web:
+    dependencies:
+      '@dls/contracts':
+        specifier: workspace:*
+        version: link:../../packages/contracts
+      '@dls/crypto':
+        specifier: workspace:*
+        version: link:../../packages/crypto
+
+  apps/worker:
+    dependencies:
+      '@dls/application':
+        specifier: workspace:*
+        version: link:../../packages/application
+      '@dls/contracts':
+        specifier: workspace:*
+        version: link:../../packages/contracts
+      '@dls/email-templates':
+        specifier: workspace:*
+        version: link:../../packages/email-templates
+      '@dls/persistence':
+        specifier: workspace:*
+        version: link:../../packages/persistence
+      '@dls/storage':
+        specifier: workspace:*
+        version: link:../../packages/storage
+
+  packages/application:
+    dependencies:
+      '@dls/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+      '@dls/domain':
+        specifier: workspace:*
+        version: link:../domain
+
+  packages/contracts: {}
+
+  packages/crypto:
+    dependencies:
+      '@dls/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+      '@dls/domain':
+        specifier: workspace:*
+        version: link:../domain
+
+  packages/domain: {}
+
+  packages/email-templates:
+    dependencies:
+      '@dls/application':
+        specifier: workspace:*
+        version: link:../application
+      '@dls/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+
+  packages/persistence:
+    dependencies:
+      '@dls/application':
+        specifier: workspace:*
+        version: link:../application
+      '@dls/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+      '@dls/domain':
+        specifier: workspace:*
+        version: link:../domain
+
+  packages/storage:
+    dependencies:
+      '@dls/application':
+        specifier: workspace:*
+        version: link:../application
+      '@dls/domain':
+        specifier: workspace:*
+        version: link:../domain
+
+  packages/test-fixtures:
+    dependencies:
+      '@dls/application':
+        specifier: workspace:*
+        version: link:../application
+      '@dls/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+      '@dls/domain':
+        specifier: workspace:*
+        version: link:../domain
+
 packages:
 
   '@axe-core/playwright@4.12.1':

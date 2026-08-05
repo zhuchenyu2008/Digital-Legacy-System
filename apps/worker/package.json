@@ -1,0 +1,16 @@
+{
+  "name": "@dls/worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -b"
+  },
+  "dependencies": {
+    "@dls/application": "workspace:*",
+    "@dls/contracts": "workspace:*",
+    "@dls/email-templates": "workspace:*",
+    "@dls/persistence": "workspace:*",
+    "@dls/storage": "workspace:*"
+  }
+}

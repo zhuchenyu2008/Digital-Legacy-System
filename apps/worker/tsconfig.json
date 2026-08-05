@@ -1,0 +1,15 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "composite": true,
+    "noEmit": true
+  },
+  "files": [],
+  "references": [
+    { "path": "../../packages/application" },
+    { "path": "../../packages/contracts" },
+    { "path": "../../packages/email-templates" },
+    { "path": "../../packages/persistence" },
+    { "path": "../../packages/storage" }
+  ]
+}

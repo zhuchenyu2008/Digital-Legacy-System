@@ -1,0 +1,16 @@
+{
+  "files": [],
+  "references": [
+    { "path": "packages/domain" },
+    { "path": "packages/contracts" },
+    { "path": "packages/application" },
+    { "path": "packages/crypto" },
+    { "path": "packages/persistence" },
+    { "path": "packages/storage" },
+    { "path": "packages/email-templates" },
+    { "path": "packages/test-fixtures" },
+    { "path": "apps/api" },
+    { "path": "apps/worker" },
+    { "path": "apps/web" }
+  ]
+}
