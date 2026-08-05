@@ -25,6 +25,7 @@
     "@axe-core/playwright": "4.12.1",
     "@biomejs/biome": "2.5.7",
     "@playwright/test": "1.62.1",
+    "@types/node": "24.13.3",
     "@vitest/coverage-v8": "4.1.10",
     "dotenv": "17.4.2",
     "tsx": "4.23.5",

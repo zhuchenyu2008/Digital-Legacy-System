@@ -9,6 +9,7 @@ coverage/
 .cache/
 .corepack/
 .corepack-bin/
+ops/secrets/generated/
 
 .env
 .env.*
