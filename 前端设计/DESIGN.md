@@ -186,3 +186,17 @@ The shape language is **Soft (0.25rem)**. This slight rounding takes the "edge" 
 
 **Status Badges:**
 - Small, uppercase labels with a background tint corresponding to the system state (e.g., a light emerald background with dark emerald text for the "ARMED" state).
+
+## Implementation Constraints
+
+以下约束适用于生产实现，现有 HTML 仅为静态视觉参考：
+
+- 生产页面允许使用 Google Fonts、Material Symbols 等第三方静态 CDN 以提高设计稿还原度，但必须提供本地或系统回退，CDN 失败不得阻断关键流程。处理密码、密钥、私钥或分片的页面不得执行 Tailwind CDN 等第三方运行时脚本；相关样式必须在构建期产出。
+- 姓名、邮箱、时间、人数、摘要、倒计时和状态必须来自服务端，不得保留设计稿演示值。
+- 页面必须使用真实路由和接口，不使用无意义的 `href="#"`、伪提交或未授权的浏览器状态推进。
+- 关键高风险操作必须同时提供键盘和触屏路径；长按只能作为增强交互，不能成为唯一操作方式。
+- 密码字段允许密码管理器填充；只有法定确认文字字段禁止粘贴、拖放和自动填充。
+- 生产页面遵守页面规格中的 320px、200% 缩放、中文输入法、屏幕阅读器和 `44 × 44px` 点击区域要求。
+- 页面不把密码、令牌、密钥、分片、Cookie、私有审计或完整请求体写入 URL、持久化浏览器存储、分析事件或日志。
+
+业务状态、错误态和验收规则以 [`docs/06-page-specifications.md`](../docs/06-page-specifications.md) 为准；安全和上线门禁以 [`docs/05-security-privacy.md`](../docs/05-security-privacy.md) 与 [`docs/08-test-and-acceptance-plan.md`](../docs/08-test-and-acceptance-plan.md) 为准。

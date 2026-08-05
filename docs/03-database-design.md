@@ -2,7 +2,7 @@
 
 > 数据库：PostgreSQL  
 > 默认时区：数据库会话使用 UTC，业务展示使用 `Asia/Shanghai`  
-> 关联文档：[产品需求](./01-product-requirements.md) · [系统架构](./02-system-architecture.md) · [API 设计](./04-api-design.md) · [安全与隐私](./05-security-privacy.md) · [页面规格](./06-page-specifications.md)
+> 关联文档：[产品需求](./01-product-requirements.md) · [系统架构](./02-system-architecture.md) · [API 设计](./04-api-design.md) · [安全与隐私](./05-security-privacy.md) · [页面规格](./06-page-specifications.md) · [工程与运维设计](./07-implementation-and-operations.md) · [测试与验收计划](./08-test-and-acceptance-plan.md)
 
 ## 1. 设计原则
 
@@ -98,6 +98,7 @@ create type app.token_purpose as enum (
   'CONTACT_PASSWORD_CHANGE',
   'ADMIN_RECOVERY_START',
   'ADMIN_PASSWORD_RESET',
+  'ADMIN_PASSWORD_RESET_CODE',
   'EMAIL_ACTION_ENTRY'
 );
 ```
@@ -129,6 +130,9 @@ create type app.token_purpose as enum (
 | `singleton_id` | `boolean` PK/FK | 对应 `owner_profile` |
 | `password_phc` | `text` | Argon2id PHC 字符串 |
 | `password_changed_at` | `timestamptz` | 最近改密时间 |
+| `password_pepper_version` | `smallint` | 当前认证 pepper 版本 |
+| `password_kdf_version` | `smallint` | 认证 KDF 协议版本 |
+| `password_normalization_version` | `smallint` | 密码规范化/编码版本 |
 | `failed_attempts` | `integer` | 辅助风控，不替代独立速率限制 |
 | `locked_until` | `timestamptz` | 临时锁定时间 |
 | `credential_version` | `bigint` | 改密后递增，使旧会话失效 |
@@ -165,6 +169,9 @@ create type app.token_purpose as enum (
 | `email_lookup_hmac` | `bytea` | 未删除联系人中唯一 |
 | `password_phc` | `text null` | 注册后存在 |
 | `password_changed_at` | `timestamptz null` |  |
+| `password_pepper_version` | `smallint null` | 当前认证 pepper 版本 |
+| `password_kdf_version` | `smallint null` | 认证 KDF 协议版本 |
+| `password_normalization_version` | `smallint null` | 密码规范化/编码版本 |
 | `credential_version` | `bigint` | 改密后递增 |
 | `x25519_public_key` | `bytea null` | 32 字节公钥 |
 | `private_key_ciphertext/nonce` | `bytea null` | 联系人密码保护的 X25519 私钥 |
@@ -239,8 +246,12 @@ create unique index uq_active_contact_email
 | `id` | `uuid` PK | 保险库 ID |
 | `owner_vault_envelope` | `bytea` | `OWNER_KEK` 包装后的 `VK` |
 | `owner_envelope_nonce` | `bytea` | XChaCha20 nonce |
+| `owner_envelope_algorithm` | `text` | 固定允许列表中的 AEAD 算法 |
+| `owner_envelope_protocol_version` | `smallint` | 包装协议版本 |
+| `owner_envelope_aad_hash` | `bytea` | 实际 AAD 的摘要 |
 | `owner_kdf_salt` | `bytea` | 至少 16 字节 |
 | `owner_kdf_params` | `jsonb` | Argon2id 参数和用途标签 |
+| `vk_commitment` | `bytea` | `SHA-256("dls/vk-commitment/v1" || VK)` |
 | `key_verifier_ciphertext` | `bytea` | 固定验证消息的认证密文 |
 | `key_verifier_nonce` | `bytea` | 用于验证重建后的 `VK` |
 | `active_share_generation_id` | `uuid null` | 当前分片代次 |
@@ -259,6 +270,9 @@ create unique index uq_active_contact_email
 | `death_threshold` | `integer` | `ceil(N × 0.70)` |
 | `recovery_threshold` | `integer` | `floor(N ÷ 2) + 1` |
 | `contacts_snapshot_sha256` | `bytea` | 排序后的联系人/公钥摘要 |
+| `protocol_version` | `smallint` | 秘密共享协议版本 |
+| `vss_scheme` | `text` | 经评审的可公开验证秘密共享方案 |
+| `generation_commitment` | `bytea` | 绑定 `vk_commitment` 和两套分片的公开承诺 |
 | `status` | `text` | `PREPARING` / `ACTIVE` / `RETIRED` |
 | `activated_at/retired_at` | `timestamptz null` |  |
 | `created_at` | `timestamptz` |  |
@@ -281,6 +295,7 @@ create unique index uq_one_active_share_generation
 | `share_index` | `smallint` | Shamir x 坐标，非 0 |
 | `death_share_ciphertext` | `bytea` | 使用联系人公钥 sealed-box 加密 |
 | `recovery_share_ciphertext` | `bytea` | 独立恢复分片 |
+| `share_protocol_version` | `smallint` | sealed-box/分片编码版本 |
 | `death_share_commitment` | `bytea` | 带用途标签的摘要/承诺 |
 | `recovery_share_commitment` | `bytea` |  |
 | `created_at` | `timestamptz` |  |
@@ -304,8 +319,13 @@ create unique index uq_one_active_share_generation
 | `ciphertext_sha256` | `bytea` | 密文摘要 |
 | `dek_envelope` | `bytea` | `VK` 包装后的 `DEK_v` |
 | `dek_envelope_nonce` | `bytea` |  |
+| `dek_envelope_algorithm` | `text` | 包装 AEAD 算法 |
+| `dek_envelope_protocol_version` | `smallint` | 包装协议版本 |
+| `dek_envelope_aad_hash` | `bytea` | 包装 AAD 摘要 |
 | `manifest_ciphertext` | `bytea` | 加密的客户端预检清单 |
 | `manifest_nonce` | `bytea` |  |
+| `manifest_algorithm` | `text` | manifest 认证加密算法 |
+| `manifest_aad_hash` | `bytea` | manifest 绑定包 ID/摘要的 AAD 摘要 |
 | `uploaded_at/ready_at/activated_at` | `timestamptz null` |  |
 | `superseded_at/deleted_at` | `timestamptz null` |  |
 | `created_at/updated_at/version` | 通用列 |  |
@@ -445,8 +465,10 @@ create unique index uq_one_active_workflow
 | `contact_id` | `uuid` FK | 联合 PK |
 | `share_index` | `smallint` |  |
 | `purpose` | `text` | `DEATH` / `RECOVERY` |
-| `fragment_ciphertext` | `bytea` | 使用 `STAGE_KEK` 认证加密 |
+| `fragment_ciphertext` | `bytea` | 按 `purpose` 使用 `RELEASE_STAGE_KEK` 或 `RECOVERY_STAGE_KEK` 认证加密 |
 | `fragment_nonce` | `bytea` |  |
+| `fragment_protocol_version` | `smallint` | 流程分片包装协议版本 |
+| `stage_key_version` | `smallint` | 对应 stage key 版本 |
 | `commitment` | `bytea` | 校验对应代次和用途 |
 | `received_at` | `timestamptz` |  |
 
@@ -458,9 +480,10 @@ create unique index uq_one_active_workflow
 |---|---|---|
 | `workflow_id` | `uuid` PK/FK |  |
 | `purpose` | `text` | `RELEASE` / `PASSWORD_RESET` |
-| `vault_key_ciphertext` | `bytea` | `STAGE_KEK` 包装后的 `VK` |
+| `vault_key_ciphertext` | `bytea` | 按 `stage_key_purpose` 使用对应 stage key 包装后的 `VK` |
 | `nonce` | `bytea` |  |
-| `stage_key_version` | `smallint` | 部署密钥版本 |
+| `stage_key_purpose` | `text` | `RELEASE` 或 `RECOVERY`，决定使用的 stage key |
+| `stage_key_version` | `smallint` | 对应部署密钥版本 |
 | `created_at` | `timestamptz` |  |
 | `expires_at` | `timestamptz` | 发布截止或恢复截止 |
 | `destroyed_at` | `timestamptz null` | 逻辑记录；销毁后密文字段置空 |
@@ -476,6 +499,7 @@ create unique index uq_one_active_workflow
 | `id` | `uuid` PK | 重包装会话 ID |
 | `workflow_id` | `uuid` FK | 必须为已达到门限的恢复流程 |
 | `session_token_hash` | `bytea unique` | 返回浏览器的一次性令牌只存 HMAC |
+| `email_code_challenge_id` | `uuid` FK | 已成功消费的主邮箱验证码挑战 |
 | `client_ephemeral_public_key` | `bytea` | 一次性 X25519 公钥 |
 | `sealed_vault_key_sha256` | `bytea` | 本次返回密文摘要，用于绑定后续证明 |
 | `expires_at` | `timestamptz` | 创建后 15 分钟 |
@@ -492,6 +516,7 @@ create unique index uq_one_active_workflow
 |---|---|---|
 | `id` | `uuid` PK | 会话 ID，不直接作为 Cookie 值 |
 | `session_token_hash` | `bytea unique` | Cookie 随机值的 HMAC |
+| `token_hmac_key_version` | `smallint` | 计算 HMAC 时使用的密钥版本 |
 | `actor_type` | `text` | `OWNER` / `CONTACT` |
 | `actor_id` | `uuid null` | OWNER 为空或固定值 |
 | `credential_version` | `bigint` | 改密后旧会话失效 |
@@ -511,6 +536,7 @@ create unique index uq_one_active_workflow
 | `purpose` | `token_purpose` |  |
 | `subject_type/subject_id` | `text/uuid` | 联系人、管理员或流程 |
 | `token_hash` | `bytea unique` | 只保存令牌 HMAC |
+| `token_hmac_key_version` | `smallint` | 计算 HMAC 时使用的密钥版本 |
 | `expires_at` | `timestamptz` |  |
 | `consumed_at/revoked_at` | `timestamptz null` |  |
 | `created_at` | `timestamptz` |  |
@@ -527,6 +553,27 @@ where token_hash = :hash
   and expires_at > clock_timestamp()
 returning *;
 ```
+
+### 9.3 `app.email_verification_codes`
+
+主密码恢复达到联系人门限后创建的主邮箱验证码挑战。验证码只在邮件正文中发送，不出现在 URL、Fragment、任务参数或日志中。
+
+| 列 | 类型 | 说明 |
+|---|---|---|
+| `id` | `uuid` PK | 验证码挑战 ID |
+| `purpose` | `text` | 固定为 `ADMIN_PASSWORD_RESET_CODE` |
+| `owner_singleton_id` | `boolean` | 固定为 `true` |
+| `workflow_id` | `uuid` FK | 当前 `PASSWORD_RECOVERY` 流程 |
+| `code_hmac` | `bytea unique` | 8 位验证码的 HMAC，不保存验证码 |
+| `token_hmac_key_version` | `smallint` | 计算验证码 HMAC 时使用的密钥版本 |
+| `notification_id` | `uuid` | 主邮箱通知 |
+| `expires_at` | `timestamptz` | 创建后 10 分钟 |
+| `attempt_count` | `smallint` | 错误尝试次数 |
+| `max_attempts` | `smallint` | 固定为 5 |
+| `consumed_at/locked_at` | `timestamptz null` | 成功消费或尝试耗尽 |
+| `created_at` | `timestamptz` |  |
+
+验证码校验必须在事务中执行：锁定挑战行、检查未过期/未消费/未锁定、比较 HMAC、递增失败次数；成功时消费验证码并绑定当前恢复流程。相同挑战的失败次数不能通过更换 IP 或重放请求重置。
 
 ## 10. 通知与任务
 
@@ -741,12 +788,12 @@ BEGIN
   验证 state = DEATH_CONFIRMING、联系人位于快照、尚未决定
   验证确认文字摘要和分片 commitment
   插入 workflow_contact_actions
-  使用 STAGE_KEK 加密并插入 workflow_key_fragments
+  按 purpose 使用对应 stage key 加密并插入 workflow_key_fragments
   approved_count += 1
   若 approved_count < required_count：提交
   否则：
       读取并重建 VK，验证 key_verifier
-      使用 STAGE_KEK 包装 VK 写 release_secret_sessions
+      使用 RELEASE_STAGE_KEK 包装 VK 写 release_secret_sessions
       删除全部 workflow_key_fragments
       state = RELEASE_PENDING
       release_at = clock_timestamp() + interval '24 hours'
@@ -797,7 +844,7 @@ where id = :id
 returning *;
 ```
 
-两者不可能同时成功。发布锁定后即使解密或对象存储暂时失败，也不能重新开放终止。
+两者不可能同时成功。发布锁定后即使解密或所选文件存储后端暂时失败，也不能重新开放终止。
 
 ### 16.5 激活新 ZIP
 
@@ -854,7 +901,7 @@ audit.public_events(publication_id, sequence_no)
 | 公开遗书、ZIP、公开审计 | 应用不主动删除，发布后不可变 |
 | 测试数据 | 管理员主动清理；与正式数据隔离 |
 
-由于用户明确选择不备份，任何生命周期承诺均以数据库和对象存储仍可用为前提。
+由于用户明确选择不备份，任何生命周期承诺均以数据库和所选文件存储后端仍可用为前提。
 
 ## 19. 迁移要求
 
@@ -864,3 +911,16 @@ audit.public_events(publication_id, sequence_no)
 - 发布表、公开审计表和私有审计表不得设计 `ON DELETE CASCADE`。
 - 联系人、包和流程等业务表使用显式删除/退役状态，禁止数据库级联丢失审计证据。
 - 每次迁移记录版本、脚本 SHA-256、开始/结束时间和结果，但不记录连接凭据。
+
+## 20. 迁移交付物与数据库验收
+
+设计落地时，`migrations/` 必须至少包含：
+
+1. schema、枚举、基础表、索引和外键迁移；
+2. 应用数据库角色、Worker 角色、公开只读角色和迁移角色授权；
+3. 发布表、公开审计表不可变触发器和拒绝删除/更新测试；
+4. 业务时间、单例管理员、单个活动流程、单个活动包、单个活动分片代次的约束测试；
+5. Outbox/pg-boss 表和幂等唯一约束；
+6. 空数据库初始化、重复执行、并发执行和迁移版本校验脚本。
+
+生产部署不得使用拥有 DDL 权限的 API 或 Worker 账号。迁移成功后必须记录迁移版本、脚本摘要和结果；任何失败都要停止发布，不允许服务以半迁移状态启动。

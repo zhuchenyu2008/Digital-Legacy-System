@@ -4,13 +4,13 @@
 > 基础路径：`/api/v1`  
 > 字符编码：UTF-8  
 > 业务时区：输入输出时间均为 RFC 3339 UTC，同时在展示字段提供北京时间文本  
-> 关联文档：[产品需求](./01-product-requirements.md) · [系统架构](./02-system-architecture.md) · [数据库设计](./03-database-design.md) · [安全与隐私](./05-security-privacy.md) · [页面规格](./06-page-specifications.md)
+> 关联文档：[产品需求](./01-product-requirements.md) · [系统架构](./02-system-architecture.md) · [数据库设计](./03-database-design.md) · [安全与隐私](./05-security-privacy.md) · [页面规格](./06-page-specifications.md) · [工程与运维设计](./07-implementation-and-operations.md) · [测试与验收计划](./08-test-and-acceptance-plan.md)
 
 ## 1. API 原则
 
 1. 密码、服务端可见令牌、密钥包装和分片只允许出现在 HTTPS 请求体，不允许放入 URL 路径、查询参数、日志或错误响应。邮件入口令牌放在 URL Fragment 中，由前端读取后立即清除 Fragment 并通过 POST 请求体提交，Fragment 不发送给 HTTP 服务器。
 2. 认证使用服务端不透明会话和 `HttpOnly; Secure; SameSite=Strict` Cookie，不使用浏览器 `localStorage` 保存令牌。
-3. 除登录和安全幂等的读取接口外，所有状态变更请求必须携带 CSRF Token。
+3. 除登录和无会话初始化/恢复入口外，所有状态变更请求必须携带 CSRF Token；无会话入口必须严格校验 `Origin`、`Sec-Fetch-Site` 和 JSON `Content-Type`，不得接受 Cookie 驱动的跨站请求。
 4. 确认、取消、激活、恢复、发布相关接口必须携带 `Idempotency-Key`。
 5. API 不依赖客户端时间判断截止或阶段，所有决定使用数据库时间。
 6. 联系人只能访问自己的资料和当前可参与流程，永远不能枚举其他联系人。
@@ -29,7 +29,7 @@ Idempotency-Key: <UUIDv7>
 X-Request-ID: <optional UUIDv7>
 ```
 
-服务端总是返回 `X-Request-ID`。文件上传到对象存储时使用 API 下发的短期预签名 URL，预签名请求只允许指定对象、方法、大小范围和内容类型。
+服务端总是返回 `X-Request-ID`。默认文件系统适配器使用 API 流式上传；可选 S3 适配器可以使用 API 下发的短期预签名 URL，预签名请求只允许指定对象、方法、大小范围和内容类型。
 
 ### 2.2 成功响应
 
@@ -94,7 +94,7 @@ X-Request-ID: <optional UUIDv7>
 | `423` | 认证临时锁定、流程锁定联系人名单 |
 | `429` | 速率限制 |
 | `500` | 已脱敏的内部错误 |
-| `503` | 数据库/对象存储暂不可用 |
+| `503` | 数据库/所选文件存储后端暂不可用 |
 
 ### 2.5 幂等规则
 
@@ -259,12 +259,14 @@ If-Match: "3"
       "purpose": "owner-vault-kek-v1"
     },
     "keyVerifierCiphertext": "<base64url>",
-    "keyVerifierNonce": "<base64url>"
+    "keyVerifierNonce": "<base64url>",
+    "vkCommitment": "<hex>",
+    "ownerEnvelopeProof": "<base64url>"
   }
 }
 ```
 
-初始化成功后永久禁用此接口并吊销 `SETUP_TOKEN`。
+服务端必须验证 `ownerEnvelopeProof`、包装协议、KDF 参数、验证块和 `vkCommitment` 的一致性；验证失败不得创建管理员。初始化成功后永久禁用此接口并吊销 `SETUP_TOKEN`。
 
 ### 4.3 查询/修改配置
 
@@ -292,11 +294,12 @@ If-Match: "3"
   "password": "<主密码>",
   "confirmationText": "我理解并接受数字遗产发布后不可撤回",
   "expectedPackageId": "019f...",
-  "expectedShareGenerationId": "019f..."
+  "expectedShareGenerationId": "019f...",
+  "ownerVaultKeyProof": "<证明当前主密码可解开 VK 的一次性证明>"
 }
 ```
 
-服务端再次检查至少 3 位有效联系人、SMTP 测试、活动分片代次、活动 ZIP 和 `will.md` 客户端清单。
+服务端再次检查至少 3 位有效联系人、SMTP 测试、活动分片代次、`vkCommitment`/公开验证证明、活动 ZIP 和 `will.md` 客户端清单；任一密钥绑定证明失败都不得进入 `ARMED`。
 
 ## 5. 签到与流程
 
@@ -417,7 +420,8 @@ If-Match: "3"
       "parallelism": 1,
       "version": 19,
       "purpose": "contact-private-key-kek-v1"
-    }
+    },
+    "privateKeyProof": "<使用 CSK 对服务端挑战的签名>"
   },
   "consent": {
     "version": "2026-08-01",
@@ -446,6 +450,11 @@ If-Match: "3"
   "deathThreshold": 3,
   "recoveryThreshold": 3,
   "contactsSnapshotSha256": "<hex>",
+  "protocolVersion": 1,
+  "vssScheme": "AUDITED_PUBLICLY_VERIFIABLE_SHARING_V1",
+  "generationCommitment": "<base64url>",
+  "vkCommitment": "<hex>",
+  "generationProof": "<base64url>",
   "shares": [
     {
       "contactId": "019f...",
@@ -459,7 +468,7 @@ If-Match: "3"
 }
 ```
 
-服务端重新计算 N 和两个门限，验证每位目标联系人恰好一份、索引唯一、密文尺寸合理，再原子激活。客户端提交的门限值不能作为可信输入。
+服务端重新计算 N 和两个门限，验证每位目标联系人恰好一份、索引唯一、密文尺寸合理、`generationCommitment` 与当前 `vkCommitment` 一致，并验证可公开验证秘密共享证明，再原子激活。客户端提交的门限值不能作为可信输入。
 
 ### 6.7 删除联系人
 
@@ -474,6 +483,11 @@ If-Match: "3"
   "contactSetVersion": 8,
   "newGeneration": {
     "contactsSnapshotSha256": "<hex>",
+    "protocolVersion": 1,
+    "vssScheme": "AUDITED_PUBLICLY_VERIFIABLE_SHARING_V1",
+    "generationCommitment": "<base64url>",
+    "vkCommitment": "<hex>",
+    "generationProof": "<base64url>",
     "shares": [
       {
         "contactId": "<保留的联系人ID>",
@@ -513,12 +527,13 @@ If-Match: "3"
     "ciphertext": "<使用新密码派生密钥重新包装的同一私钥>",
     "nonce": "<base64url>",
     "kdfSalt": "<base64url>",
-    "kdfParams": {"algorithm": "argon2id", "purpose": "contact-private-key-kek-v1"}
+    "kdfParams": {"algorithm": "argon2id", "purpose": "contact-private-key-kek-v1"},
+    "privateKeyProof": "<使用同一 CSK 对挑战的签名>"
   }
 }
 ```
 
-服务端验证旧密码和客户端提交的公钥匹配证明后更新。忘记旧密码返回统一错误，不提供恢复路径。
+服务端验证旧密码、密码规范化结果、新包装 AAD 和客户端提交的公钥匹配证明后原子更新，并递增 `credential_version`。忘记旧密码返回统一错误，不提供恢复路径。
 
 ### 6.10 联系人密码学材料
 
@@ -532,7 +547,7 @@ If-Match: "3"
 
 `GET /owner/vault/material`
 
-管理员会话专用，返回管理员 `VK` 密钥包装、KDF 参数、当前联系人公钥集合、当前分片代次和算法版本；不返回联系人私钥或任何可直接解密的材料。
+管理员会话专用，返回管理员 `VK` 密钥包装、KDF 参数、`vkCommitment`、当前联系人公钥集合、当前分片代次、公开验证证明和算法版本；不返回联系人私钥或任何可直接解密的材料。
 
 高价值调用前要求最近 5 分钟内重新输入过主密码，否则返回 `403 DLS-REAUTH-REQUIRED`。
 
@@ -548,13 +563,34 @@ If-Match: "3"
   "streamHeader": "<base64url>",
   "dekEnvelope": "<base64url>",
   "dekEnvelopeNonce": "<base64url>",
+  "dekEnvelopeAlgorithm": "XCHACHA20_POLY1305",
+  "dekEnvelopeProtocolVersion": 1,
+  "dekEnvelopeAadHash": "<hex>",
   "manifestCiphertext": "<base64url>",
   "manifestNonce": "<base64url>",
+  "manifestAlgorithm": "XCHACHA20_POLY1305",
+  "manifestAadHash": "<hex>",
   "clientCryptoVersion": "1"
 }
 ```
 
-返回分段上传 ID、固定对象键和短期预签名分片 URL。部署容量上限默认 5GiB，超过返回 `413`。
+返回服务端生成的固定对象键以及上传模式：默认 `API_STREAM` 返回受会话、CSRF、大小限制和幂等保护的流式上传地址；可选 S3 适配器返回 `S3_MULTIPART`、分段上传 ID 和短期预签名分片 URL。部署容量上限默认 5GiB，超过返回 `413`。
+
+默认文件系统响应：
+
+```json
+{
+  "packageId": "019f...",
+  "objectKey": "private/019f...",
+  "upload": {
+    "mode": "API_STREAM",
+    "method": "PUT",
+    "url": "/api/v1/owner/packages/019f.../content"
+  }
+}
+```
+
+`PUT /owner/packages/{packageId}/content` 只接受该会话生成的包，要求 CSRF、`Content-Length` 和 `application/octet-stream`，边接收边写随机临时文件并计算摘要；连接中断时临时文件不可成为有效对象。S3 模式的响应把 `upload.mode` 改为 `S3_MULTIPART`，并返回 `uploadId`、固定分片大小和短期预签名分片 URL。
 
 ### 7.3 完成上传
 
@@ -571,7 +607,7 @@ If-Match: "3"
 }
 ```
 
-对象存在、大小、摘要和元数据通过后置为 `READY`。失败时保持旧活动包不变。
+`API_STREAM` 模式不提交 `parts`；`S3_MULTIPART` 模式必须提交并验证分段清单。服务端通过当前文件存储适配器读取实际对象并重新计算大小、密文 SHA-256、分段顺序（如适用）和元数据，再与请求值逐项比较；同时验证 secretstream 头、算法版本、DEK 包装 AAD 和 manifest 绑定。所有检查通过后才置为 `READY`，失败时保持旧活动包不变。
 
 ### 7.4 激活新包
 
@@ -686,7 +722,7 @@ API 不返回总联系人名单。公开首页可以显示聚合计数，联系�
 
 `POST /auth/owner/password-recovery/request`
 
-无需提交邮箱，系统向已配置的主邮箱和备用邮箱创建启动邮件。无论是否被限速，公开响应使用相同文案，避免暴露配置状态。
+无需提交邮箱，系统只向已配置的主邮箱创建启动邮件。备用邮箱不自动接收同一恢复链接或验证码。无论是否被限速，公开响应使用相同文案，避免暴露配置状态。
 
 ```json
 {
@@ -705,7 +741,7 @@ API 不返回总联系人名单。公开首页可以显示聚合计数，联系�
 
 ```json
 {
-  "token": "<主或备用邮箱中的单次令牌>"
+  "token": "<主邮箱中的单次令牌>"
 }
 ```
 
@@ -725,22 +761,23 @@ API 不返回总联系人名单。公开首页可以显示聚合计数，联系�
 }
 ```
 
-联系人必须已登录且位于快照。达到多数门限后向管理员两个邮箱发送设置新密码链接。
+联系人必须已登录且位于快照。达到多数门限后，只向管理员主邮箱发送设置新密码链接和 8 位一次性验证码。验证码挑战有效 10 分钟，最多错误 5 次，数据库只保存 HMAC；邮件正文不包含密码、密钥、分片或 `VK`。
 
 ### 9.4 建立一次性密钥重包装会话
 
 `POST /auth/owner/password-recovery/material`
 
-浏览器先生成一次性 X25519 临时密钥对，再提交邮箱重置令牌和临时公钥：
+浏览器先生成一次性 X25519 临时密钥对，再提交主邮箱重置令牌、验证码和临时公钥。链接令牌与验证码必须在同一事务中验证，验证码不放入 URL：
 
 ```json
 {
-  "token": "<单次重置令牌>",
+  "token": "<主邮箱中的单次重置令牌>",
+  "emailVerificationCode": "<8位数字>",
   "clientEphemeralPublicKey": "<base64url-32-bytes>"
 }
 ```
 
-服务端消费邮箱令牌，把临时 `VK` sealed-box 加密给该临时公钥并返回仅可使用一次、15 分钟有效的重包装会话：
+服务端在验证码和链接令牌都有效时消费二者，把临时 `VK` sealed-box 加密给该临时公钥并返回仅可使用一次、15 分钟有效的重包装会话。验证码错误只递增该挑战的失败次数，不能通过换 IP 重置；挑战过期、消费或锁定后统一返回不可继续错误：
 
 ```json
 {
@@ -772,13 +809,17 @@ API 不返回总联系人名单。公开首页可以显示聚合计数，联系�
       "iterations": 3,
       "parallelism": 1,
       "purpose": "owner-vault-kek-v1"
-    }
+    },
+    "algorithm": "XCHACHA20_POLY1305",
+    "protocolVersion": 1,
+    "aadHash": "<hex>"
   },
-  "vaultKeyProof": "<绑定workflowId和新包装的证明>"
+  "vaultKeyProof": "<绑定workflowId和新包装的证明>",
+  "ownerEnvelopeProof": "<证明新密码派生密钥与包装一致>"
 }
 ```
 
-服务端使用仍处于恢复会话中的 `VK` 验证新包装和 `vaultKeyProof`，成功后所有旧会话、启动令牌、重置令牌、重包装会话和临时密钥失效，并记录签到。API 不得返回明文 `VK`。
+服务端使用仍处于恢复会话中的 `VK` 验证新包装、密码规范化结果、AAD、`vaultKeyProof` 和 `vkCommitment`，成功后所有旧会话、启动令牌、重置令牌、邮箱验证码、重包装会话和临时密钥失效，并记录签到。API 不得返回明文 `VK`。
 
 ## 10. 公开接口
 
@@ -927,8 +968,8 @@ SMTP 密码只允许写入，不允许通过 API 读回；GET 仅返回掩码和
 ## 14. 健康接口
 
 - `GET /health/live`：进程存活，不探测依赖。
-- `GET /health/ready`：数据库迁移版本、PostgreSQL、任务领取能力和对象存储基本访问。
-- `GET /owner/system-health`：管理员查看 Worker 最近心跳、最近截止扫描、任务积压、SMTP 最后测试和对象存储状态。
+- `GET /health/ready`：数据库迁移版本、PostgreSQL、任务领取能力和所选文件存储后端基本访问。
+- `GET /owner/system-health`：管理员查看 Worker 最近心跳、最近截止扫描、任务积压、SMTP 最后测试、存储后端类型和状态。
 
 公开健康接口不返回版本、依赖地址、队列数量或错误详情。
 
@@ -944,6 +985,9 @@ SMTP 密码只允许写入，不允许通过 API 读回；GET 仅返回掩码和
 | `DLS-TOKEN-INVALID` | 404 | 令牌不存在，避免枚举 |
 | `DLS-TOKEN-EXPIRED` | 410 | 已过期 |
 | `DLS-TOKEN-CONSUMED` | 410 | 已消费 |
+| `DLS-RECOVERY-EMAIL-CODE-INVALID` | 400 | 主邮箱验证码错误 |
+| `DLS-RECOVERY-EMAIL-CODE-EXPIRED` | 410 | 主邮箱验证码过期 |
+| `DLS-RECOVERY-EMAIL-CODE-LOCKED` | 423 | 主邮箱验证码尝试次数耗尽 |
 | `DLS-CONTACT-LIST-LOCKED` | 423 | 活动流程期间不可修改联系人 |
 | `DLS-CONTACT-MINIMUM` | 422 | 有效联系人将少于 3 人 |
 | `DLS-CONTACT-ACTION-CLOSED` | 409 | 第二阶段后联系人不可操作 |
@@ -965,20 +1009,85 @@ SMTP 密码只允许写入，不允许通过 API 读回；GET 仅返回掩码和
 
 - 实现必须维护机器可读 OpenAPI 3.1 文档，本文是业务语义基线。
 - 所有请求/响应 DTO 使用严格模式，拒绝未知字段，防止批量赋值。
-- `password`、`token`、`keyFragment`、`ciphertext` 字段在 OpenAPI 标记 `writeOnly` 或 `format: byte`，示例使用占位符。
+- `password`、`token`、`emailVerificationCode`、`keyFragment`、`ciphertext` 字段在 OpenAPI 标记 `writeOnly` 或 `format: byte`，示例使用占位符。
 - 客户端类型从 OpenAPI 生成，但密码学结构另有固定版本和测试向量，不能依赖宽松 JSON 类型。
 - 破坏性 API 变化必须新建 `/api/v2`；V1 内只允许向后兼容字段新增。
 - CI 必须验证 OpenAPI 与控制器一致、没有未声明路由、没有公开管理员 DTO。
 
-## 17. API 安全验收
+## 17. 配置、审计和模板接口补充契约
+
+以下接口虽然在前文以清单形式列出，但实现必须为每个接口建立 OpenAPI operation、请求/响应 DTO、角色守卫、CSRF/重新认证要求、错误码和端到端测试。
+
+### 17.1 管理员设置
+
+`GET /owner/settings` 仅管理员可访问，返回脱敏资料、阈值、固定时区、当前配置版本、ARMED 前置条件和 SMTP 配置状态；不返回 SMTP 密码、Secret、密码哈希或完整私有审计。
+
+`PATCH /owner/settings` 修改显示姓名、主邮箱、备用邮箱和未签到阈值。请求必须包含 `If-Match`、CSRF Token、最近 5 分钟重新认证证明和幂等键。服务端在同一事务中校验邮箱不相同、阈值为正整数、活动流程锁定规则和新的截止计划。
+
+### 17.2 SMTP 与通知
+
+`PUT /owner/smtp-settings` 只写入新 SMTP 配置；密码/API Key 使用 write-only 字段，空字段表示保持不变，绝不返回真实值。`POST /owner/smtp-settings/test` 只允许主邮箱、备用邮箱或测试白名单，返回“已排队/已接受/明确失败”，不得把 SMTP 接受解释成用户已阅读。
+
+`GET /owner/notifications` 和 `GET /owner/notifications/{notificationId}` 只返回投递状态、规范化错误码、次数和北京时间，不返回 SMTP 原始响应、令牌、邮件正文中的秘密或未脱敏个人信息。
+
+### 17.3 包列表与上传中止
+
+`GET /owner/packages` 返回当前包和历史元数据。历史包只包含版本号、状态、摘要、大小、时间和审计引用，不返回旧对象地址、DEK、明文清单或恢复入口。
+
+`POST /owner/packages/{packageId}/abort` 只允许 `UPLOADING`/`FAILED` 包，必须带幂等键；`ACTIVE`、活动流程快照包、已发布包和已删除包统一返回不可操作错误。
+
+### 17.4 邮件模板
+
+`GET /owner/email-templates`、`GET /owner/email-templates/{templateCode}`、`PUT /owner/email-templates/{templateCode}`、`POST /owner/email-templates/{templateCode}/preview` 和 `POST /owner/email-templates/{templateCode}/reset-default` 均要求管理员权限。保存、预览和恢复默认模板要求最近 5 分钟重新认证和 `If-Match`。
+
+服务端按模板代码固定允许的占位符，拒绝未知变量、外部图片、脚本、表单、任意 HTML 和过大的正文。预览只返回渲染结果，不发送邮件；默认模板必须来自版本化代码包。
+
+### 17.5 私有审计与完整性
+
+`GET /owner/audit-events` 支持游标、事件类型和结果筛选；`GET /owner/audit-events/{eventId}` 返回必要的脱敏详情；`GET /owner/audit-integrity` 返回链完整性检查结果、最后序号和最后摘要。任何接口都不返回密码、Cookie、令牌、密钥、分片、遗书正文、SMTP 原始错误或完整请求体。
+
+### 17.6 系统健康
+
+`GET /owner/system-health` 返回 Worker 最近心跳、最后截止扫描、任务积压、SMTP 最近测试、存储后端类型和可用性。公开健康接口只返回存活/就绪，不返回版本、依赖地址、队列数量、Secret 版本或错误详情。
+
+## 18. 普通修改主密码
+
+为补齐产品需求中“输入旧主密码修改新主密码”的流程，新增：
+
+`POST /auth/owner/password-change`
+
+请求体：
+
+```json
+{
+  "oldPassword": "<旧主密码>",
+  "newPassword": "<新主密码>",
+  "newOwnerVaultEnvelope": {
+    "ciphertext": "<base64url>",
+    "nonce": "<base64url>",
+    "kdfSalt": "<base64url>",
+    "kdfParams": {"algorithm": "argon2id", "purpose": "owner-vault-kek-v1"},
+    "algorithm": "XCHACHA20_POLY1305",
+    "protocolVersion": 1,
+    "aadHash": "<hex>"
+  },
+  "vaultKeyProof": "<绑定新包装和 vaultId 的证明>",
+  "ownerEnvelopeProof": "<证明新密码派生密钥与包装一致>"
+}
+```
+
+浏览器用旧密码解开 `VK`，用新密码生成新 `OWNER_KEK` 包装后提交。服务端验证旧密码、新旧包装的 `VK` 一致性、密码规范化、KDF/AEAD/AAD、`ownerEnvelopeProof` 和 `vaultKeyProof`，原子更新认证哈希与保险库包装，递增 `credential_version`，吊销旧会话，记录签到和审计。API 不返回明文 `VK`，忘记旧密码时只能走门限恢复。
+
+## 19. API 安全验收
 
 1. 未认证者无法根据状态码枚举联系人姓名、邮箱或邀请是否存在。
 2. 联系人 A 的 Cookie 访问联系人 B 的资源始终返回 404。
 3. 邮件入口令牌单独使用不能作出任何确认。
-4. 所有状态变更在 CSRF 缺失、错误 Origin 或幂等冲突时拒绝。
-5. 手工构造包含正确文字但无有效分片的肯定确认不能增加计数。
-6. 联系人否定与门限达到并发时仅有一个事务成功，响应与数据库终态一致。
-7. `releaseAt` 到达后，即使发布任务尚未生成公开对象，取消 API 也永久拒绝。
-8. 公开 DTO、日志和错误响应不含密钥、私人审计或联系人身份。
-9. 测试 API 无法写正式对象前缀、正式通知表或正式 workflow。
-10. 发布后 API 路由表中不存在撤回、删除或替换 publication 的操作。
+4. 主密码恢复缺少主邮箱验证码、验证码过期、验证码锁定或链接令牌消费任一条件时，重包装材料接口均拒绝。
+5. 所有状态变更在 CSRF 缺失、错误 Origin 或幂等冲突时拒绝。
+6. 手工构造包含正确文字但无有效分片的肯定确认不能增加计数。
+7. 联系人否定与门限达到并发时仅有一个事务成功，响应与数据库终态一致。
+8. `releaseAt` 到达后，即使发布任务尚未生成公开对象，取消 API 也永久拒绝。
+9. 公开 DTO、日志和错误响应不含密钥、私人审计或联系人身份。
+10. 测试 API 无法写正式对象前缀、正式通知表或正式 workflow。
+11. 发布后 API 路由表中不存在撤回、删除或替换 publication 的操作。
