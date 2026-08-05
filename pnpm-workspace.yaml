@@ -1,0 +1,13 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+
+overrides:
+  cross-spawn: "7.0.6"
+  esbuild: "0.28.1"
+  minimatch: "10.2.6"
+  tar: "7.5.22"
+  vite: "8.2.0"
+
+allowBuilds:
+  esbuild: true

@@ -1,0 +1,34 @@
+{
+  "name": "digital-legacy-system",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.20.0",
+  "engines": {
+    "node": "24.18.0"
+  },
+  "scripts": {
+    "check": "biome check .",
+    "test:unit": "vitest run --project unit",
+    "test:integration": "vitest run --project integration",
+    "test:crypto": "vitest run --project crypto",
+    "test:storage": "vitest run --project storage",
+    "test:e2e": "playwright test",
+    "test:security": "vitest run --project security",
+    "test:deployment": "vitest run --project deployment",
+    "build": "pnpm --recursive --if-present run build",
+    "openapi:generate": "pnpm --recursive --if-present run openapi:generate",
+    "openapi:check": "pnpm --recursive --if-present run openapi:check",
+    "acceptance": "pnpm run check && pnpm run test:unit && pnpm run test:integration && pnpm run test:crypto && pnpm run test:storage && pnpm run test:e2e && pnpm run test:security && pnpm run test:deployment && pnpm run build && pnpm run openapi:check"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "4.12.1",
+    "@biomejs/biome": "2.5.7",
+    "@playwright/test": "1.62.1",
+    "@vitest/coverage-v8": "4.1.10",
+    "dotenv": "17.4.2",
+    "tsx": "4.23.5",
+    "typescript": "6.0.3",
+    "vitest": "4.1.10"
+  }
+}
