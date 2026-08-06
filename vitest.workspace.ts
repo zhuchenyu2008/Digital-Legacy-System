@@ -28,7 +28,14 @@ export default defineConfig({
         test: {
           name: "unit",
           environment: "node",
-          include: ["apps/**/*.test.ts", "apps/**/*.test.tsx", "packages/**/*.test.ts"],
+          include: [
+            "apps/**/*.test.ts",
+            "apps/**/*.test.tsx",
+            "packages/**/*.test.ts",
+            "tests/architecture/**/*.test.ts",
+            "tests/contracts/**/*.test.ts",
+            "tests/tooling/**/*.test.ts",
+          ],
           exclude: ["**/node_modules/**", "**/dist/**", "**/*.integration.test.ts"],
         },
       },
