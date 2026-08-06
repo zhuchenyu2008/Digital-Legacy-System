@@ -19,6 +19,13 @@ export default defineConfig({
       },
       {
         test: {
+          name: "contracts-drift",
+          environment: "node",
+          include: ["tests/contracts/**/*.test.ts"],
+        },
+      },
+      {
+        test: {
           name: "unit",
           environment: "node",
           include: ["apps/**/*.test.ts", "apps/**/*.test.tsx", "packages/**/*.test.ts"],

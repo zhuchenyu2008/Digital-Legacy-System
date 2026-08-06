@@ -18,9 +18,15 @@
   },
   "scripts": {
     "build": "tsc -b",
+    "openapi:generate": "tsx scripts/generate-client.ts --write",
+    "openapi:check": "tsx scripts/generate-client.ts --check",
     "test": "vitest run --config vitest.config.ts"
   },
   "dependencies": {
+    "openapi-fetch": "0.17.0",
     "zod": "4.4.3"
+  },
+  "devDependencies": {
+    "openapi-typescript": "7.13.0"
   }
 }

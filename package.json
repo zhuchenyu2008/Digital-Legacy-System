@@ -17,8 +17,8 @@
     "test:security": "vitest run --config vitest.workspace.ts --project security",
     "test:deployment": "vitest run --config vitest.workspace.ts --project deployment",
     "build": "pnpm --recursive --if-present run build",
-    "openapi:generate": "pnpm --recursive --if-present run openapi:generate",
-    "openapi:check": "pnpm --recursive --if-present run openapi:check",
+    "openapi:generate": "pnpm --filter @dls/api openapi:generate && pnpm --filter @dls/contracts openapi:generate",
+    "openapi:check": "pnpm --filter @dls/api openapi:check && pnpm --filter @dls/contracts openapi:check",
     "acceptance": "pnpm run check && pnpm run test:unit && pnpm run test:integration && pnpm run test:crypto && pnpm run test:storage && pnpm run test:e2e && pnpm run test:security && pnpm run test:deployment && pnpm run build && pnpm run openapi:check"
   },
   "devDependencies": {
