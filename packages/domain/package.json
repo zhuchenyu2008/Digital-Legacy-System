@@ -13,6 +13,11 @@
     }
   },
   "scripts": {
-    "build": "tsc -b"
+    "build": "tsc -b",
+    "test": "vitest run --config vitest.config.ts"
+  },
+  "dependencies": {
+    "@js-temporal/polyfill": "0.5.1",
+    "uuid": "14.0.1"
   }
 }
