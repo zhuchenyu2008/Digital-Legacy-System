@@ -1,0 +1,36 @@
+{
+  admin off
+  auto_https off
+}
+
+:8080 {
+  encode zstd gzip
+
+  header {
+    -Server
+    X-Content-Type-Options nosniff
+    Referrer-Policy no-referrer
+    Permissions-Policy "camera=(), geolocation=(), microphone=()"
+  }
+
+  handle /health/live {
+    reverse_proxy api:3001
+  }
+
+  handle /health/ready {
+    reverse_proxy api:3001
+  }
+
+  handle_path /api/* {
+    reverse_proxy api:3001
+  }
+
+  handle_path /public/* {
+    root * /srv/public
+    file_server
+  }
+
+  handle {
+    reverse_proxy web:3000
+  }
+}

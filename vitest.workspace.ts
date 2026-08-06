@@ -10,6 +10,21 @@ export default defineConfig({
           include: ["tests/tooling/**/*.test.ts"],
         },
       },
+      {
+        test: {
+          name: "deployment",
+          environment: "node",
+          include: ["tests/deployment/**/*.test.ts"],
+        },
+      },
+      {
+        test: {
+          name: "unit",
+          environment: "node",
+          include: ["apps/**/*.test.ts", "apps/**/*.test.tsx", "packages/**/*.test.ts"],
+          exclude: ["**/node_modules/**", "**/dist/**", "**/*.integration.test.ts"],
+        },
+      },
       "apps/*/vitest.config.ts",
       "packages/*/vitest.config.ts",
     ],

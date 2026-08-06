@@ -10,6 +10,9 @@ coverage/
 .next/
 .corepack/
 .corepack-bin/
+.docker-config/
+.compose-smoke-secrets/
+.pnpm-store/
 ops/secrets/generated/
 
 .env

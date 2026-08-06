@@ -1,0 +1,6 @@
+services:
+  acceptance:
+    environment:
+      ACCEPTANCE_BASE_URL: http://caddy:8080
+      CI: "true"
+      PLAYWRIGHT_HTML_OPEN: never
