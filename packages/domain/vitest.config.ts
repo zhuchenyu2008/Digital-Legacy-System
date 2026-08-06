@@ -5,5 +5,13 @@ export default defineConfig({
     name: "domain",
     environment: "node",
     include: ["src/**/*.test.ts"],
+    coverage: {
+      provider: "v8",
+      include: ["src/workflows/**/*.ts", "src/policies/**/*.ts"],
+      exclude: ["src/**/*.test.ts"],
+      thresholds: {
+        branches: 100,
+      },
+    },
   },
 });
