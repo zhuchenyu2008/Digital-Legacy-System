@@ -1,4 +1,5 @@
 import { execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, test } from "vitest";
@@ -42,6 +43,13 @@ function publishedPorts(service: ComposeService): number {
 }
 
 describe("Docker Compose topology", () => {
+  test("pins the Dockerfile frontend image by digest", () => {
+    const dockerfile = readFileSync(resolve(workspaceRoot, "Dockerfile"), "utf8");
+    expect(dockerfile.split(/\r?\n/, 1)[0]).toMatch(
+      /^# syntax=docker\/dockerfile:1\.7@sha256:[a-f0-9]{64}$/,
+    );
+  });
+
   test("defines the default services and isolates optional S3 services", () => {
     const config = composeConfig();
     expect(Object.keys(config.services).sort()).toEqual([
