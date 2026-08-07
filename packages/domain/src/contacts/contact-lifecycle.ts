@@ -1,9 +1,12 @@
 import { type Instant, isDue } from "../shared/instant.js";
+import type { AggregateVersion } from "../shared/version.js";
 import { createWorkflowEvent, type DomainEvent } from "../workflows/workflow-events.js";
 import {
+  assertExpectedVersion,
   immutableArray,
   immutableSnapshot,
   invalidTransition,
+  nextVersion,
   type TransitionResult,
 } from "../workflows/workflow-state.js";
 
@@ -11,20 +14,23 @@ export type ContactStatus = "INVITED" | "CONSENTED" | "ACTIVE" | "REMOVED";
 
 export type ContactLifecycle = Readonly<{
   status: ContactStatus;
+  version: AggregateVersion;
   invitationExpiresAt?: Instant;
 }>;
 
 export type ContactCommand =
-  | Readonly<{ type: "CONSENT" }>
-  | Readonly<{ type: "ACTIVATE" }>
-  | Readonly<{ type: "REMOVE" }>
-  | Readonly<{ type: "EXPIRE_INVITATION" }>;
+  | Readonly<{ type: "CONSENT"; expectedVersion: AggregateVersion }>
+  | Readonly<{ type: "ACTIVATE"; expectedVersion: AggregateVersion }>
+  | Readonly<{ type: "REMOVE"; expectedVersion: AggregateVersion }>
+  | Readonly<{ type: "EXPIRE_INVITATION"; expectedVersion: AggregateVersion }>;
 
 export function transitionContactLifecycle(
   state: ContactLifecycle,
   command: ContactCommand,
   at: Instant,
 ): TransitionResult<ContactLifecycle, DomainEvent> {
+  assertExpectedVersion(state.version, command.expectedVersion);
+
   if (command.type === "CONSENT") {
     if (state.status !== "INVITED") {
       invalidTransition("contact", state.status, command.type);
@@ -67,8 +73,9 @@ function result(
     | "CONTACT_INVITATION_EXPIRED",
   at: Instant,
 ): TransitionResult<ContactLifecycle, DomainEvent> {
+  const version = nextVersion(state.version);
   return {
-    state: immutableSnapshot(state),
-    events: immutableArray([createWorkflowEvent(eventType, at)]),
+    state: immutableSnapshot({ ...state, version }),
+    events: immutableArray([createWorkflowEvent(eventType, at, version)]),
   };
 }

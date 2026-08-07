@@ -14,7 +14,8 @@
   },
   "scripts": {
     "build": "tsc -b",
-    "test": "vitest run --config vitest.config.ts"
+    "test": "vitest run --config vitest.config.ts",
+    "test:mutations": "tsx scripts/verify-boundary-mutations.ts"
   },
   "dependencies": {
     "@js-temporal/polyfill": "0.5.1",

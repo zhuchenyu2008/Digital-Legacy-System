@@ -27,6 +27,7 @@ export type RecoveryWorkflow = Readonly<{
   approvedCount: number;
   expiresAt: Instant;
   shareGenerationId: AggregateId;
+  endedAt?: Instant;
 }>;
 
 export type RecoveryCommand =
@@ -50,6 +51,10 @@ export function transitionRecoveryWorkflow(
 
   if (command.type === "CHANGE_THRESHOLD") {
     throw new Error("Workflow snapshot is immutable: threshold cannot change");
+  }
+
+  if ((command.type === "COMPLETE" || command.type === "CANCEL") && isDue(at, state.expiresAt)) {
+    throw new Error("Recovery workflow deadline has passed");
   }
 
   if (command.type === "APPROVE") {
@@ -93,7 +98,7 @@ export function transitionRecoveryWorkflow(
     }
     const version = nextVersion(state.version);
     return {
-      state: immutableRecoveryWorkflow({ ...state, version, state: "COMPLETED" }),
+      state: immutableRecoveryWorkflow({ ...state, version, state: "COMPLETED", endedAt: at }),
       events: immutableArray([createWorkflowEvent("RECOVERY_COMPLETED", at, version)]),
     };
   }
@@ -107,7 +112,7 @@ export function transitionRecoveryWorkflow(
     }
     const version = nextVersion(state.version);
     return {
-      state: immutableRecoveryWorkflow({ ...state, version, state: "EXPIRED" }),
+      state: immutableRecoveryWorkflow({ ...state, version, state: "EXPIRED", endedAt: at }),
       events: immutableArray([createWorkflowEvent("RECOVERY_EXPIRED", at, version)]),
     };
   }
@@ -117,7 +122,7 @@ export function transitionRecoveryWorkflow(
   }
   const version = nextVersion(state.version);
   return {
-    state: immutableRecoveryWorkflow({ ...state, version, state: "CANCELLED" }),
+    state: immutableRecoveryWorkflow({ ...state, version, state: "CANCELLED", endedAt: at }),
     events: immutableArray([createWorkflowEvent("RECOVERY_CANCELLED", at, version)]),
   };
 }
@@ -131,6 +136,15 @@ function immutableRecoveryWorkflow(state: RecoveryWorkflow): RecoveryWorkflow {
 }
 
 function assertSnapshot(state: RecoveryWorkflow): void {
+  const thresholdReached = state.approvedCount >= state.requiredApprovals;
+  const approvalsAreUnique =
+    new Set(state.approvedContactIds).size === state.approvedContactIds.length;
+  const stateIsConsistent =
+    (state.state === "AWAITING_APPROVALS" && !thresholdReached && state.endedAt === undefined) ||
+    (state.state === "REWRAP_PENDING" && thresholdReached && state.endedAt === undefined) ||
+    (state.state === "COMPLETED" && thresholdReached && state.endedAt !== undefined) ||
+    ((state.state === "CANCELLED" || state.state === "EXPIRED") && state.endedAt !== undefined);
+
   if (
     state.contactIds.length < 1 ||
     new Set(state.contactIds).size !== state.contactIds.length ||
@@ -138,7 +152,9 @@ function assertSnapshot(state: RecoveryWorkflow): void {
     state.requiredApprovals < 1 ||
     state.requiredApprovals > state.contactIds.length ||
     state.approvedCount !== state.approvedContactIds.length ||
-    state.approvedContactIds.some((id) => !state.contactIds.includes(id))
+    !approvalsAreUnique ||
+    state.approvedContactIds.some((id) => !state.contactIds.includes(id)) ||
+    !stateIsConsistent
   ) {
     throw new Error("Invalid workflow snapshot");
   }

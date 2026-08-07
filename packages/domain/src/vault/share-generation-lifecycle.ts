@@ -1,9 +1,12 @@
 import type { Instant } from "../shared/instant.js";
+import type { AggregateVersion } from "../shared/version.js";
 import { createWorkflowEvent, type DomainEvent } from "../workflows/workflow-events.js";
 import {
+  assertExpectedVersion,
   immutableArray,
   immutableSnapshot,
   invalidTransition,
+  nextVersion,
   type TransitionResult,
 } from "../workflows/workflow-state.js";
 
@@ -11,20 +14,23 @@ export type ShareGenerationStatus = "DRAFT" | "DISTRIBUTING" | "ACTIVE" | "SUPER
 
 export type ShareGenerationLifecycle = Readonly<{
   status: ShareGenerationStatus;
+  version: AggregateVersion;
   failureReason?: string;
 }>;
 
 export type ShareGenerationCommand =
-  | Readonly<{ type: "START_DISTRIBUTION" }>
-  | Readonly<{ type: "ACTIVATE" }>
-  | Readonly<{ type: "SUPERSEDE" }>
-  | Readonly<{ type: "FAIL"; reason: string }>;
+  | Readonly<{ type: "START_DISTRIBUTION"; expectedVersion: AggregateVersion }>
+  | Readonly<{ type: "ACTIVATE"; expectedVersion: AggregateVersion }>
+  | Readonly<{ type: "SUPERSEDE"; expectedVersion: AggregateVersion }>
+  | Readonly<{ type: "FAIL"; reason: string; expectedVersion: AggregateVersion }>;
 
 export function transitionShareGenerationLifecycle(
   state: ShareGenerationLifecycle,
   command: ShareGenerationCommand,
   at: Instant,
 ): TransitionResult<ShareGenerationLifecycle, DomainEvent> {
+  assertExpectedVersion(state.version, command.expectedVersion);
+
   if (command.type === "START_DISTRIBUTION") {
     if (state.status !== "DRAFT") invalidTransition("share generation", state.status, command.type);
     return result({ ...state, status: "DISTRIBUTING" }, "SHARE_DISTRIBUTION_STARTED", at);
@@ -61,8 +67,9 @@ function result(
     | "SHARE_GENERATION_FAILED",
   at: Instant,
 ): TransitionResult<ShareGenerationLifecycle, DomainEvent> {
+  const version = nextVersion(state.version);
   return {
-    state: immutableSnapshot(state),
-    events: immutableArray([createWorkflowEvent(type, at)]),
+    state: immutableSnapshot({ ...state, version }),
+    events: immutableArray([createWorkflowEvent(type, at, version)]),
   };
 }

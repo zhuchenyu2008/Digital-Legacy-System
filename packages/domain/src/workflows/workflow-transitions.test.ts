@@ -29,18 +29,31 @@ describe("contact lifecycle", () => {
   test("moves INVITED to CONSENTED to ACTIVE to REMOVED", () => {
     const invited: ContactLifecycle = {
       status: "INVITED",
+      version: versionZero,
       invitationExpiresAt: parseInstant("2026-08-07T12:00:00Z"),
     };
 
-    const consented = transitionContactLifecycle(invited, { type: "CONSENT" }, at);
+    const consented = transitionContactLifecycle(
+      invited,
+      { type: "CONSENT", expectedVersion: invited.version },
+      at,
+    );
     expect(consented.state.status).toBe("CONSENTED");
     expect(consented.events.map((event) => event.type)).toEqual(["CONTACT_CONSENTED"]);
 
-    const active = transitionContactLifecycle(consented.state, { type: "ACTIVATE" }, later);
+    const active = transitionContactLifecycle(
+      consented.state,
+      { type: "ACTIVATE", expectedVersion: consented.state.version },
+      later,
+    );
     expect(active.state.status).toBe("ACTIVE");
     expect(active.events.map((event) => event.type)).toEqual(["CONTACT_ACTIVATED"]);
 
-    const removed = transitionContactLifecycle(active.state, { type: "REMOVE" }, later);
+    const removed = transitionContactLifecycle(
+      active.state,
+      { type: "REMOVE", expectedVersion: active.state.version },
+      later,
+    );
     expect(removed.state.status).toBe("REMOVED");
     expect(removed.events.map((event) => event.type)).toEqual(["CONTACT_REMOVED"]);
   });
@@ -48,31 +61,48 @@ describe("contact lifecycle", () => {
   test("expires an invitation and rejects consent at or after its deadline", () => {
     const invited: ContactLifecycle = {
       status: "INVITED",
+      version: versionZero,
       invitationExpiresAt: at,
     };
 
-    const expired = transitionContactLifecycle(invited, { type: "EXPIRE_INVITATION" }, at);
+    const expired = transitionContactLifecycle(
+      invited,
+      { type: "EXPIRE_INVITATION", expectedVersion: invited.version },
+      at,
+    );
     expect(expired.state.status).toBe("REMOVED");
     expect(expired.events.map((event) => event.type)).toEqual(["CONTACT_INVITATION_EXPIRED"]);
 
-    expect(() => transitionContactLifecycle(invited, { type: "CONSENT" }, at)).toThrow(
-      "invitation",
-    );
+    expect(() =>
+      transitionContactLifecycle(
+        invited,
+        { type: "CONSENT", expectedVersion: invited.version },
+        at,
+      ),
+    ).toThrow("invitation");
   });
 
   test("rejects expiry before the deadline and expiry commands after invitation state", () => {
     expect(() =>
       transitionContactLifecycle(
-        { status: "INVITED", invitationExpiresAt: later },
-        { type: "EXPIRE_INVITATION" },
+        { status: "INVITED", version: versionZero, invitationExpiresAt: later },
+        { type: "EXPIRE_INVITATION", expectedVersion: versionZero },
         at,
       ),
     ).toThrow("deadline");
     expect(() =>
-      transitionContactLifecycle({ status: "INVITED" }, { type: "EXPIRE_INVITATION" }, at),
+      transitionContactLifecycle(
+        { status: "INVITED", version: versionZero },
+        { type: "EXPIRE_INVITATION", expectedVersion: versionZero },
+        at,
+      ),
     ).toThrow("deadline");
     expect(() =>
-      transitionContactLifecycle({ status: "ACTIVE" }, { type: "EXPIRE_INVITATION" }, at),
+      transitionContactLifecycle(
+        { status: "ACTIVE", version: versionZero },
+        { type: "EXPIRE_INVITATION", expectedVersion: versionZero },
+        at,
+      ),
     ).toThrow("transition");
   });
 
@@ -84,33 +114,36 @@ describe("contact lifecycle", () => {
   ] as const)("rejects invalid $status -> $command.type transition", ({ status, command }) => {
     const state: ContactLifecycle = {
       status,
+      version: versionZero,
       invitationExpiresAt: parseInstant("2026-08-07T12:00:00Z"),
     };
 
-    expect(() => transitionContactLifecycle(state, command, at)).toThrow("transition");
+    expect(() =>
+      transitionContactLifecycle(state, { ...command, expectedVersion: state.version }, at),
+    ).toThrow("transition");
   });
 });
 
 describe("share-generation lifecycle", () => {
   test("moves DRAFT to DISTRIBUTING to ACTIVE to SUPERSEDED", () => {
-    const draft: ShareGenerationLifecycle = { status: "DRAFT" };
+    const draft: ShareGenerationLifecycle = { status: "DRAFT", version: versionZero };
     const distributing = transitionShareGenerationLifecycle(
       draft,
-      { type: "START_DISTRIBUTION" },
+      { type: "START_DISTRIBUTION", expectedVersion: draft.version },
       at,
     );
     expect(distributing.state.status).toBe("DISTRIBUTING");
 
     const active = transitionShareGenerationLifecycle(
       distributing.state,
-      { type: "ACTIVATE" },
+      { type: "ACTIVATE", expectedVersion: distributing.state.version },
       later,
     );
     expect(active.state.status).toBe("ACTIVE");
 
     const superseded = transitionShareGenerationLifecycle(
       active.state,
-      { type: "SUPERSEDE" },
+      { type: "SUPERSEDE", expectedVersion: active.state.version },
       later,
     );
     expect(superseded.state.status).toBe("SUPERSEDED");
@@ -123,16 +156,21 @@ describe("share-generation lifecycle", () => {
     { from: "SUPERSEDED", command: { type: "ACTIVATE" } },
     { from: "FAILED", command: { type: "START_DISTRIBUTION" } },
   ] as const)("rejects $from -> $command.type transition", ({ from, command }) => {
-    const state: ShareGenerationLifecycle = { status: from };
+    const state: ShareGenerationLifecycle = { status: from, version: versionZero };
 
-    expect(() => transitionShareGenerationLifecycle(state, command, at)).toThrow("transition");
+    expect(() =>
+      transitionShareGenerationLifecycle(state, { ...command, expectedVersion: state.version }, at),
+    ).toThrow("transition");
   });
 
   test("records a distribution failure before activation", () => {
-    const distributing: ShareGenerationLifecycle = { status: "DISTRIBUTING" };
+    const distributing: ShareGenerationLifecycle = {
+      status: "DISTRIBUTING",
+      version: versionZero,
+    };
     const failed = transitionShareGenerationLifecycle(
       distributing,
-      { type: "FAIL", reason: "commitment mismatch" },
+      { type: "FAIL", reason: "commitment mismatch", expectedVersion: distributing.version },
       at,
     );
 
@@ -145,25 +183,42 @@ describe("share-generation lifecycle", () => {
     { from: "DISTRIBUTING", command: { type: "SUPERSEDE" } },
     { from: "FAILED", command: { type: "FAIL", reason: "retry" } },
   ] as const)("rejects share transition $from -> $command.type", ({ from, command }) => {
-    expect(() => transitionShareGenerationLifecycle({ status: from }, command, at)).toThrow(
-      "transition",
-    );
+    const state: ShareGenerationLifecycle = { status: from, version: versionZero };
+    expect(() =>
+      transitionShareGenerationLifecycle(state, { ...command, expectedVersion: state.version }, at),
+    ).toThrow("transition");
   });
 });
 
 describe("package lifecycle", () => {
   test("moves UPLOADING to VALIDATING to READY to ACTIVE to SUPERSEDED", () => {
-    const uploading: PackageLifecycle = { status: "UPLOADING" };
-    const validating = transitionPackageLifecycle(uploading, { type: "START_VALIDATION" }, at);
+    const uploading: PackageLifecycle = { status: "UPLOADING", version: versionZero };
+    const validating = transitionPackageLifecycle(
+      uploading,
+      { type: "START_VALIDATION", expectedVersion: uploading.version },
+      at,
+    );
     expect(validating.state.status).toBe("VALIDATING");
 
-    const ready = transitionPackageLifecycle(validating.state, { type: "MARK_READY" }, later);
+    const ready = transitionPackageLifecycle(
+      validating.state,
+      { type: "MARK_READY", expectedVersion: validating.state.version },
+      later,
+    );
     expect(ready.state.status).toBe("READY");
 
-    const active = transitionPackageLifecycle(ready.state, { type: "ACTIVATE", packageId }, later);
+    const active = transitionPackageLifecycle(
+      ready.state,
+      { type: "ACTIVATE", packageId, expectedVersion: ready.state.version },
+      later,
+    );
     expect(active.state).toMatchObject({ status: "ACTIVE", packageId });
 
-    const superseded = transitionPackageLifecycle(active.state, { type: "SUPERSEDE" }, later);
+    const superseded = transitionPackageLifecycle(
+      active.state,
+      { type: "SUPERSEDE", expectedVersion: active.state.version },
+      later,
+    );
     expect(superseded.state.status).toBe("SUPERSEDED");
   });
 
@@ -173,20 +228,28 @@ describe("package lifecycle", () => {
     { from: "ACTIVE", command: { type: "ABORT" } },
     { from: "SUPERSEDED", command: { type: "ACTIVATE", packageId } },
   ] as const)("rejects invalid $from -> $command.type transition", ({ from, command }) => {
-    const state: PackageLifecycle = { status: from };
+    const state: PackageLifecycle = { status: from, version: versionZero };
 
-    expect(() => transitionPackageLifecycle(state, command, at)).toThrow("transition");
+    expect(() =>
+      transitionPackageLifecycle(state, { ...command, expectedVersion: state.version }, at),
+    ).toThrow("transition");
   });
 
   test("allows failure and abort only before activation", () => {
+    const validating: PackageLifecycle = { status: "VALIDATING", version: versionZero };
     const failed = transitionPackageLifecycle(
-      { status: "VALIDATING" },
-      { type: "FAIL", reason: "checksum mismatch" },
+      validating,
+      { type: "FAIL", reason: "checksum mismatch", expectedVersion: validating.version },
       at,
     );
     expect(failed.state).toMatchObject({ status: "FAILED", failureReason: "checksum mismatch" });
 
-    const aborted = transitionPackageLifecycle({ status: "READY" }, { type: "ABORT" }, at);
+    const ready: PackageLifecycle = { status: "READY", version: versionZero };
+    const aborted = transitionPackageLifecycle(
+      ready,
+      { type: "ABORT", expectedVersion: ready.version },
+      at,
+    );
     expect(aborted.state.status).toBe("ABORTED");
   });
 
@@ -196,7 +259,10 @@ describe("package lifecycle", () => {
     { from: "FAILED", command: { type: "ABORT" } },
     { from: "ABORTED", command: { type: "FAIL", reason: "retry" } },
   ] as const)("rejects package transition $from -> $command.type", ({ from, command }) => {
-    expect(() => transitionPackageLifecycle({ status: from }, command, at)).toThrow("transition");
+    const state: PackageLifecycle = { status: from, version: versionZero };
+    expect(() =>
+      transitionPackageLifecycle(state, { ...command, expectedVersion: state.version }, at),
+    ).toThrow("transition");
   });
 });
 
@@ -347,7 +413,7 @@ describe("death workflow", () => {
         { type: "FINALIZE_RELEASE", expectedVersion: pending.version },
         at,
       ),
-    ).toThrow("transition");
+    ).toThrow("snapshot");
   });
 
   test.each(["AWAITING_CONFIRMATIONS", "GRACE_PERIOD", "RELEASE_PENDING"] as const)(
@@ -383,7 +449,7 @@ describe("death workflow", () => {
     ).toThrow("deadline");
     expect(() =>
       transitionDeathWorkflow(
-        { ...pending, state: "RELEASED" },
+        { ...pending, state: "RELEASED", endedAt: at },
         { type: "CANCEL", reason: "late", expectedVersion: pending.version },
         at,
       ),
@@ -402,6 +468,27 @@ describe("death workflow", () => {
     expect(() =>
       transitionDeathWorkflow(
         { ...workflow, approvedContactIds: [contactA], approvedCount: 0 },
+        { type: "CANCEL", reason: "invalid", expectedVersion: workflow.version },
+        at,
+      ),
+    ).toThrow("snapshot");
+    expect(() =>
+      transitionDeathWorkflow(
+        { ...workflow, approvedContactIds: [contactA, contactA], approvedCount: 2 },
+        { type: "CANCEL", reason: "invalid", expectedVersion: workflow.version },
+        at,
+      ),
+    ).toThrow("snapshot");
+    expect(() =>
+      transitionDeathWorkflow(
+        { ...workflow, state: "GRACE_PERIOD" },
+        { type: "BEGIN_RELEASE", expectedVersion: workflow.version },
+        workflow.graceDeadline,
+      ),
+    ).toThrow("snapshot");
+    expect(() =>
+      transitionDeathWorkflow(
+        { ...workflow, state: "RELEASE_PENDING" },
         { type: "CANCEL", reason: "invalid", expectedVersion: workflow.version },
         at,
       ),
@@ -486,14 +573,14 @@ describe("recovery workflow", () => {
     ).toThrow("deadline");
     expect(() =>
       transitionRecoveryWorkflow(
-        { ...workflow, state: "COMPLETED" },
+        createRecoveryWorkflow({ state: "COMPLETED" }),
         { type: "EXPIRE", expectedVersion: workflow.version },
         at,
       ),
     ).toThrow("transition");
     expect(() =>
       transitionRecoveryWorkflow(
-        { ...workflow, state: "COMPLETED" },
+        createRecoveryWorkflow({ state: "COMPLETED" }),
         { type: "CANCEL", expectedVersion: workflow.version },
         at,
       ),
@@ -511,7 +598,7 @@ describe("recovery workflow", () => {
     const workflow = createRecoveryWorkflow();
     expect(() =>
       transitionRecoveryWorkflow(
-        { ...workflow, state: "REWRAP_PENDING" },
+        createRecoveryWorkflow({ state: "REWRAP_PENDING" }),
         { type: "APPROVE", contactId: contactA, expectedVersion: workflow.version },
         at,
       ),
@@ -532,12 +619,49 @@ describe("recovery workflow", () => {
     ).toThrow("transition");
   });
 
+  test("rejects completion and cancellation at or after the recovery deadline", () => {
+    const workflow = createRecoveryWorkflow({
+      state: "REWRAP_PENDING",
+      approvedContactIds: [contactA, contactB],
+      approvedCount: 2,
+    });
+
+    expect(() =>
+      transitionRecoveryWorkflow(
+        workflow,
+        { type: "COMPLETE", expectedVersion: workflow.version },
+        workflow.expiresAt,
+      ),
+    ).toThrow("deadline");
+    expect(() =>
+      transitionRecoveryWorkflow(
+        workflow,
+        { type: "CANCEL", expectedVersion: workflow.version },
+        parseInstant("2026-08-13T12:00:00.001Z"),
+      ),
+    ).toThrow("deadline");
+  });
+
   test("rejects malformed recovery snapshots", () => {
     const workflow = createRecoveryWorkflow();
     expect(() =>
       transitionRecoveryWorkflow(
         { ...workflow, contactIds: [contactA, contactA, contactC] },
         { type: "CANCEL", expectedVersion: workflow.version },
+        at,
+      ),
+    ).toThrow("snapshot");
+    expect(() =>
+      transitionRecoveryWorkflow(
+        { ...workflow, approvedContactIds: [contactA, contactA], approvedCount: 2 },
+        { type: "CANCEL", expectedVersion: workflow.version },
+        at,
+      ),
+    ).toThrow("snapshot");
+    expect(() =>
+      transitionRecoveryWorkflow(
+        { ...workflow, state: "REWRAP_PENDING" },
+        { type: "COMPLETE", expectedVersion: workflow.version },
         at,
       ),
     ).toThrow("snapshot");
@@ -637,42 +761,70 @@ describe("release workflow", () => {
     ).toThrow("transition");
   });
 
-  test("preserves an optional workflow event payload", () => {
-    expect(createWorkflowEvent("DEATH_RELEASED", at, versionZero, { packageVersion: 3 })).toEqual({
+  test("copies and freezes an optional workflow event payload", () => {
+    const payload = { packageVersion: 3 };
+    const event = createWorkflowEvent("DEATH_RELEASED", at, versionZero, payload);
+
+    payload.packageVersion = 4;
+
+    expect(event).toEqual({
       type: "DEATH_RELEASED",
       occurredAt: at,
       aggregateVersion: versionZero,
+      payload: { packageVersion: 3 },
+    });
+    expect(Object.isFrozen(event.payload)).toBe(true);
+    expect(() => Object.assign(event.payload ?? {}, { packageVersion: 5 })).toThrow(TypeError);
+  });
+
+  test("supports a payload without an aggregate version", () => {
+    expect(createWorkflowEvent("DEATH_RELEASED", at, undefined, { packageVersion: 3 })).toEqual({
+      type: "DEATH_RELEASED",
+      occurredAt: at,
       payload: { packageVersion: 3 },
     });
   });
 });
 
 function createDeathWorkflow(overrides: Partial<DeathWorkflow> = {}): DeathWorkflow {
+  const state = overrides.state ?? "AWAITING_CONFIRMATIONS";
+  const thresholdReached =
+    state === "GRACE_PERIOD" || state === "RELEASE_PENDING" || state === "RELEASED";
+  const terminal = state === "RELEASED" || state === "CANCELLED";
   return {
-    state: "AWAITING_CONFIRMATIONS",
+    state,
     contactIds: [contactA, contactB, contactC],
     requiredConfirmations: 2,
-    approvedContactIds: [],
-    approvedCount: 0,
+    approvedContactIds: thresholdReached ? [contactA, contactB] : [],
+    approvedCount: thresholdReached ? 2 : 0,
     shareGenerationId,
     packageId,
     graceDeadline: parseInstant("2026-08-07T12:00:00Z"),
     releaseDelayDays: 1,
     version: versionZero,
+    ...(state === "RELEASE_PENDING" || state === "RELEASED"
+      ? { releaseAt: parseInstant("2026-08-08T12:00:00Z") }
+      : {}),
+    ...(terminal ? { endedAt: at } : {}),
+    ...(state === "CANCELLED" ? { endReason: "cancelled" } : {}),
     ...overrides,
   };
 }
 
 function createRecoveryWorkflow(overrides: Partial<RecoveryWorkflow> = {}): RecoveryWorkflow {
+  const state = overrides.state ?? "AWAITING_APPROVALS";
+  const thresholdReached = state === "REWRAP_PENDING" || state === "COMPLETED";
+  const terminal = state === "COMPLETED" || state === "CANCELLED" || state === "EXPIRED";
   return {
-    state: "AWAITING_APPROVALS",
+    state,
     contactIds: [contactA, contactB, contactC],
     requiredApprovals: 2,
-    approvedContactIds: [],
-    approvedCount: 0,
+    approvedContactIds: thresholdReached ? [contactA, contactB] : [],
+    approvedCount: thresholdReached ? 2 : 0,
     expiresAt: parseInstant("2026-08-13T12:00:00Z"),
     shareGenerationId,
     version: versionZero,
+    ...(terminal ? { endedAt: at } : {}),
     ...overrides,
   };
 }

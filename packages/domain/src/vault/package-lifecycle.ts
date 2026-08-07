@@ -1,10 +1,13 @@
 import type { AggregateId } from "../shared/aggregate-id.js";
 import type { Instant } from "../shared/instant.js";
+import type { AggregateVersion } from "../shared/version.js";
 import { createWorkflowEvent, type DomainEvent } from "../workflows/workflow-events.js";
 import {
+  assertExpectedVersion,
   immutableArray,
   immutableSnapshot,
   invalidTransition,
+  nextVersion,
   type TransitionResult,
 } from "../workflows/workflow-state.js";
 
@@ -19,23 +22,30 @@ export type PackageStatus =
 
 export type PackageLifecycle = Readonly<{
   status: PackageStatus;
+  version: AggregateVersion;
   packageId?: AggregateId;
   failureReason?: string;
 }>;
 
 export type PackageCommand =
-  | Readonly<{ type: "START_VALIDATION" }>
-  | Readonly<{ type: "MARK_READY" }>
-  | Readonly<{ type: "ACTIVATE"; packageId: AggregateId }>
-  | Readonly<{ type: "SUPERSEDE" }>
-  | Readonly<{ type: "FAIL"; reason: string }>
-  | Readonly<{ type: "ABORT" }>;
+  | Readonly<{ type: "START_VALIDATION"; expectedVersion: AggregateVersion }>
+  | Readonly<{ type: "MARK_READY"; expectedVersion: AggregateVersion }>
+  | Readonly<{
+      type: "ACTIVATE";
+      packageId: AggregateId;
+      expectedVersion: AggregateVersion;
+    }>
+  | Readonly<{ type: "SUPERSEDE"; expectedVersion: AggregateVersion }>
+  | Readonly<{ type: "FAIL"; reason: string; expectedVersion: AggregateVersion }>
+  | Readonly<{ type: "ABORT"; expectedVersion: AggregateVersion }>;
 
 export function transitionPackageLifecycle(
   state: PackageLifecycle,
   command: PackageCommand,
   at: Instant,
 ): TransitionResult<PackageLifecycle, DomainEvent> {
+  assertExpectedVersion(state.version, command.expectedVersion);
+
   if (command.type === "START_VALIDATION") {
     if (state.status !== "UPLOADING") invalidTransition("package", state.status, command.type);
     return result({ ...state, status: "VALIDATING" }, "PACKAGE_VALIDATION_STARTED", at);
@@ -88,8 +98,9 @@ function result(
     | "PACKAGE_ABORTED",
   at: Instant,
 ): TransitionResult<PackageLifecycle, DomainEvent> {
+  const version = nextVersion(state.version);
   return {
-    state: immutableSnapshot(state),
-    events: immutableArray([createWorkflowEvent(type, at)]),
+    state: immutableSnapshot({ ...state, version }),
+    events: immutableArray([createWorkflowEvent(type, at, version)]),
   };
 }

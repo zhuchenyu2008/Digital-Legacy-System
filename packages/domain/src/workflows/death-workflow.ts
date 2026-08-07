@@ -156,6 +156,28 @@ function immutableDeathWorkflow(state: DeathWorkflow): DeathWorkflow {
 }
 
 function assertSnapshot(state: DeathWorkflow): void {
+  const thresholdReached = state.approvedCount >= state.requiredConfirmations;
+  const approvalsAreUnique =
+    new Set(state.approvedContactIds).size === state.approvedContactIds.length;
+  const stateIsConsistent =
+    (state.state === "AWAITING_CONFIRMATIONS" &&
+      !thresholdReached &&
+      state.releaseAt === undefined &&
+      state.endedAt === undefined) ||
+    (state.state === "GRACE_PERIOD" &&
+      thresholdReached &&
+      state.releaseAt === undefined &&
+      state.endedAt === undefined) ||
+    (state.state === "RELEASE_PENDING" &&
+      thresholdReached &&
+      state.releaseAt !== undefined &&
+      state.endedAt === undefined) ||
+    (state.state === "RELEASED" &&
+      thresholdReached &&
+      state.releaseAt !== undefined &&
+      state.endedAt !== undefined) ||
+    (state.state === "CANCELLED" && state.endedAt !== undefined && state.endReason !== undefined);
+
   if (
     state.contactIds.length < 1 ||
     new Set(state.contactIds).size !== state.contactIds.length ||
@@ -163,7 +185,11 @@ function assertSnapshot(state: DeathWorkflow): void {
     state.requiredConfirmations < 1 ||
     state.requiredConfirmations > state.contactIds.length ||
     state.approvedCount !== state.approvedContactIds.length ||
-    state.approvedContactIds.some((id) => !state.contactIds.includes(id))
+    !approvalsAreUnique ||
+    state.approvedContactIds.some((id) => !state.contactIds.includes(id)) ||
+    !Number.isSafeInteger(state.releaseDelayDays) ||
+    state.releaseDelayDays < 1 ||
+    !stateIsConsistent
   ) {
     throw new Error("Invalid workflow snapshot");
   }

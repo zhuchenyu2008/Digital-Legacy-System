@@ -39,10 +39,12 @@ export function createWorkflowEvent(
   aggregateVersion?: AggregateVersion,
   payload?: Readonly<Record<string, string | number>>,
 ): DomainEvent {
+  const frozenPayload = payload === undefined ? undefined : Object.freeze({ ...payload });
+
   return Object.freeze({
     type,
     occurredAt,
     ...(aggregateVersion === undefined ? {} : { aggregateVersion }),
-    ...(payload === undefined ? {} : { payload }),
+    ...(frozenPayload === undefined ? {} : { payload: frozenPayload }),
   });
 }
