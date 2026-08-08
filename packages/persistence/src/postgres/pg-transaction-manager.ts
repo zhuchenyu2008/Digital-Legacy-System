@@ -4,7 +4,7 @@ import type { Pool, PoolClient } from "pg";
 import type { TransactionContext, TransactionManager } from "@dls/application";
 
 import { PersistenceError, mapDatabaseError } from "./errors.js";
-import { PgAuditWriter } from "./pg-audit-writer.js";
+import { PgAuditWriter } from "../audit/pg-audit-writer.js";
 import { PgDatabaseClock } from "./pg-database-clock.js";
 import { PgOutboxWriter } from "./pg-outbox.js";
 import { createRepositories } from "./pg-repositories.js";

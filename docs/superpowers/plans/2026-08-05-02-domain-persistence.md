@@ -249,15 +249,15 @@ git commit -m "feat: add transactional repositories and outbox"
 - Create: `packages/persistence/src/audit/audit-verifier.test.ts`
 - Create: `packages/persistence/src/cli/verify-audit.ts`
 
-- [ ] **Step 1: Write failing canonicalization and chain tests**
+- [x] **Step 1: Write failing canonicalization and chain tests**
 
 Canonical bytes are UTF-8 RFC 8785-style sorted JSON of `sequence`, `occurredAt`, `eventType`, `actorType`, `actorIdDigest`, `aggregateType`, `aggregateId`, `payload`, and `previousHash`. Hash with SHA-256. Tests cover key-order independence, Unicode normalization policy, one-bit tampering, missing sequence, duplicate sequence, and independent private/public chains.
 
-- [ ] **Step 2: Implement append-only audit writes**
+- [x] **Step 2: Implement append-only audit writes**
 
 Serialize chain append by locking a per-stream head row. Database triggers reject update/delete for API and worker roles. Public-event projection uses an allowlist and redacts identifiers/payloads before hashing; private event contents never copy automatically into the public chain.
 
-- [ ] **Step 3: Verify the CLI**
+- [x] **Step 3: Verify the CLI**
 
 ```powershell
 pnpm.cmd --filter @dls/persistence audit:verify -- --stream private
@@ -265,7 +265,7 @@ pnpm.cmd --filter @dls/persistence audit:verify -- --stream public
 pnpm.cmd --filter @dls/persistence test -- audit
 ```
 
-- [ ] **Step 4: Commit audit chain**
+- [x] **Step 4: Commit audit chain**
 
 ```powershell
 git add packages/application/src/audit packages/persistence/src/audit packages/persistence/src/cli

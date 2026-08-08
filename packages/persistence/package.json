@@ -16,7 +16,9 @@
     "build": "tsc -b",
     "migrate:up": "tsx src/migrations/cli.ts up",
     "migrate:down": "tsx src/migrations/cli.ts down",
-    "migrate:status": "tsx src/migrations/cli.ts status"
+    "migrate:status": "tsx src/migrations/cli.ts status",
+    "audit:verify": "tsx src/cli/verify-audit.ts",
+    "test": "vitest run --config vitest.config.ts"
   },
   "dependencies": {
     "@dls/application": "workspace:*",

@@ -158,6 +158,10 @@ importers:
       '@dls/domain':
         specifier: workspace:*
         version: link:../domain
+    devDependencies:
+      '@types/node':
+        specifier: 24.13.3
+        version: 24.13.3
 
   packages/contracts:
     dependencies:
