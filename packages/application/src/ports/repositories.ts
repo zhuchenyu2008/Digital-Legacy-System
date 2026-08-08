@@ -15,7 +15,13 @@ export interface VersionedRepository {
     options?: { forUpdate?: boolean },
   ): Promise<RepositoryRow | null>;
   findFirst?(options?: { forUpdate?: boolean }): Promise<RepositoryRow | null>;
+  findMany?(
+    field?: string,
+    value?: unknown,
+    options?: { forUpdate?: boolean },
+  ): Promise<readonly RepositoryRow[]>;
   insert(input: RepositoryInput): Promise<RepositoryRow>;
+  updateById?(id: unknown, patch: RepositoryInput): Promise<RepositoryRow>;
   updateVersioned(
     id: unknown,
     expectedVersion: number,
@@ -30,6 +36,8 @@ export type Repositories = Readonly<{
   checkIns: VersionedRepository;
   checkinSchedules: VersionedRepository;
   contacts: VersionedRepository;
+  contactInvitations?: VersionedRepository;
+  contactConsents?: VersionedRepository;
   vaults: VersionedRepository;
   workflows: VersionedRepository;
   packages: VersionedRepository;

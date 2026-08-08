@@ -17,7 +17,7 @@ export interface SetupRuntime {
   createOwner(command: OwnerSetupCommand): Promise<OwnerSetupResult>;
 }
 
-class AesFieldProtector implements FieldProtector {
+export class AesFieldProtector implements FieldProtector {
   readonly #key: Buffer;
 
   public constructor(secret: Uint8Array) {
@@ -36,9 +36,13 @@ class AesFieldProtector implements FieldProtector {
     const lookupHmac = createHmac("sha256", this.#key).update(value, "utf8").digest();
     return { ciphertext, nonce, keyVersion: 1, lookupHmac };
   }
+
+  public async lookup(value: string): Promise<Uint8Array> {
+    return createHmac("sha256", this.#key).update(value, "utf8").digest();
+  }
 }
 
-function secretBytes(value: string | undefined, fallback: string): Uint8Array {
+export function secretBytes(value: string | undefined, fallback: string): Uint8Array {
   return Uint8Array.from(
     Buffer.from(value ?? Buffer.from(fallback, "utf8").toString("base64"), "base64"),
   );

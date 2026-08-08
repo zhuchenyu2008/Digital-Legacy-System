@@ -1,0 +1,150 @@
+import { ContactUseCaseError, type SessionPrincipal } from "@dls/application";
+import {
+  Body,
+  Controller,
+  HttpCode,
+  HttpException,
+  HttpStatus,
+  Inject,
+  Param,
+  Post,
+  Req,
+  Res,
+  UseGuards,
+} from "@nestjs/common";
+import { ApiBody, ApiOperation, ApiParam, ApiResponse, ApiTags } from "@nestjs/swagger";
+import type { FastifyReply, FastifyRequest } from "fastify";
+import { CsrfGuard } from "../security/csrf.guard.js";
+import { OriginGuard } from "../security/origin.guard.js";
+import { OwnerSessionGuard, type SecurityRequest } from "../security/session.guard.js";
+import {
+  AcceptContactInvitationDto,
+  CreateContactInvitationDto,
+  parseAcceptContactInvitation,
+  parseCreateContactInvitation,
+  parseResolveContactInvitation,
+  ResolveContactInvitationDto,
+} from "./contact.dto.js";
+import { CONTACT_RUNTIME, type ContactRuntime } from "./contact.runtime.js";
+
+type OwnerRequest = FastifyRequest & SecurityRequest & { user?: SessionPrincipal };
+
+function setContactCookie(response: FastifyReply, token: string): void {
+  const secure = process.env.NODE_ENV === "production" ? "; Secure" : "";
+  response.header(
+    "set-cookie",
+    `__Host-dls-contact=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Strict${secure}`,
+  );
+}
+
+@ApiTags("Contact invitations")
+@Controller()
+export class ContactInvitationsController {
+  public constructor(@Inject(CONTACT_RUNTIME) private readonly runtime: ContactRuntime) {}
+
+  @Post("owner/contacts/invitations")
+  @HttpCode(HttpStatus.ACCEPTED)
+  @UseGuards(OwnerSessionGuard, OriginGuard, CsrfGuard)
+  @ApiBody({ type: CreateContactInvitationDto })
+  @ApiOperation({ summary: "Create a one-time emergency contact invitation" })
+  @ApiResponse({ status: 202, description: "Invitation queued" })
+  public async invite(@Body() body: CreateContactInvitationDto, @Req() request: OwnerRequest) {
+    const ownerId = request.user?.actorId;
+    if (ownerId === undefined) throw new HttpException("authentication is required", 401);
+    try {
+      const result = await this.runtime.invite({
+        ...parseCreateContactInvitation(body),
+        ownerId,
+        requestId: request.id,
+      });
+      return {
+        data: {
+          contactId: result.contactId,
+          invitationId: result.invitationId,
+          expiresAt: result.expiresAt,
+        },
+        requestId: request.id,
+      };
+    } catch (error) {
+      throw this.mapError(error);
+    }
+  }
+
+  @Post("owner/contacts/:contactId/invitation/resend")
+  @HttpCode(HttpStatus.ACCEPTED)
+  @UseGuards(OwnerSessionGuard, OriginGuard, CsrfGuard)
+  @ApiParam({ name: "contactId", format: "uuid" })
+  @ApiOperation({ summary: "Revoke and resend a contact invitation" })
+  public async resend(@Param("contactId") contactId: string, @Req() request: OwnerRequest) {
+    const ownerId = request.user?.actorId;
+    if (ownerId === undefined) throw new HttpException("authentication is required", 401);
+    try {
+      const result = await this.runtime.resend({ ownerId, contactId, requestId: request.id });
+      return {
+        data: {
+          contactId: result.contactId,
+          invitationId: result.invitationId,
+          expiresAt: result.expiresAt,
+        },
+        requestId: request.id,
+      };
+    } catch (error) {
+      throw this.mapError(error);
+    }
+  }
+
+  @Post("contact-invitations/resolve")
+  @ApiBody({ type: ResolveContactInvitationDto })
+  @ApiOperation({ summary: "Resolve an invitation token supplied in the request body" })
+  public async resolve(@Body() body: ResolveContactInvitationDto) {
+    try {
+      return { data: await this.runtime.resolve(parseResolveContactInvitation(body).token) };
+    } catch (error) {
+      throw this.mapError(error);
+    }
+  }
+
+  @Post("contact-invitations/accept")
+  @ApiBody({ type: AcceptContactInvitationDto })
+  @ApiOperation({ summary: "Accept an invitation with consent and a wrapped private key" })
+  public async accept(
+    @Body() body: AcceptContactInvitationDto,
+    @Req() request: FastifyRequest,
+    @Res({ passthrough: true }) response: FastifyReply,
+  ) {
+    try {
+      const parsed = parseAcceptContactInvitation(body);
+      const result = await this.runtime.accept({
+        ...parsed,
+        requestId: request.id,
+        ...(request.ip === undefined ? {} : { ip: request.ip }),
+        ...(request.headers["user-agent"] === undefined
+          ? {}
+          : { userAgent: request.headers["user-agent"] }),
+      });
+      setContactCookie(response, result.session.token);
+      return {
+        data: {
+          contactId: result.contactId,
+          status: result.status,
+          role: "CONTACT",
+          session: {
+            csrfToken: result.session.csrfToken,
+            idleExpiresAt: result.session.principal.idleExpiresAt,
+            absoluteExpiresAt: result.session.principal.absoluteExpiresAt,
+          },
+        },
+        requestId: request.id,
+      };
+    } catch (error) {
+      throw this.mapError(error);
+    }
+  }
+
+  private mapError(error: unknown): HttpException {
+    if (error instanceof ContactUseCaseError) {
+      return new HttpException({ code: error.code, message: error.message }, error.status);
+    }
+    return error instanceof HttpException ? error : new HttpException("Request failed", 500);
+  }
+}

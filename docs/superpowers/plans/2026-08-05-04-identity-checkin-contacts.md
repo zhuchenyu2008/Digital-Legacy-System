@@ -164,21 +164,21 @@ git commit -m "feat: add owner authentication and check in"
 - Create: `apps/api/src/contacts/contact.module.ts`
 - Create: `tests/integration/contact-invitation.test.ts`
 
-- [ ] **Step 1: Write failing invitation and consent tests**
+- [x] **Step 1: Write failing invitation and consent tests**
 
 Cover create/resend/expire/consume, same-email collision, max contacts, no account enumeration, exact consent-version capture, checkbox/version mismatch, contact password limits, mismatched CPK/CSK wrapper lengths, replay, concurrent acceptance, and token absence from URL/access log.
 
 Acceptance input contains invitation token in JSON body, explicit current consent document version, contact password for server authentication, contact client KDF profile, X25519 public key, and encrypted private-key wrapper.
 
-- [ ] **Step 2: Implement token and consent persistence**
+- [x] **Step 2: Implement token and consent persistence**
 
 Generate tokens through an injected CSPRNG, store peppered digests, use one-time row locks, and expire by database time. Store consent document version, digest, accepted timestamp, IP digest, and user-agent digest; never store raw token.
 
-- [ ] **Step 3: Implement contact authentication**
+- [x] **Step 3: Implement contact authentication**
 
 Hash contact passwords separately from owner passwords and scope rate limits by account digest plus IP. On login return contact session and wrapped CSK/KDF/CPK only; sealed shares remain behind the authenticated cryptographic-material endpoint.
 
-- [ ] **Step 4: Verify and commit**
+- [x] **Step 4: Verify and commit**
 
 ```powershell
 pnpm.cmd exec vitest run tests/integration/contact-invitation.test.ts

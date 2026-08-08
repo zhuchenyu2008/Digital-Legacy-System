@@ -1,6 +1,39 @@
 {
   "components": {
     "schemas": {
+      "AcceptContactInvitationDto": {
+        "properties": {
+          "consent": {
+            "$ref": "#/components/schemas/ContactConsentDto"
+          },
+          "password": {
+            "maxLength": 512,
+            "minLength": 12,
+            "type": "string",
+            "writeOnly": true
+          },
+          "privateKeyEnvelope": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ContactPrivateKeyEnvelopeDto"
+              }
+            ],
+            "writeOnly": true
+          },
+          "token": {
+            "minLength": 40,
+            "type": "string",
+            "writeOnly": true
+          }
+        },
+        "required": [
+          "token",
+          "password",
+          "privateKeyEnvelope",
+          "consent"
+        ],
+        "type": "object"
+      },
       "ActivateVaultPackageDto": {
         "properties": {
           "expectedCurrentPackageId": {
@@ -81,6 +114,121 @@
           "uploadId",
           "ciphertextSize",
           "ciphertextSha256"
+        ],
+        "type": "object"
+      },
+      "ContactConsentDto": {
+        "properties": {
+          "denialDisclosureAccepted": {
+            "type": "boolean"
+          },
+          "documentSha256": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "privacyAccepted": {
+            "type": "boolean"
+          },
+          "stage2LockAccepted": {
+            "type": "boolean"
+          },
+          "termsAccepted": {
+            "type": "boolean"
+          },
+          "version": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "version",
+          "documentSha256",
+          "termsAccepted",
+          "privacyAccepted",
+          "denialDisclosureAccepted",
+          "stage2LockAccepted"
+        ],
+        "type": "object"
+      },
+      "ContactLoginDto": {
+        "properties": {
+          "displayName": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "entryToken": {
+            "type": "string",
+            "writeOnly": true
+          },
+          "password": {
+            "maxLength": 512,
+            "minLength": 12,
+            "type": "string",
+            "writeOnly": true
+          }
+        },
+        "required": [
+          "displayName",
+          "password"
+        ],
+        "type": "object"
+      },
+      "ContactPrivateKeyEnvelopeDto": {
+        "properties": {
+          "ciphertext": {
+            "format": "byte",
+            "type": "string",
+            "writeOnly": true
+          },
+          "kdfParams": {
+            "type": "object",
+            "writeOnly": true
+          },
+          "kdfSalt": {
+            "format": "byte",
+            "type": "string",
+            "writeOnly": true
+          },
+          "nonce": {
+            "format": "byte",
+            "type": "string",
+            "writeOnly": true
+          },
+          "privateKeyProof": {
+            "format": "byte",
+            "type": "string",
+            "writeOnly": true
+          },
+          "publicKey": {
+            "format": "byte",
+            "type": "string",
+            "writeOnly": true
+          }
+        },
+        "required": [
+          "publicKey",
+          "ciphertext",
+          "nonce",
+          "kdfSalt",
+          "kdfParams",
+          "privateKeyProof"
+        ],
+        "type": "object"
+      },
+      "CreateContactInvitationDto": {
+        "properties": {
+          "displayName": {
+            "maxLength": 120,
+            "minLength": 1,
+            "type": "string"
+          },
+          "email": {
+            "format": "email",
+            "type": "string"
+          }
+        },
+        "required": [
+          "displayName",
+          "email"
         ],
         "type": "object"
       },
@@ -296,6 +444,19 @@
         ],
         "type": "object"
       },
+      "ResolveContactInvitationDto": {
+        "properties": {
+          "token": {
+            "minLength": 40,
+            "type": "string",
+            "writeOnly": true
+          }
+        },
+        "required": [
+          "token"
+        ],
+        "type": "object"
+      },
       "UpdateOwnerSettingsDto": {
         "properties": {
           "missedDaysThreshold": {
@@ -347,6 +508,31 @@
   },
   "openapi": "3.0.0",
   "paths": {
+    "/auth/contact/login": {
+      "post": {
+        "operationId": "ContactAuthController_login",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ContactLoginDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Contact session created"
+          }
+        },
+        "summary": "Login an emergency contact",
+        "tags": [
+          "Contact authentication"
+        ]
+      }
+    },
     "/auth/logout": {
       "post": {
         "operationId": "OwnerAuthController_logout",
@@ -427,6 +613,56 @@
         ]
       }
     },
+    "/contact-invitations/accept": {
+      "post": {
+        "operationId": "ContactInvitationsController_accept",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AcceptContactInvitationDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Accept an invitation with consent and a wrapped private key",
+        "tags": [
+          "Contact invitations"
+        ]
+      }
+    },
+    "/contact-invitations/resolve": {
+      "post": {
+        "operationId": "ContactInvitationsController_resolve",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResolveContactInvitationDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Resolve an invitation token supplied in the request body",
+        "tags": [
+          "Contact invitations"
+        ]
+      }
+    },
     "/health/live": {
       "get": {
         "operationId": "HealthController_live",
@@ -492,6 +728,55 @@
         "summary": "Explicitly reauthenticate and record an owner check-in",
         "tags": [
           "Owner"
+        ]
+      }
+    },
+    "/owner/contacts/{contactId}/invitation/resend": {
+      "post": {
+        "operationId": "ContactInvitationsController_resend",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "contactId",
+            "required": true,
+            "schema": {
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": ""
+          }
+        },
+        "summary": "Revoke and resend a contact invitation",
+        "tags": [
+          "Contact invitations"
+        ]
+      }
+    },
+    "/owner/contacts/invitations": {
+      "post": {
+        "operationId": "ContactInvitationsController_invite",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateContactInvitationDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Invitation queued"
+          }
+        },
+        "summary": "Create a one-time emergency contact invitation",
+        "tags": [
+          "Contact invitations"
         ]
       }
     },

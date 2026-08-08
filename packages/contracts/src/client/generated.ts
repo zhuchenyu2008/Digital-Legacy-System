@@ -1,4 +1,21 @@
 export type paths = {
+    readonly "/auth/contact/login": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get?: never;
+        readonly put?: never;
+        /** Login an emergency contact */
+        readonly post: operations["ContactAuthController_login"];
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
     readonly "/auth/logout": {
         readonly parameters: {
             readonly query?: never;
@@ -67,6 +84,40 @@ export type paths = {
         readonly patch?: never;
         readonly trace?: never;
     };
+    readonly "/contact-invitations/accept": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get?: never;
+        readonly put?: never;
+        /** Accept an invitation with consent and a wrapped private key */
+        readonly post: operations["ContactInvitationsController_accept"];
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/contact-invitations/resolve": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get?: never;
+        readonly put?: never;
+        /** Resolve an invitation token supplied in the request body */
+        readonly post: operations["ContactInvitationsController_resolve"];
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
     readonly "/health/live": {
         readonly parameters: {
             readonly query?: never;
@@ -127,6 +178,40 @@ export type paths = {
         readonly put?: never;
         /** Explicitly reauthenticate and record an owner check-in */
         readonly post: operations["OwnerController_checkIn"];
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/owner/contacts/{contactId}/invitation/resend": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get?: never;
+        readonly put?: never;
+        /** Revoke and resend a contact invitation */
+        readonly post: operations["ContactInvitationsController_resend"];
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/owner/contacts/invitations": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get?: never;
+        readonly put?: never;
+        /** Create a one-time emergency contact invitation */
+        readonly post: operations["ContactInvitationsController_invite"];
         readonly delete?: never;
         readonly options?: never;
         readonly head?: never;
@@ -291,6 +376,12 @@ export type paths = {
 export type webhooks = Record<string, never>;
 export type components = {
     schemas: {
+        readonly AcceptContactInvitationDto: {
+            readonly consent: components["schemas"]["ContactConsentDto"];
+            readonly password: string;
+            readonly privateKeyEnvelope: components["schemas"]["ContactPrivateKeyEnvelopeDto"];
+            readonly token: string;
+        };
         readonly ActivateVaultPackageDto: {
             /** Format: uuid */
             readonly expectedCurrentPackageId?: string;
@@ -311,6 +402,37 @@ export type components = {
             readonly parts?: readonly components["schemas"]["VaultUploadPartDto"][];
             /** Format: uuid */
             readonly uploadId: string;
+        };
+        readonly ContactConsentDto: {
+            readonly denialDisclosureAccepted: boolean;
+            readonly documentSha256: string;
+            readonly privacyAccepted: boolean;
+            readonly stage2LockAccepted: boolean;
+            readonly termsAccepted: boolean;
+            readonly version: string;
+        };
+        readonly ContactLoginDto: {
+            readonly displayName: string;
+            readonly entryToken?: string;
+            readonly password: string;
+        };
+        readonly ContactPrivateKeyEnvelopeDto: {
+            /** Format: byte */
+            readonly ciphertext: string;
+            readonly kdfParams: Record<string, never>;
+            /** Format: byte */
+            readonly kdfSalt: string;
+            /** Format: byte */
+            readonly nonce: string;
+            /** Format: byte */
+            readonly privateKeyProof: string;
+            /** Format: byte */
+            readonly publicKey: string;
+        };
+        readonly CreateContactInvitationDto: {
+            readonly displayName: string;
+            /** Format: email */
+            readonly email: string;
         };
         readonly CreateOwnerDto: {
             readonly backupEmail?: string;
@@ -383,6 +505,9 @@ export type components = {
             readonly ownerEnvelopeProof: string;
             readonly vkCommitment: string;
         };
+        readonly ResolveContactInvitationDto: {
+            readonly token: string;
+        };
         readonly UpdateOwnerSettingsDto: {
             readonly missedDaysThreshold?: number;
             readonly password: string;
@@ -400,6 +525,28 @@ export type components = {
 };
 export type $defs = Record<string, never>;
 export interface operations {
+    readonly ContactAuthController_login: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly requestBody: {
+            readonly content: {
+                readonly "application/json": components["schemas"]["ContactLoginDto"];
+            };
+        };
+        readonly responses: {
+            /** @description Contact session created */
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     readonly OwnerAuthController_logout: {
         readonly parameters: {
             readonly query?: never;
@@ -477,6 +624,48 @@ export interface operations {
             };
         };
     };
+    readonly ContactInvitationsController_accept: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly requestBody: {
+            readonly content: {
+                readonly "application/json": components["schemas"]["AcceptContactInvitationDto"];
+            };
+        };
+        readonly responses: {
+            readonly 201: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    readonly ContactInvitationsController_resolve: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly requestBody: {
+            readonly content: {
+                readonly "application/json": components["schemas"]["ResolveContactInvitationDto"];
+            };
+        };
+        readonly responses: {
+            readonly 201: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     readonly HealthController_live: {
         readonly parameters: {
             readonly query?: never;
@@ -543,6 +732,47 @@ export interface operations {
         readonly responses: {
             /** @description Check-in recorded */
             readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    readonly ContactInvitationsController_resend: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path: {
+                readonly contactId: unknown;
+            };
+            readonly cookie?: never;
+        };
+        readonly requestBody?: never;
+        readonly responses: {
+            readonly 202: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    readonly ContactInvitationsController_invite: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly requestBody: {
+            readonly content: {
+                readonly "application/json": components["schemas"]["CreateContactInvitationDto"];
+            };
+        };
+        readonly responses: {
+            /** @description Invitation queued */
+            readonly 202: {
                 headers: {
                     readonly [name: string]: unknown;
                 };
