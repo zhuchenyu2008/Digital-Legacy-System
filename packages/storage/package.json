@@ -17,10 +17,14 @@
     }
   },
   "scripts": {
-    "build": "tsc -b"
+    "build": "tsc -b",
+    "test": "vitest run --config vitest.config.ts"
   },
   "dependencies": {
     "@dls/application": "workspace:*",
     "@dls/domain": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "24.13.3"
   }
 }

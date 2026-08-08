@@ -247,7 +247,7 @@ git commit -m "feat: add authenticated encrypted file stream"
 - Create: `packages/storage/src/testing/storage-contract.ts`
 - Create: `packages/storage/src/filesystem/filesystem-storage.test.ts`
 
-- [ ] **Step 1: Write the shared failing contract suite**
+- [x] **Step 1: Write the shared failing contract suite**
 
 Port:
 
@@ -265,17 +265,17 @@ export interface ObjectStoragePort {
 
 Contract cases: empty/multi-chunk put, expected size/hash mismatch, head/read, all legal ranges, invalid ranges, destination immutability, idempotent same-hash promote, conflicting promote, source loss, interruption cleanup, concurrent writers, Unicode/path traversal/device names, restart persistence, and namespace isolation.
 
-- [ ] **Step 2: Run filesystem suite and observe failure**
+- [x] **Step 2: Run filesystem suite and observe failure**
 
 ```powershell
 pnpm.cmd --filter @dls/storage test -- filesystem-storage.test.ts
 ```
 
-- [ ] **Step 3: Implement filesystem adapter**
+- [x] **Step 3: Implement filesystem adapter**
 
 Resolve configured absolute roots once; create directories with owner-only permissions where supported. Write to a same-filesystem random temporary path using exclusive create, fsync file and directory, verify count/hash, then atomically rename. Reject symlinks/reparse-point escapes and any key not matching the server-generated segmented UUID grammar. Public files are still served through the API/Caddy authorization path, never a direct mounted web root.
 
-- [ ] **Step 4: Verify fault cases and commit**
+- [x] **Step 4: Verify fault cases and commit**
 
 ```powershell
 pnpm.cmd --filter @dls/storage test -- filesystem-storage.test.ts
