@@ -13,11 +13,19 @@
     }
   },
   "scripts": {
-    "build": "tsc -b"
+    "build": "tsc -b",
+    "migrate:up": "tsx src/migrations/cli.ts up",
+    "migrate:down": "tsx src/migrations/cli.ts down",
+    "migrate:status": "tsx src/migrations/cli.ts status"
   },
   "dependencies": {
     "@dls/application": "workspace:*",
     "@dls/contracts": "workspace:*",
-    "@dls/domain": "workspace:*"
+    "@dls/domain": "workspace:*",
+    "pg": "8.22.0"
+  },
+  "devDependencies": {
+    "@types/pg": "8.15.5",
+    "tsx": "4.23.5"
   }
 }

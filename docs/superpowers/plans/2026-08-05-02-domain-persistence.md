@@ -147,11 +147,11 @@ git commit -m "feat: implement workflow state machines"
 - Update: `packages/persistence/package.json`
 - Update: `pnpm-lock.yaml`
 
-- [ ] **Step 1: Write a failing migration inventory test**
+- [x] **Step 1: Write a failing migration inventory test**
 
 The test extracts the required tables from `docs/03-database-design.md` and asserts they exist after migration: `owner_profile`, `owner_credentials`, `system_settings`, `emergency_contacts`, `contact_invitations`, `contact_consents`, `vaults`, `share_generations`, `contact_key_shares`, `legacy_packages`, `check_ins`, `checkin_schedules`, `workflows`, `workflow_contacts`, `workflow_contact_actions`, `workflow_key_fragments`, `release_secret_sessions`, `password_rewrap_sessions`, `auth_sessions`, `one_time_tokens`, `email_verification_codes`, `notifications`, `notification_attempts`, `domain_outbox`, `publications`, `email_template_overrides`, `rate_limit_buckets`, plus `audit.private_events` and `audit.public_events`.
 
-- [ ] **Step 2: Run against a blank PostgreSQL 18.4 container**
+- [x] **Step 2: Run against a blank PostgreSQL 18.4 container**
 
 ```powershell
 pnpm.cmd exec vitest run tests/integration/migrations.test.ts
@@ -159,15 +159,15 @@ pnpm.cmd exec vitest run tests/integration/migrations.test.ts
 
 Expected: failure because the migration table and schema do not exist.
 
-- [ ] **Step 3: Implement the locked runner**
+- [x] **Step 3: Implement the locked runner**
 
 Use a PostgreSQL advisory lock, checksum every migration, reject edited applied migrations, apply each file in one transaction, and record version/checksum/Beijing-observed timestamp in `infra.schema_migrations` while retaining database `timestamptz`. Support `up`, `down --steps 1`, and `status` CLI commands.
 
-- [ ] **Step 4: Implement constraints and least-privilege roles**
+- [x] **Step 4: Implement constraints and least-privilege roles**
 
 Verify the API, worker, migrator, backup, and read-only health login-role shells created by `ops/postgres/init/001-roles.sh`, then grant only their documented schema/table/sequence/function privileges. Enforce singleton owner, unique active workflows, legal enum transitions, nonnegative counters, threshold bounds, immutable audit rows, token digest uniqueness, package/version uniqueness, and documented partial indexes. Revoke public schema privileges. Do not create production test-mode tables in the default schema.
 
-- [ ] **Step 5: Rehearse up/down/up and commit**
+- [x] **Step 5: Rehearse up/down/up and commit**
 
 ```powershell
 pnpm.cmd --filter @dls/persistence migrate:up

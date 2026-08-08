@@ -1,0 +1,9 @@
+DROP TABLE IF EXISTS app.email_verification_codes;
+DROP TABLE IF EXISTS app.one_time_tokens;
+DROP TABLE IF EXISTS app.auth_sessions;
+DROP TABLE IF EXISTS app.password_rewrap_sessions;
+DROP TABLE IF EXISTS app.release_secret_sessions;
+DROP TABLE IF EXISTS app.workflow_key_fragments;
+DROP TABLE IF EXISTS app.workflow_contact_actions;
+DROP TABLE IF EXISTS app.workflow_contacts;
+DROP TABLE IF EXISTS app.workflows;
