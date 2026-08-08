@@ -1,0 +1,55 @@
+{
+  "testOnly": true,
+  "version": 1,
+  "passwordNormalization": [
+    {
+      "input": "e\\u0301",
+      "normalizedUtf8": [195, 169]
+    },
+    {
+      "input": " 中 国 ",
+      "normalizedUtf8": [32, 228, 184, 173, 32, 229, 155, 189, 32]
+    }
+  ],
+  "aad": {
+    "input": {
+      "protocol": "dls-v1",
+      "version": 1,
+      "purpose": "owner-vk",
+      "vaultId": "vault-vector-1",
+      "keyId": "key-vector-1",
+      "algorithm": "xchacha20poly1305-ietf"
+    },
+    "canonicalUtf8": [
+      123, 34, 97, 108, 103, 111, 114, 105, 116, 104, 109, 34, 58, 34, 120, 99, 104, 97, 99, 104,
+      97, 50, 48, 112, 111, 108, 121, 49, 51, 48, 53, 45, 105, 101, 116, 102, 34, 44, 34, 107, 101,
+      121, 73, 100, 34, 58, 34, 107, 101, 121, 45, 118, 101, 99, 116, 111, 114, 45, 49, 34, 44, 34,
+      112, 114, 111, 116, 111, 99, 111, 108, 34, 58, 34, 100, 108, 115, 45, 118, 49, 34, 44, 34,
+      112, 117, 114, 112, 111, 115, 101, 34, 58, 34, 111, 119, 110, 101, 114, 45, 118, 107, 34, 44,
+      34, 118, 97, 117, 108, 116, 73, 100, 34, 58, 34, 118, 97, 117, 108, 116, 45, 118, 101, 99,
+      116, 111, 114, 45, 49, 34, 44, 34, 118, 101, 114, 115, 105, 111, 110, 34, 58, 49, 125
+    ]
+  },
+  "kdf": {
+    "version": 1,
+    "algorithm": "argon2id13",
+    "opsLimit": 2,
+    "memLimit": 8192,
+    "salt": "AAAAAAAAAAAAAAAAAAAAAA",
+    "outputBytes": 32
+  },
+  "wrappedKeyFixture": {
+    "version": 1,
+    "algorithm": "xchacha20poly1305-ietf",
+    "purpose": "owner-vk",
+    "keyId": "key-vector-1",
+    "nonce": "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEB",
+    "ciphertext": "AwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMD"
+  },
+  "rejections": [
+    "noncanonical base64url padding",
+    "unknown envelope algorithm",
+    "password NUL",
+    "password over 512 UTF-8 bytes"
+  ]
+}

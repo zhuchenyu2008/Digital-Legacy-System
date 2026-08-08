@@ -12,6 +12,7 @@ overrides:
 
 allowBuilds:
   '@scarf/scarf': false
+  argon2: true
   esbuild: true
 
 minimumReleaseAgeExclude:

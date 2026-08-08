@@ -35,7 +35,7 @@
 - Update: `packages/crypto/package.json`
 - Update: `pnpm-lock.yaml`
 
-- [ ] **Step 1: Write failing encoding and normalization tests**
+- [x] **Step 1: Write failing encoding and normalization tests**
 
 Password normalization is Unicode NFC, UTF-8, no trim/case-fold/silent truncation, maximum 512 bytes. Test composed/decomposed Chinese and Latin input, leading/trailing spaces, NUL rejection, and 512/513-byte boundaries.
 
@@ -63,21 +63,21 @@ export type KdfProfileV1 = Readonly<{
 
 AAD is canonical UTF-8 JSON of `protocol`, `version`, `purpose`, `vaultId`, `generationId?`, `contactId?`, `packageId?`, `packageVersion?`, `keyId`, and `algorithm`; ciphertext never carries a client-authoritative AAD blob.
 
-- [ ] **Step 2: Run and observe failures**
+- [x] **Step 2: Run and observe failures**
 
 ```powershell
 pnpm.cmd --filter @dls/crypto test -- protocol.test.ts
 ```
 
-- [ ] **Step 3: Implement strict codecs and KDFs**
+- [x] **Step 3: Implement strict codecs and KDFs**
 
 Browser key derivation uses libsodium Argon2id with the stored profile and a calibrated default targeting roughly 500–1000 ms on the supported baseline device while honoring a hard memory ceiling. Server authentication uses native `argon2` with a separate random salt, deployment pepper, profile, and PHC string. The client salt and authentication salt are always distinct.
 
-- [ ] **Step 4: Generate committed non-secret vectors**
+- [x] **Step 4: Generate committed non-secret vectors**
 
 Vectors contain synthetic passwords, fixed salts/nonces/keys, expected normalized bytes, AAD bytes, wrapped ciphertext, and rejection cases. Mark them `TEST ONLY`; none are accepted as production configuration.
 
-- [ ] **Step 5: Verify and commit**
+- [x] **Step 5: Verify and commit**
 
 ```powershell
 pnpm.cmd --filter @dls/crypto test

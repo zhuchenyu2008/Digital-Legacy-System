@@ -23,10 +23,18 @@
     }
   },
   "scripts": {
-    "build": "tsc -b"
+    "build": "tsc -b",
+    "test": "vitest run --config vitest.config.ts"
   },
   "dependencies": {
     "@dls/contracts": "workspace:*",
-    "@dls/domain": "workspace:*"
+    "@dls/domain": "workspace:*",
+    "argon2": "0.45.1",
+    "libsodium-wrappers-sumo": "0.8.4",
+    "zod": "4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "24.13.3",
+    "@types/libsodium-wrappers-sumo": "0.8.2"
   }
 }
