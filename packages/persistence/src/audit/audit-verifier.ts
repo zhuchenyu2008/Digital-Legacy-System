@@ -1,6 +1,6 @@
 import type { CanonicalAuditEvent } from "@dls/application";
-import { parseInstant } from "@dls/domain";
 import { hashAuditEvent } from "@dls/application";
+import { parseInstant } from "@dls/domain";
 import type { PoolClient } from "pg";
 
 export type AuditChainEntry = Readonly<{
@@ -22,7 +22,9 @@ function equalBytes(left: Uint8Array, right: Uint8Array): boolean {
 }
 
 function normalizeDatabaseInstant(value: unknown): string {
-  const text = String(value).replace(" ", "T").replace(/([+-]\d{2})$/, "$1:00");
+  const text = String(value)
+    .replace(" ", "T")
+    .replace(/([+-]\d{2})$/, "$1:00");
   return parseInstant(text);
 }
 
@@ -38,7 +40,9 @@ export function verifyAuditChain(
       );
     }
     if (!equalBytes(entry.event.previousHash, previousHash)) {
-      throw new AuditVerificationError(`Audit previous hash mismatch at sequence ${expectedSequence}`);
+      throw new AuditVerificationError(
+        `Audit previous hash mismatch at sequence ${expectedSequence}`,
+      );
     }
     const calculatedHash = hashAuditEvent(entry.event);
     if (!equalBytes(entry.eventHash, calculatedHash)) {

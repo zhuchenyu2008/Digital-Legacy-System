@@ -1,10 +1,6 @@
 import { describe, expect, it } from "vitest";
-
-import {
-  type AuditChainEntry,
-  verifyAuditChain,
-} from "./audit-verifier.js";
 import { hashAuditEvent } from "../../../application/src/audit/canonical-event.js";
+import { type AuditChainEntry, verifyAuditChain } from "./audit-verifier.js";
 
 const zeroHash = Uint8Array.from({ length: 32 }, () => 0);
 

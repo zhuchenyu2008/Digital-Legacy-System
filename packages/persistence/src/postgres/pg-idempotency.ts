@@ -1,13 +1,12 @@
 import { createHash } from "node:crypto";
-import type { PoolClient } from "pg";
-
 import type {
   IdempotencyKey,
-  IdempotencyReservation,
   IdempotencyRepository,
+  IdempotencyReservation,
 } from "@dls/application";
+import type { PoolClient } from "pg";
 
-import { PersistenceError, mapDatabaseError } from "./errors.js";
+import { mapDatabaseError, PersistenceError } from "./errors.js";
 
 function canonicalJson(value: unknown): string {
   if (Array.isArray(value)) return `[${value.map(canonicalJson).join(",")}]`;
@@ -58,22 +57,30 @@ export class PgIdempotencyRepository implements IdempotencyRepository {
     );
     const row =
       (inserted.rows[0] as Record<string, unknown> | undefined) ??
-      (
+      ((
         await this.#client.query(
           `SELECT * FROM app.idempotency_records
            WHERE actor_scope = $1 AND command_name = $2 AND key_digest = $3
            FOR UPDATE`,
           [key.actorScope, key.commandName, Buffer.from(key.keyDigest)],
         )
-      ).rows[0] as Record<string, unknown> | undefined;
-    if (row === undefined) throw new PersistenceError("DATABASE_ERROR", "Idempotency record was not found");
+      ).rows[0] as Record<string, unknown> | undefined);
+    if (row === undefined)
+      throw new PersistenceError("DATABASE_ERROR", "Idempotency record was not found");
     if (!Buffer.from(row.request_hash as Buffer).equals(Buffer.from(key.requestHash))) {
-      throw new PersistenceError("IDEMPOTENCY_CONFLICT", "Idempotency key was reused for a different request");
+      throw new PersistenceError(
+        "IDEMPOTENCY_CONFLICT",
+        "Idempotency key was reused for a different request",
+      );
     }
     return asReservation(row);
   }
 
-  async complete(id: string, responseStatus: number, responseBody: unknown): Promise<IdempotencyReservation> {
+  async complete(
+    id: string,
+    responseStatus: number,
+    responseBody: unknown,
+  ): Promise<IdempotencyReservation> {
     const responseHash = createHash("sha256").update(canonicalJson(responseBody), "utf8").digest();
     try {
       const result = await this.#client.query(
@@ -85,7 +92,8 @@ export class PgIdempotencyRepository implements IdempotencyRepository {
         [id, responseStatus, JSON.stringify(responseBody), responseHash],
       );
       const row = result.rows[0] as Record<string, unknown> | undefined;
-      if (row === undefined) throw new PersistenceError("NOT_FOUND", "Idempotency record is not in progress");
+      if (row === undefined)
+        throw new PersistenceError("NOT_FOUND", "Idempotency record is not in progress");
       return asReservation(row);
     } catch (error) {
       throw mapDatabaseError(error);

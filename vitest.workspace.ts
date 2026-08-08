@@ -1,9 +1,12 @@
 import { defineConfig } from "vitest/config";
+import { workspaceAliases } from "./vitest.aliases.js";
 
 export default defineConfig({
+  resolve: { alias: workspaceAliases },
   test: {
     projects: [
       {
+        resolve: { alias: workspaceAliases },
         test: {
           name: "tooling",
           environment: "node",
@@ -11,6 +14,7 @@ export default defineConfig({
         },
       },
       {
+        resolve: { alias: workspaceAliases },
         test: {
           name: "deployment",
           environment: "node",
@@ -18,6 +22,7 @@ export default defineConfig({
         },
       },
       {
+        resolve: { alias: workspaceAliases },
         test: {
           name: "contracts-drift",
           environment: "node",
@@ -25,6 +30,7 @@ export default defineConfig({
         },
       },
       {
+        resolve: { alias: workspaceAliases },
         test: {
           name: "integration",
           environment: "node",
@@ -33,6 +39,7 @@ export default defineConfig({
         },
       },
       {
+        resolve: { alias: workspaceAliases },
         test: {
           name: "unit",
           environment: "node",

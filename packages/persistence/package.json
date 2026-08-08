@@ -14,10 +14,10 @@
   },
   "scripts": {
     "build": "tsc -b",
-    "migrate:up": "tsx src/migrations/cli.ts up",
-    "migrate:down": "tsx src/migrations/cli.ts down",
-    "migrate:status": "tsx src/migrations/cli.ts status",
-    "audit:verify": "tsx src/cli/verify-audit.ts",
+    "migrate:up": "tsx ../../ops/scripts/persistence-migrate.ts up",
+    "migrate:down": "tsx ../../ops/scripts/persistence-migrate.ts down",
+    "migrate:status": "tsx ../../ops/scripts/persistence-migrate.ts status",
+    "audit:verify": "tsx ../../ops/scripts/verify-audit.ts",
     "test": "vitest run --config vitest.config.ts"
   },
   "dependencies": {

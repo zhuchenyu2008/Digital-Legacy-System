@@ -1,6 +1,5 @@
-import type { PoolClient } from "pg";
-
 import type { OutboxEvent, OutboxRecord, OutboxWriter } from "@dls/application";
+import type { PoolClient } from "pg";
 
 export class PgOutboxWriter implements OutboxWriter {
   readonly #client: Pick<PoolClient, "query">;
@@ -27,13 +26,13 @@ export class PgOutboxWriter implements OutboxWriter {
     );
     const row =
       (inserted.rows[0] as Record<string, unknown> | undefined) ??
-      (
+      ((
         await this.#client.query(
           `SELECT id, event_type, aggregate_type, aggregate_id, payload, idempotency_key, available_at
            FROM app.domain_outbox WHERE idempotency_key = $1`,
           [event.idempotencyKey],
         )
-      ).rows[0] as Record<string, unknown> | undefined;
+      ).rows[0] as Record<string, unknown> | undefined);
     if (row === undefined) throw new Error("Outbox insert returned no row");
     return {
       id: String(row.id),

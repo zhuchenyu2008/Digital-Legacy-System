@@ -19,5 +19,9 @@ export type IdempotencyKey = Readonly<{
 
 export interface IdempotencyRepository {
   reserve(key: IdempotencyKey): Promise<IdempotencyReservation>;
-  complete(id: string, responseStatus: number, responseBody: unknown): Promise<IdempotencyReservation>;
+  complete(
+    id: string,
+    responseStatus: number,
+    responseBody: unknown,
+  ): Promise<IdempotencyReservation>;
 }

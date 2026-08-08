@@ -1,11 +1,12 @@
 import { afterAll, describe, expect, it } from "vitest";
-
-import { createPgPool, PgTransactionManager } from "../../packages/persistence/src/postgres/index.js";
 import { verifyPrivateAuditTable } from "../../packages/persistence/src/audit/audit-verifier.js";
+import {
+  createPgPool,
+  PgTransactionManager,
+} from "../../packages/persistence/src/postgres/index.js";
 
 const pool = createPgPool({
-  connectionString:
-    process.env.DATABASE_URL ?? "postgresql://postgres:test@127.0.0.1:55432/dls",
+  connectionString: process.env.DATABASE_URL ?? "postgresql://postgres:test@127.0.0.1:55432/dls",
 });
 const manager = new PgTransactionManager(pool);
 

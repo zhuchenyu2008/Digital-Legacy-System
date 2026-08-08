@@ -1,7 +1,7 @@
-import type { PoolClient } from "pg";
-
-import { hashAuditEvent, hashAuditPayload, type AuditEvent } from "@dls/application";
 import type { AuditWriter } from "@dls/application";
+
+import { type AuditEvent, hashAuditEvent, hashAuditPayload } from "@dls/application";
+import type { PoolClient } from "pg";
 
 const ZERO_HASH = new Uint8Array(32);
 const ZERO_UUID = "00000000-0000-0000-0000-000000000000";
@@ -126,10 +126,9 @@ export async function appendPublicAuditEvent(
   input: PublicAuditInput,
 ): Promise<void> {
   const projection = projectPublicEvent(input);
-  await client.query(
-    "SELECT pg_advisory_xact_lock(hashtext('dls:audit:public:' || $1))",
-    [publicationId],
-  );
+  await client.query("SELECT pg_advisory_xact_lock(hashtext('dls:audit:public:' || $1))", [
+    publicationId,
+  ]);
   const latest = await client.query(
     `SELECT sequence_no, event_hash
      FROM audit.public_events WHERE publication_id = $1

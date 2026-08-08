@@ -1,6 +1,5 @@
-import type { Pool } from "pg";
-
 import type { JobPayload } from "@dls/application";
+import type { Pool } from "pg";
 
 import { JOB_NAMES } from "./job-names.js";
 

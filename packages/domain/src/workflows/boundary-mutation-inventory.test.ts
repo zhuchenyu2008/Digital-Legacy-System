@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 import {
-  findUncoveredBoundaryComparisons,
   type BoundaryMutation,
+  findUncoveredBoundaryComparisons,
 } from "../../scripts/boundary-mutations.js";
 
 describe("boundary mutation inventory", () => {

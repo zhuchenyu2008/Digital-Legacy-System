@@ -37,8 +37,8 @@ describe("canonical audit events", () => {
 
   it("binds sequence and previous hash into the event digest", () => {
     expect(hashAuditEvent(event({ sequence: 2 }))).not.toEqual(hashAuditEvent(event()));
-    expect(hashAuditEvent(event({ previousHash: Uint8Array.from({ length: 32 }, () => 9) }))).not.toEqual(
-      hashAuditEvent(event()),
-    );
+    expect(
+      hashAuditEvent(event({ previousHash: Uint8Array.from({ length: 32 }, () => 9) })),
+    ).not.toEqual(hashAuditEvent(event()));
   });
 });

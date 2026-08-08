@@ -3,9 +3,9 @@ import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
-  boundaryMutations as mutations,
   boundarySourceFiles,
   findUncoveredBoundaryComparisons,
+  boundaryMutations as mutations,
 } from "./boundary-mutations.js";
 
 const packageRoot = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
@@ -14,7 +14,10 @@ const vitestEntry = path.join(repositoryRoot, "node_modules", "vitest", "vitest.
 
 const sources = Object.fromEntries(
   await Promise.all(
-    boundarySourceFiles.map(async (file) => [file, await readFile(path.join(packageRoot, file), "utf8")]),
+    boundarySourceFiles.map(async (file) => [
+      file,
+      await readFile(path.join(packageRoot, file), "utf8"),
+    ]),
   ),
 );
 const uncoveredComparisons = findUncoveredBoundaryComparisons(sources, mutations);

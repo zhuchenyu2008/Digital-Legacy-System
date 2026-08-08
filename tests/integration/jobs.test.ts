@@ -1,18 +1,19 @@
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
-
-import { createPgPool, PgTransactionManager } from "../../packages/persistence/src/postgres/index.js";
 import {
   computeRetryDelayMs,
   JOB_NAMES,
-  PgOutboxDispatcher,
-  PgBossScheduler,
-  type PgBossLike,
   type JobPublisher,
+  type PgBossLike,
+  PgBossScheduler,
+  PgOutboxDispatcher,
 } from "../../packages/persistence/src/jobs/index.js";
+import {
+  createPgPool,
+  PgTransactionManager,
+} from "../../packages/persistence/src/postgres/index.js";
 
 const pool = createPgPool({
-  connectionString:
-    process.env.DATABASE_URL ?? "postgresql://postgres:test@127.0.0.1:55432/dls",
+  connectionString: process.env.DATABASE_URL ?? "postgresql://postgres:test@127.0.0.1:55432/dls",
 });
 const manager = new PgTransactionManager(pool);
 
@@ -90,7 +91,9 @@ describe("durable jobs and outbox dispatch", () => {
     };
     const dispatcher = new PgOutboxDispatcher(pool, publisher);
 
-    await expect(dispatcher.dispatchBatch()).rejects.toThrow("worker crashed before acknowledgement");
+    await expect(dispatcher.dispatchBatch()).rejects.toThrow(
+      "worker crashed before acknowledgement",
+    );
     expect(await dispatcher.dispatchBatch()).toBe(1);
     expect(published).toHaveLength(1);
     const row = await pool.query(
@@ -108,7 +111,8 @@ describe("durable jobs and outbox dispatch", () => {
   });
 
   it("uses aggregate identity and version as the pg-boss singleton key", async () => {
-    const sent: Array<{ name: string; options: Readonly<Record<string, unknown>> | undefined }> = [];
+    const sent: Array<{ name: string; options: Readonly<Record<string, unknown>> | undefined }> =
+      [];
     const boss: PgBossLike = {
       async send(name, _payload, options) {
         sent.push({ name, options });

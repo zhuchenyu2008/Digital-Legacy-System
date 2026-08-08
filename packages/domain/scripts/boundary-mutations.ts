@@ -123,10 +123,7 @@ export function findUncoveredBoundaryComparisons(
 
   for (const [file, source] of Object.entries(sources)) {
     for (const [index, line] of source.split(/\r?\n/u).entries()) {
-      const codeOnly = line.replace(
-        /"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`(?:\\.|[^`\\])*`/gu,
-        "",
-      );
+      const codeOnly = line.replace(/"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`(?:\\.|[^`\\])*`/gu, "");
       if (/\b(?:type|interface)\b|Readonly<|Record<|TransitionResult</u.test(codeOnly)) {
         continue;
       }

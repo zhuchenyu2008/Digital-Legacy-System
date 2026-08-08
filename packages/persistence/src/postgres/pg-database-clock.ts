@@ -1,7 +1,7 @@
-import type { PoolClient } from "pg";
-
-import { parseInstant, type Instant } from "@dls/domain";
 import type { DatabaseClock } from "@dls/application";
+
+import { type Instant, parseInstant } from "@dls/domain";
+import type { PoolClient } from "pg";
 
 export class PgDatabaseClock implements DatabaseClock {
   readonly #client: Pick<PoolClient, "query">;

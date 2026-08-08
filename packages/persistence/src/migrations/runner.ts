@@ -53,9 +53,7 @@ export interface MigrationClient {
 
 export type MigrationClientFactory = () => Promise<MigrationClient>;
 
-const DEFAULT_MIGRATIONS_DIR = fileURLToPath(
-  new URL("../../migrations/", import.meta.url),
-);
+const DEFAULT_MIGRATIONS_DIR = fileURLToPath(new URL("../../migrations/", import.meta.url));
 
 function parseMigrationName(fileName: string): { version: number; name: string } | null {
   const match = /^(\d+)_([a-z0-9_]+)\.up\.sql$/i.exec(fileName);
@@ -91,11 +89,17 @@ export async function listMigrationFiles(
 }
 
 export async function readMigrationSql(file: MigrationFile | string): Promise<string> {
-  return readFile(typeof file === "string" ? file : file.upPath, "utf8");
+  return normalizeMigrationSql(
+    await readFile(typeof file === "string" ? file : file.upPath, "utf8"),
+  );
 }
 
 async function readDownMigrationSql(file: MigrationFile): Promise<string> {
-  return readFile(file.downPath, "utf8");
+  return normalizeMigrationSql(await readFile(file.downPath, "utf8"));
+}
+
+function normalizeMigrationSql(sql: string): string {
+  return sql.replace(/\r\n?/gu, "\n");
 }
 
 function checksum(sql: string): string {
@@ -155,17 +159,12 @@ export class MigrationRunner {
       const result = await this.#client.query(
         "SELECT version, name, checksum_sha256 FROM infra.schema_migrations ORDER BY version",
       );
-      const applied = new Map(
-        result.rows.map((row) => [Number(row.version), row]),
-      );
+      const applied = new Map(result.rows.map((row) => [Number(row.version), row]));
       for (const file of files) {
         const sql = await readMigrationSql(file);
         const existing = applied.get(file.version);
         if (existing) {
-          if (
-            existing.name !== file.name ||
-            existing.checksum_sha256 !== checksum(sql)
-          ) {
+          if (existing.name !== file.name || existing.checksum_sha256 !== checksum(sql)) {
             throw new Error(`migration ${file.version} checksum or name changed`);
           }
           continue;
@@ -207,10 +206,9 @@ export class MigrationRunner {
           throw new Error(`migration ${row.version} checksum or name changed`);
         }
         await this.#client.query(await readDownMigrationSql(file));
-        await this.#client.query(
-          "DELETE FROM infra.schema_migrations WHERE version = $1",
-          [file.version],
-        );
+        await this.#client.query("DELETE FROM infra.schema_migrations WHERE version = $1", [
+          file.version,
+        ]);
       }
       await commit(this.#client);
     } catch (error) {

@@ -2,38 +2,44 @@ import { Client } from "pg";
 
 import { MigrationRunner } from "./runner.js";
 
-const command = process.argv[2] ?? "status";
-const stepsFlagIndex = process.argv.findIndex((argument) => argument === "--steps");
-const stepsArgument = process.argv.find((argument) => argument.startsWith("--steps="));
-const stepsText =
-  stepsArgument === undefined
-    ? stepsFlagIndex < 0
-      ? undefined
-      : process.argv[stepsFlagIndex + 1]
-    : stepsArgument.slice("--steps=".length);
-const steps = stepsText === undefined ? 1 : Number(stepsText);
+export type MigrationCliOptions = Readonly<{
+  argv: readonly string[];
+  databaseUrl: string;
+  write?: (message: string) => void;
+}>;
 
-const client = new Client({
-  connectionString: process.env.DATABASE_URL,
-});
+export async function runMigrationCli(options: MigrationCliOptions): Promise<void> {
+  const command = options.argv[0] ?? "status";
+  const stepsFlagIndex = options.argv.indexOf("--steps");
+  const stepsArgument = options.argv.find((argument) => argument.startsWith("--steps="));
+  const stepsText =
+    stepsArgument === undefined
+      ? stepsFlagIndex < 0
+        ? undefined
+        : options.argv[stepsFlagIndex + 1]
+      : stepsArgument.slice("--steps=".length);
+  const steps = stepsText === undefined ? 1 : Number(stepsText);
+  const write = options.write ?? console.log;
 
-await client.connect();
-try {
-  const runner = new MigrationRunner({
-    query: async (sql, values) => {
-      const result = await client.query(sql, values === undefined ? undefined : [...values]);
-      return { rows: result.rows, rowCount: result.rowCount };
-    },
-  });
-  if (command === "up") {
-    console.log(JSON.stringify(await runner.up(), null, 2));
-  } else if (command === "down") {
-    console.log(JSON.stringify(await runner.down(steps), null, 2));
-  } else if (command === "status") {
-    console.log(JSON.stringify(await runner.status(), null, 2));
-  } else {
-    throw new Error(`unknown migration command: ${command}`);
+  const client = new Client({ connectionString: options.databaseUrl });
+  await client.connect();
+  try {
+    const runner = new MigrationRunner({
+      query: async (sql, values) => {
+        const result = await client.query(sql, values === undefined ? undefined : [...values]);
+        return { rows: result.rows, rowCount: result.rowCount };
+      },
+    });
+    if (command === "up") {
+      write(JSON.stringify(await runner.up(), null, 2));
+    } else if (command === "down") {
+      write(JSON.stringify(await runner.down(steps), null, 2));
+    } else if (command === "status") {
+      write(JSON.stringify(await runner.status(), null, 2));
+    } else {
+      throw new Error(`unknown migration command: ${command}`);
+    }
+  } finally {
+    await client.end();
   }
-} finally {
-  await client.end();
 }

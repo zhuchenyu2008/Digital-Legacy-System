@@ -1,10 +1,8 @@
 import { AsyncLocalStorage } from "node:async_hooks";
-import type { Pool, PoolClient } from "pg";
-
 import type { TransactionContext, TransactionManager } from "@dls/application";
-
-import { PersistenceError, mapDatabaseError } from "./errors.js";
+import type { Pool, PoolClient } from "pg";
 import { PgAuditWriter } from "../audit/pg-audit-writer.js";
+import { mapDatabaseError, PersistenceError } from "./errors.js";
 import { PgDatabaseClock } from "./pg-database-clock.js";
 import { PgOutboxWriter } from "./pg-outbox.js";
 import { createRepositories } from "./pg-repositories.js";
@@ -22,7 +20,10 @@ export class PgTransactionManager implements TransactionManager {
     options?: { isolation?: "read committed" | "serializable" },
   ): Promise<T> {
     if (this.#scope.getStore() !== undefined) {
-      throw new PersistenceError("NESTED_TRANSACTION", "Nested transaction scopes are not supported");
+      throw new PersistenceError(
+        "NESTED_TRANSACTION",
+        "Nested transaction scopes are not supported",
+      );
     }
     const client = await this.#pool.connect();
     try {

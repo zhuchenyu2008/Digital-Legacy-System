@@ -70,7 +70,8 @@ function assertCartesianMatrix<
     for (const entry of options.commands) {
       const isAllowed = options.allowed[stateName].includes(entry.command.type);
       test(`${options.scope}: ${stateName} -> ${entry.command.type} is ${isAllowed ? "allowed" : "rejected"}`, () => {
-        const invoke = () => options.transition(options.createState(stateName), entry.command, entry.at);
+        const invoke = () =>
+          options.transition(options.createState(stateName), entry.command, entry.at);
 
         if (isAllowed) {
           expect(invoke).not.toThrow();

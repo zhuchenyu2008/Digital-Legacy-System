@@ -1,10 +1,10 @@
-import { describe, expect, it } from "vitest";
 import { Client } from "pg";
+import { describe, expect, it } from "vitest";
 
 import {
-  REQUIRED_TABLES,
-  MigrationRunner,
   listMigrationFiles,
+  MigrationRunner,
+  REQUIRED_TABLES,
   readMigrationSql,
 } from "../../packages/persistence/src/migrations/runner.js";
 
@@ -24,7 +24,10 @@ describe("production migration inventory", () => {
 
     for (const table of REQUIRED_TABLES) {
       expect(sql, `missing migration table ${table}`).toMatch(
-        new RegExp(`create\\s+table\\s+(?:if\\s+not\\s+exists\\s+)?${table.replace(".", "\\.")}`, "i"),
+        new RegExp(
+          `create\\s+table\\s+(?:if\\s+not\\s+exists\\s+)?${table.replace(".", "\\.")}`,
+          "i",
+        ),
       );
     }
   });
