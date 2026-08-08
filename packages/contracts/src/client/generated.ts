@@ -1,4 +1,72 @@
 export type paths = {
+    readonly "/auth/logout": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get?: never;
+        readonly put?: never;
+        /** Revoke the current owner session */
+        readonly post: operations["OwnerAuthController_logout"];
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/auth/owner/login": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get?: never;
+        readonly put?: never;
+        /** Login the singleton owner and record a check-in */
+        readonly post: operations["OwnerAuthController_login"];
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/auth/owner/password-change": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get?: never;
+        readonly put?: never;
+        /** Change the owner password and rotate the session */
+        readonly post: operations["OwnerAuthController_changePassword"];
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/auth/session": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        /** Read the current owner session */
+        readonly get: operations["OwnerAuthController_session"];
+        readonly put?: never;
+        readonly post?: never;
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
     readonly "/health/live": {
         readonly parameters: {
             readonly query?: never;
@@ -25,6 +93,40 @@ export type paths = {
         readonly get: operations["HealthController_ready"];
         readonly put?: never;
         readonly post?: never;
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/owner/check-in-schedule": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        /** Read the current check-in schedule */
+        readonly get: operations["OwnerController_schedule"];
+        readonly put?: never;
+        readonly post?: never;
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/owner/check-ins": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get?: never;
+        readonly put?: never;
+        /** Explicitly reauthenticate and record an owner check-in */
+        readonly post: operations["OwnerController_checkIn"];
         readonly delete?: never;
         readonly options?: never;
         readonly head?: never;
@@ -133,6 +235,24 @@ export type paths = {
         readonly patch?: never;
         readonly trace?: never;
     };
+    readonly "/owner/settings": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        /** Read sanitized owner settings */
+        readonly get: operations["OwnerController_settings"];
+        readonly put?: never;
+        readonly post?: never;
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        /** Update owner settings after password reauthentication */
+        readonly patch: operations["OwnerController_updateSettings"];
+        readonly trace?: never;
+    };
     readonly "/setup/owner": {
         readonly parameters: {
             readonly query?: never;
@@ -177,6 +297,12 @@ export type components = {
             /** Format: uuid */
             readonly expectedShareGenerationId?: string;
             readonly password: string;
+        };
+        readonly ChangeOwnerPasswordDto: {
+            readonly newOwnerVaultEnvelope: components["schemas"]["OwnerVaultEnvelopeDto"];
+            readonly newPassword: string;
+            readonly oldPassword: string;
+            readonly vaultKeyProof?: string;
         };
         readonly CompleteVaultUploadDto: {
             readonly ciphertextSha256: string;
@@ -223,6 +349,12 @@ export type components = {
             /** Format: uuid */
             readonly vaultId: string;
         };
+        readonly OwnerCheckInDto: {
+            readonly password: string;
+        };
+        readonly OwnerLoginDto: {
+            readonly password: string;
+        };
         readonly OwnerVaultEnvelopeDto: {
             /** Format: byte */
             readonly aadHash?: string;
@@ -251,6 +383,10 @@ export type components = {
             readonly ownerEnvelopeProof: string;
             readonly vkCommitment: string;
         };
+        readonly UpdateOwnerSettingsDto: {
+            readonly missedDaysThreshold?: number;
+            readonly password: string;
+        };
         readonly VaultUploadPartDto: {
             readonly etag: string;
             readonly partNumber: number;
@@ -264,6 +400,83 @@ export type components = {
 };
 export type $defs = Record<string, never>;
 export interface operations {
+    readonly OwnerAuthController_logout: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly requestBody?: never;
+        readonly responses: {
+            readonly 204: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    readonly OwnerAuthController_login: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly requestBody: {
+            readonly content: {
+                readonly "application/json": components["schemas"]["OwnerLoginDto"];
+            };
+        };
+        readonly responses: {
+            /** @description Owner session created */
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    readonly OwnerAuthController_changePassword: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly requestBody: {
+            readonly content: {
+                readonly "application/json": components["schemas"]["ChangeOwnerPasswordDto"];
+            };
+        };
+        readonly responses: {
+            readonly 201: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    readonly OwnerAuthController_session: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly requestBody?: never;
+        readonly responses: {
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     readonly HealthController_live: {
         readonly parameters: {
             readonly query?: never;
@@ -290,6 +503,45 @@ export interface operations {
         };
         readonly requestBody?: never;
         readonly responses: {
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    readonly OwnerController_schedule: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly requestBody?: never;
+        readonly responses: {
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    readonly OwnerController_checkIn: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly requestBody: {
+            readonly content: {
+                readonly "application/json": components["schemas"]["OwnerCheckInDto"];
+            };
+        };
+        readonly responses: {
+            /** @description Check-in recorded */
             readonly 200: {
                 headers: {
                     readonly [name: string]: unknown;
@@ -440,6 +692,44 @@ export interface operations {
         readonly responses: {
             /** @description Upload session created */
             readonly 201: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    readonly OwnerController_settings: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly requestBody?: never;
+        readonly responses: {
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    readonly OwnerController_updateSettings: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly requestBody: {
+            readonly content: {
+                readonly "application/json": components["schemas"]["UpdateOwnerSettingsDto"];
+            };
+        };
+        readonly responses: {
+            readonly 200: {
                 headers: {
                     readonly [name: string]: unknown;
                 };

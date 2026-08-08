@@ -1,6 +1,7 @@
 import { randomUUID, timingSafeEqual } from "node:crypto";
 import type { IssuedSession } from "../auth/session.js";
 import type { SessionService } from "../auth/session-service.js";
+import { OWNER_ACTOR_ID } from "../owner/owner-identity.js";
 import type { TransactionManager } from "../ports/transaction-manager.js";
 import type { FieldProtector } from "./field-protector.js";
 
@@ -141,7 +142,7 @@ export async function createOwner(
 ): Promise<OwnerSetupResult> {
   validateCommand(command, dependencies.expectedSetupToken);
   const idFactory = dependencies.idFactory ?? randomUUID;
-  const ownerId = idFactory();
+  const ownerId = OWNER_ACTOR_ID;
   const vaultId = idFactory();
   return dependencies.transaction.run(
     async (tx) => {

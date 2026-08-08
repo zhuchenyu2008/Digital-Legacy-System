@@ -9,6 +9,12 @@ import type { IdempotencyRepository } from "./idempotency.js";
 
 export interface VersionedRepository {
   findById(id: unknown, options?: { forUpdate?: boolean }): Promise<RepositoryRow | null>;
+  findOneBy?(
+    field: string,
+    value: unknown,
+    options?: { forUpdate?: boolean },
+  ): Promise<RepositoryRow | null>;
+  findFirst?(options?: { forUpdate?: boolean }): Promise<RepositoryRow | null>;
   insert(input: RepositoryInput): Promise<RepositoryRow>;
   updateVersioned(
     id: unknown,

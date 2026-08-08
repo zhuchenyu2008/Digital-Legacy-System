@@ -22,6 +22,39 @@
         ],
         "type": "object"
       },
+      "ChangeOwnerPasswordDto": {
+        "properties": {
+          "newOwnerVaultEnvelope": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/OwnerVaultEnvelopeDto"
+              }
+            ],
+            "writeOnly": true
+          },
+          "newPassword": {
+            "maxLength": 512,
+            "minLength": 12,
+            "type": "string",
+            "writeOnly": true
+          },
+          "oldPassword": {
+            "minLength": 1,
+            "type": "string",
+            "writeOnly": true
+          },
+          "vaultKeyProof": {
+            "type": "string",
+            "writeOnly": true
+          }
+        },
+        "required": [
+          "oldPassword",
+          "newPassword",
+          "newOwnerVaultEnvelope"
+        ],
+        "type": "object"
+      },
       "CompleteVaultUploadDto": {
         "properties": {
           "ciphertextSha256": {
@@ -170,6 +203,32 @@
         ],
         "type": "object"
       },
+      "OwnerCheckInDto": {
+        "properties": {
+          "password": {
+            "minLength": 1,
+            "type": "string",
+            "writeOnly": true
+          }
+        },
+        "required": [
+          "password"
+        ],
+        "type": "object"
+      },
+      "OwnerLoginDto": {
+        "properties": {
+          "password": {
+            "minLength": 1,
+            "type": "string",
+            "writeOnly": true
+          }
+        },
+        "required": [
+          "password"
+        ],
+        "type": "object"
+      },
       "OwnerVaultEnvelopeDto": {
         "properties": {
           "aadHash": {
@@ -237,6 +296,24 @@
         ],
         "type": "object"
       },
+      "UpdateOwnerSettingsDto": {
+        "properties": {
+          "missedDaysThreshold": {
+            "maximum": 365,
+            "minimum": 1,
+            "type": "number"
+          },
+          "password": {
+            "minLength": 1,
+            "type": "string",
+            "writeOnly": true
+          }
+        },
+        "required": [
+          "password"
+        ],
+        "type": "object"
+      },
       "VaultUploadPartDto": {
         "properties": {
           "etag": {
@@ -270,6 +347,86 @@
   },
   "openapi": "3.0.0",
   "paths": {
+    "/auth/logout": {
+      "post": {
+        "operationId": "OwnerAuthController_logout",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "summary": "Revoke the current owner session",
+        "tags": [
+          "Owner authentication"
+        ]
+      }
+    },
+    "/auth/owner/login": {
+      "post": {
+        "operationId": "OwnerAuthController_login",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OwnerLoginDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Owner session created"
+          }
+        },
+        "summary": "Login the singleton owner and record a check-in",
+        "tags": [
+          "Owner authentication"
+        ]
+      }
+    },
+    "/auth/owner/password-change": {
+      "post": {
+        "operationId": "OwnerAuthController_changePassword",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangeOwnerPasswordDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Change the owner password and rotate the session",
+        "tags": [
+          "Owner authentication"
+        ]
+      }
+    },
+    "/auth/session": {
+      "get": {
+        "operationId": "OwnerAuthController_session",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Read the current owner session",
+        "tags": [
+          "Owner authentication"
+        ]
+      }
+    },
     "/health/live": {
       "get": {
         "operationId": "HealthController_live",
@@ -295,6 +452,46 @@
         },
         "tags": [
           "Health"
+        ]
+      }
+    },
+    "/owner/check-in-schedule": {
+      "get": {
+        "operationId": "OwnerController_schedule",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Read the current check-in schedule",
+        "tags": [
+          "Owner"
+        ]
+      }
+    },
+    "/owner/check-ins": {
+      "post": {
+        "operationId": "OwnerController_checkIn",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OwnerCheckInDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Check-in recorded"
+          }
+        },
+        "summary": "Explicitly reauthenticate and record an owner check-in",
+        "tags": [
+          "Owner"
         ]
       }
     },
@@ -608,6 +805,44 @@
         "summary": "Create an encrypted vault package upload session",
         "tags": [
           "Vault"
+        ]
+      }
+    },
+    "/owner/settings": {
+      "get": {
+        "operationId": "OwnerController_settings",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Read sanitized owner settings",
+        "tags": [
+          "Owner"
+        ]
+      },
+      "patch": {
+        "operationId": "OwnerController_updateSettings",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateOwnerSettingsDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Update owner settings after password reauthentication",
+        "tags": [
+          "Owner"
         ]
       }
     },

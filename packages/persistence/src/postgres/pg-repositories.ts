@@ -14,6 +14,7 @@ type Queryable = Pick<PoolClient, "query">;
 type TableDefinition = Readonly<{
   table: string;
   primaryKey: string;
+  versionColumn?: string;
 }>;
 
 function assertIdentifier(value: string): void {
@@ -27,10 +28,10 @@ function quoteIdentifier(value: string): string {
   return `"${value}"`;
 }
 
-function normalizeRow(row: Record<string, unknown>): RepositoryRow {
+function normalizeRow(row: Record<string, unknown>, versionColumn = "version"): RepositoryRow {
   return {
     ...row,
-    ...(row.version === undefined ? {} : { version: Number(row.version) }),
+    ...(row[versionColumn] === undefined ? {} : { version: Number(row[versionColumn]) }),
   } as RepositoryRow;
 }
 
@@ -47,6 +48,8 @@ function buildTableRepository(client: Queryable, definition: TableDefinition): V
   assertIdentifier(schema);
   assertIdentifier(table);
   assertIdentifier(definition.primaryKey);
+  const versionColumn = definition.versionColumn ?? "version";
+  assertIdentifier(versionColumn);
   const qualifiedTable = `${quoteIdentifier(schema)}.${quoteIdentifier(table)}`;
   const primaryKey = quoteIdentifier(definition.primaryKey);
 
@@ -59,7 +62,33 @@ function buildTableRepository(client: Queryable, definition: TableDefinition): V
           [id],
         );
         const row = result.rows[0] as Record<string, unknown> | undefined;
-        return row === undefined ? null : normalizeRow(row);
+        return row === undefined ? null : normalizeRow(row, versionColumn);
+      } catch (error) {
+        throw mapDatabaseError(error);
+      }
+    },
+
+    async findOneBy(field, value, options) {
+      assertIdentifier(field);
+      const lock = options?.forUpdate ? " FOR UPDATE" : "";
+      try {
+        const result = await client.query(
+          `SELECT * FROM ${qualifiedTable} WHERE ${quoteIdentifier(field)} = $1${lock}`,
+          [value],
+        );
+        const row = result.rows[0] as Record<string, unknown> | undefined;
+        return row === undefined ? null : normalizeRow(row, versionColumn);
+      } catch (error) {
+        throw mapDatabaseError(error);
+      }
+    },
+
+    async findFirst(options) {
+      const lock = options?.forUpdate ? " FOR UPDATE" : "";
+      try {
+        const result = await client.query(`SELECT * FROM ${qualifiedTable} LIMIT 1${lock}`);
+        const row = result.rows[0] as Record<string, unknown> | undefined;
+        return row === undefined ? null : normalizeRow(row, versionColumn);
       } catch (error) {
         throw mapDatabaseError(error);
       }
@@ -90,7 +119,7 @@ function buildTableRepository(client: Queryable, definition: TableDefinition): V
       }
       const columns = buildColumns(patch).filter(
         (column) =>
-          column !== definition.primaryKey && column !== "version" && column !== "updated_at",
+          column !== definition.primaryKey && column !== versionColumn && column !== "updated_at",
       );
       if (columns.length === 0) throw new Error("Versioned update requires a mutable column");
       const values = columns.map((column) => patch[column]);
@@ -102,16 +131,16 @@ function buildTableRepository(client: Queryable, definition: TableDefinition): V
       try {
         const result = await client.query(
           `UPDATE ${qualifiedTable}
-           SET ${assignments.join(", ")}, "version" = "version" + 1, "updated_at" = clock_timestamp()
-           WHERE ${primaryKey} = ${idPlaceholder} AND "version" = ${versionPlaceholder}
+           SET ${assignments.join(", ")}, ${quoteIdentifier(versionColumn)} = ${quoteIdentifier(versionColumn)} + 1, "updated_at" = clock_timestamp()
+           WHERE ${primaryKey} = ${idPlaceholder} AND ${quoteIdentifier(versionColumn)} = ${versionPlaceholder}
            RETURNING *`,
           [...values, id, expectedVersion],
         );
         const row = result.rows[0] as Record<string, unknown> | undefined;
-        if (row !== undefined) return normalizeRow(row);
+        if (row !== undefined) return normalizeRow(row, versionColumn);
 
         const current = await client.query(
-          `SELECT "version" FROM ${qualifiedTable} WHERE ${primaryKey} = $1`,
+          `SELECT ${quoteIdentifier(versionColumn)} FROM ${qualifiedTable} WHERE ${primaryKey} = $1`,
           [id],
         );
         if (current.rows[0] === undefined) {
@@ -134,6 +163,7 @@ export function createRepositories(client: PoolClient): Repositories {
     ownerCredentials: buildTableRepository(client, {
       table: "app.owner_credentials",
       primaryKey: "singleton_id",
+      versionColumn: "credential_version",
     }),
     systemSettings: buildTableRepository(client, {
       table: "app.system_settings",

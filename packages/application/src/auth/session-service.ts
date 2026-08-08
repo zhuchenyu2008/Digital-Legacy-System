@@ -177,6 +177,13 @@ export class SessionService {
     await this.#store.revoke(record.sessionId, this.#clock.now());
   }
 
+  public async revokeAll(actorType: SessionActorType, actorId: string): Promise<number> {
+    const now = this.#clock.now();
+    const active = await this.#store.listActive(actorType, actorId, now);
+    for (const record of active) await this.#store.revoke(record.sessionId, now);
+    return active.length;
+  }
+
   async #findValid(token: string, options?: Partial<AuthenticateOptions>): Promise<SessionRecord> {
     if (typeof token !== "string" || token.length < 40) {
       throw new SessionError("SESSION_INVALID", "Session is invalid");

@@ -118,19 +118,19 @@ git commit -m "feat: create singleton owner setup"
 - Create: `apps/api/src/owner/owner.module.ts`
 - Create: `tests/integration/owner-checkin.test.ts`
 
-- [ ] **Step 1: Write failing owner behavior tests**
+- [x] **Step 1: Write failing owner behavior tests**
 
 Test login+check-in atomicity, explicit check-in, identical-day repeat, exact deadlines, schedule versioning, failed-login nonmutation, revoked session, optimistic settings update, legal threshold ranges, settings locked during workflow, old-password verification, VK commitment consistency, and password rewrap rollback.
 
-- [ ] **Step 2: Implement login and check-in transaction**
+- [x] **Step 2: Implement login and check-in transaction**
 
 Verify Argon2id, lock owner/schedule, read database time once, append `check_ins`, compute the next deadline, cancel only workflow states the approved policy allows, rotate session, audit, and enqueue schedule reconciliation in one transaction. Authentication response returns wrapped VK and KDF profile only to the authenticated owner session.
 
-- [ ] **Step 3: Implement settings and password change**
+- [x] **Step 3: Implement settings and password change**
 
 Require owner password reauthentication for email, thresholds, timing, SMTP, and password changes. Browser submits old-wrapped/new-wrapped VK plus new KDF profile and unchanged commitment. Server verifies old password and new server hash, swaps credentials/wrapping atomically, revokes all sessions/tokens, then creates one fresh session.
 
-- [ ] **Step 4: Verify concurrent check-ins**
+- [x] **Step 4: Verify concurrent check-ins**
 
 ```powershell
 pnpm.cmd exec vitest run tests/integration/owner-checkin.test.ts
@@ -140,7 +140,7 @@ pnpm.cmd openapi:generate
 
 Assert simultaneous login/check-in requests cannot regress a deadline or duplicate a workflow-cancellation event.
 
-- [ ] **Step 5: Commit owner lifecycle**
+- [x] **Step 5: Commit owner lifecycle**
 
 ```powershell
 pnpm.cmd openapi:check

@@ -7,6 +7,7 @@ import {
   STORAGE_HEALTH_PROBE,
   WORKER_HEARTBEAT_HEALTH_PROBE,
 } from "./health/health.service.js";
+import { OwnerModule } from "./owner/owner.module.js";
 import { SecurityModule } from "./security/security.module.js";
 import { SetupModule } from "./setup/setup.module.js";
 import { VaultModule } from "./vault/vault.module.js";
@@ -14,7 +15,7 @@ import { VaultModule } from "./vault/vault.module.js";
 const startupProbe: HealthProbe = Object.freeze({ check: async () => undefined });
 
 @Module({
-  imports: [SecurityModule, SetupModule, VaultModule],
+  imports: [SecurityModule, SetupModule, OwnerModule, VaultModule],
   controllers: [HealthController],
   providers: [
     { provide: DATABASE_HEALTH_PROBE, useValue: startupProbe },
