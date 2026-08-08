@@ -34,7 +34,7 @@
 - Create: `apps/api/src/security/security.module.ts`
 - Create: `tests/integration/http-security.test.ts`
 
-- [ ] **Step 1: Write failing HTTP security tests**
+- [x] **Step 1: Write failing HTTP security tests**
 
 Cover absent/expired/revoked/wrong-role sessions, fixation, concurrent session limits, cookie attributes, missing/wrong CSRF, bad/missing Origin on unsafe methods, reverse-proxy IP handling, request ID validation, JSON/body limits, and stable error envelope:
 
@@ -44,21 +44,21 @@ Cover absent/expired/revoked/wrong-role sessions, fixation, concurrent session l
 
 Ensure 401/403/404 behavior does not reveal whether a contact/email/token exists.
 
-- [ ] **Step 2: Run and observe failures**
+- [x] **Step 2: Run and observe failures**
 
 ```powershell
 pnpm.cmd exec vitest run tests/integration/http-security.test.ts
 ```
 
-- [ ] **Step 3: Implement server-side sessions**
+- [x] **Step 3: Implement server-side sessions**
 
 Use opaque 256-bit cookie values and store only SHA-256+pepper digests. Owner cookie is `__Host-dls-owner`; contact cookie is `__Host-dls-contact`. Production cookies are `Secure`, `HttpOnly`, `SameSite=Strict`, `Path=/`, no Domain. Local HTTP development uses separate non-`__Host-` names configured explicitly and health warns that secure-cookie guarantees are reduced.
 
-- [ ] **Step 4: Implement CSRF/origin/rate controls**
+- [x] **Step 4: Implement CSRF/origin/rate controls**
 
 Use a per-session synchronizer CSRF token returned only from `/api/v1/session`, sent in `X-CSRF-Token`; verify exact allowed Origin for unsafe methods. Persist rate buckets atomically for login, setup, invitations, recovery, verification codes, uploads, contact actions, and public downloads. Return generic `429` with bounded `Retry-After`.
 
-- [ ] **Step 5: Verify log redaction and commit**
+- [x] **Step 5: Verify log redaction and commit**
 
 Tests capture structured logs and assert cookie, authorization, CSRF, password, token, code, encrypted private key, share, and request-body sensitive fields are absent.
 

@@ -1,6 +1,5 @@
 import { Module } from "@nestjs/common";
 import { HealthController } from "./health/health.controller.js";
-import { VaultModule } from "./vault/vault.module.js";
 import {
   DATABASE_HEALTH_PROBE,
   type HealthProbe,
@@ -8,11 +7,13 @@ import {
   STORAGE_HEALTH_PROBE,
   WORKER_HEARTBEAT_HEALTH_PROBE,
 } from "./health/health.service.js";
+import { SecurityModule } from "./security/security.module.js";
+import { VaultModule } from "./vault/vault.module.js";
 
 const startupProbe: HealthProbe = Object.freeze({ check: async () => undefined });
 
 @Module({
-  imports: [VaultModule],
+  imports: [SecurityModule, VaultModule],
   controllers: [HealthController],
   providers: [
     { provide: DATABASE_HEALTH_PROBE, useValue: startupProbe },

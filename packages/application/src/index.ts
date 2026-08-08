@@ -1,4 +1,6 @@
 export * from "./audit/canonical-event.js";
+export * from "./auth/session.js";
+export * from "./auth/session-service.js";
 export * from "./ports/archive-inspector.js";
 export * from "./ports/audit.js";
 export * from "./ports/database-clock.js";
