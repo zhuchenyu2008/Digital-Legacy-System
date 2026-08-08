@@ -8,6 +8,8 @@
 
 **Tech Stack:** TypeScript 6.0.3, PostgreSQL 18.4, `pg` 8.22.0, pg-boss 12.27.0, UUID 14.0.1, `@js-temporal/polyfill` 0.5.1, Vitest 4.1.10, Docker Compose.
 
+> **Handoff status (August 7, 2026, Beijing):** Task 1 and Task 2 checkboxes reflect committed implementation and rerun gates (Task 2 commit 0b2b084). Independent review of Task 2 remains a handoff follow-up. Tasks 3-7 remain intentionally unchecked.
+
 ## Global Constraints
 
 - `docs/03-database-design.md` is the normative table/column/index contract; migrations must implement every production table in sections 4–14 and 12 exactly, with only documented additive implementation columns.
@@ -33,7 +35,7 @@
 - Update: `packages/domain/package.json`
 - Update: `pnpm-lock.yaml`
 
-- [ ] **Step 1: Write boundary-first failing tests**
+- [x] **Step 1: Write boundary-first failing tests**
 
 Cover UUID parsing, UTC serialization, safe integer durations, `1 <= threshold <= activeContacts`, check-in deadline calculation, grace period calculation, second release delay, and exact-boundary behavior (`now === deadline` is due). Use table-driven tests for DST dates to prove calculations are instant-based.
 
@@ -49,17 +51,17 @@ export function computeReleaseDeadline(triggeredAt: Instant, delayDays: number):
 export function validateThreshold(threshold: number, activeContacts: number): void;
 ```
 
-- [ ] **Step 2: Observe the failure**
+- [x] **Step 2: Observe the failure**
 
 ```powershell
 pnpm.cmd --filter @dls/domain test -- policies.test.ts
 ```
 
-- [ ] **Step 3: Implement pure value objects**
+- [x] **Step 3: Implement pure value objects**
 
 Use Temporal only behind `instant.ts`; the rest of the domain operates on branded ISO strings. Generate UUIDv7 through an injected `IdGenerator` in application code, never directly in aggregates.
 
-- [ ] **Step 4: Verify and commit**
+- [x] **Step 4: Verify and commit**
 
 ```powershell
 pnpm.cmd --filter @dls/domain test
@@ -82,7 +84,7 @@ git commit -m "feat: add domain value objects and policies"
 - Create: `packages/domain/src/vault/share-generation-lifecycle.ts`
 - Update: `packages/domain/src/index.ts`
 
-- [ ] **Step 1: Specify failing transition matrices**
+- [x] **Step 1: Specify failing transition matrices**
 
 Tests enumerate every allowed and rejected transition for:
 
@@ -99,21 +101,21 @@ export type TransitionResult<S, E> = Readonly<{ state: S; events: readonly E[] }
 export function transitionDeathWorkflow(state: DeathWorkflow, command: DeathCommand, at: Instant): TransitionResult<DeathWorkflow, DomainEvent>;
 ```
 
-- [ ] **Step 2: Run and observe missing state machine failures**
+- [x] **Step 2: Run and observe missing state machine failures**
 
 ```powershell
 pnpm.cmd --filter @dls/domain test -- workflow-transitions.test.ts
 ```
 
-- [ ] **Step 3: Implement total transition functions**
+- [x] **Step 3: Implement total transition functions**
 
 Reject stale aggregate versions, repeated actor actions, threshold changes during a workflow, and transitions after terminal states. Snapshot the active contact IDs, thresholds, package version, and share generation at workflow creation.
 
-- [ ] **Step 4: Mutation-style transition coverage**
+- [x] **Step 4: Mutation-style transition coverage**
 
 Add tests that flip every comparison boundary and assert the suite fails before restoring. Require 100% branch coverage for `packages/domain/src/workflows/**` and `packages/domain/src/policies/**`.
 
-- [ ] **Step 5: Commit state machines**
+- [x] **Step 5: Commit state machines**
 
 ```powershell
 pnpm.cmd --filter @dls/domain test --coverage
