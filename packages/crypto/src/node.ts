@@ -9,3 +9,6 @@ export * from "./protocol/canonical-aad.js";
 export * from "./protocol/envelopes.js";
 export * from "./shares/share-envelope.js";
 export * from "./shares/share-generation.js";
+export * from "./stream/decrypt-stream.js";
+export * from "./stream/encrypt-stream.js";
+export * from "./stream/file-format.js";

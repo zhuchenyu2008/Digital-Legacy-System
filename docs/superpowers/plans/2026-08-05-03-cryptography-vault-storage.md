@@ -211,24 +211,24 @@ git commit -m "feat: implement vault and contact key hierarchy"
 - Create: `packages/crypto/src/stream/stream.test.ts`
 - Create: `packages/crypto/vectors/secretstream-v1.json`
 
-- [ ] **Step 1: Write failing chunk and corruption tests**
+- [x] **Step 1: Write failing chunk and corruption tests**
 
 Format v1 is `DLSF` magic, one-byte version, algorithm ID, fixed header length, libsodium secretstream header, followed by big-endian frame lengths and authenticated frames. The final frame must carry `TAG_FINAL`; no bytes may follow it. AAD binds package ID/version and chunk sequence.
 
 Test empty, one-byte, exact-chunk, multi-chunk, and configured-max synthetic files; random input chunk boundaries; tamper/truncate/reorder/duplicate/append; wrong DEK/AAD; oversized frame; absent final tag. Node stream and browser `ReadableStream` outputs must be byte-identical for fixed vectors.
 
-- [ ] **Step 2: Implement incremental encryption/decryption**
+- [x] **Step 2: Implement incremental encryption/decryption**
 
 Never buffer the complete ZIP. Compute ciphertext and plaintext SHA-256 plus byte counts while streaming. Abort clears mutable state and does not emit a success manifest.
 
-- [ ] **Step 3: Run stress/interoperability tests**
+- [x] **Step 3: Run stress/interoperability tests**
 
 ```powershell
 pnpm.cmd --filter @dls/crypto test -- stream.test.ts
 pnpm.cmd test:crypto
 ```
 
-- [ ] **Step 4: Commit stream format**
+- [x] **Step 4: Commit stream format**
 
 ```powershell
 git add packages/crypto
