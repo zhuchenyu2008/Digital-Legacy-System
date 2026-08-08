@@ -1,6 +1,9 @@
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 
-import { createPgPool, PgTransactionManager } from "../../packages/persistence/src/postgres/index.js";
+import {
+  createPgPool,
+  PgTransactionManager,
+} from "../../packages/persistence/src/postgres/index.js";
 
 const connectionString =
   process.env.DATABASE_URL ?? "postgresql://postgres:test@127.0.0.1:55432/dls";
@@ -25,6 +28,7 @@ describe("transaction and repository contracts", () => {
 
   beforeEach(async () => {
     await pool.query("DELETE FROM app.domain_outbox");
+    await pool.query("DELETE FROM app.idempotency_records");
     await pool.query("DELETE FROM app.owner_credentials");
     await pool.query("DELETE FROM app.owner_profile");
   });

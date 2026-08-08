@@ -322,6 +322,43 @@ services:
     security_opt:
       - no-new-privileges:true
 
+  storage-tests:
+    profiles: ["test", "s3"]
+    build:
+      context: .
+      target: test
+      args: *build-args
+    read_only: true
+    user: "1000:1000"
+    entrypoint: ["/bin/sh", "-ec"]
+    command:
+      - |
+        export COREPACK_HOME=/tmp/corepack
+        export DLS_S3_TEST=1
+        export S3_ENDPOINT=http://minio:9000
+        export S3_REGION="${DLS_S3_REGION:-us-east-1}"
+        export S3_PRIVATE_BUCKET="${DLS_S3_PRIVATE_BUCKET:-dls-private}"
+        export S3_PUBLIC_BUCKET="${DLS_S3_PUBLIC_BUCKET:-dls-public}"
+        export S3_FORCE_PATH_STYLE=true
+        export S3_ACCESS_KEY_ID="$$(cat /run/secrets/minio_access_key)"
+        export S3_SECRET_ACCESS_KEY="$$(cat /run/secrets/minio_secret_key)"
+        exec pnpm --filter @dls/storage test
+    secrets:
+      - minio_access_key
+      - minio_secret_key
+    tmpfs:
+      - /tmp:size=256m,mode=1777
+      - /workspace/packages/storage/node_modules/.vite-temp:size=16m,uid=1000,gid=1000,mode=1777
+    depends_on:
+      minio:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+
 volumes:
   postgres_data:
   private_objects:

@@ -385,7 +385,7 @@ Stream request body directly to storage with byte limit and request cancellation
 
 Lock the vault and package rows, verify expected versions and current share generation, set one package `ACTIVE`, supersede the old row, insert outbox cleanup for old private ciphertext, and audit the new digest. Cleanup is idempotent and cannot delete the new object.
 
-- [ ] **Step 4: Verify interruptions and races** *(new in-memory upload/API tests pass; PostgreSQL race test remains blocked while Docker Desktop is stopped)*
+- [x] **Step 4: Verify interruptions and races** *(upload/API integration 4/4, PostgreSQL concurrency 4/4, and full integration 18/18 pass)*
 
 ```powershell
 pnpm.cmd exec vitest run tests/integration/vault-upload.test.ts
@@ -394,7 +394,7 @@ pnpm.cmd openapi:generate
 pnpm.cmd openapi:check
 ```
 
-- [ ] **Step 5: Commit vault application flow**
+- [x] **Step 5: Commit vault application flow**
 
 ```powershell
 git add packages/application/src/vault apps/api/src/vault tests/integration/vault-upload.test.ts packages/contracts
@@ -413,7 +413,7 @@ git commit -m "feat: upload and activate encrypted vault packages"
 
 Include key hierarchy, all AAD fields, wire bytes, KDF calibration procedure, state-key permissions, share contexts, buffer lifecycle, browser limitations, dependency provenance, vector hashes, and explicit independent-review blocker. Do not include any operational secret.
 
-- [ ] **Step 2: Run all gates** *(crypto 33/33, storage 13 passed + 1 optional skip, upload/API, OpenAPI, and full TypeScript build pass; Docker PostgreSQL/concurrency/S3 compose gates remain blocked by stopped Docker Desktop)*
+- [x] **Step 2: Run all gates** *(crypto 33/33, storage 14/14 including live MinIO, upload/API 4/4, PostgreSQL concurrency 4/4, integration 18/18, OpenAPI, and Node 24.18.0 container build pass)*
 
 ```powershell
 pnpm.cmd test:crypto
@@ -423,7 +423,7 @@ docker compose --profile s3 --profile test up --build --abort-on-container-exit 
 pnpm.cmd build
 ```
 
-- [ ] **Step 3: Record and commit evidence** *(evidence docs written; commit remains open until Docker-dependent gates are rerun)*
+- [x] **Step 3: Record and commit evidence**
 
 Record browser/Node/Rust versions, WASM and vector hashes, both adapter results, corruption/resource-bound cases, and Beijing timestamps.
 
