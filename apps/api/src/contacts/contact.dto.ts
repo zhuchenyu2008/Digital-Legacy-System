@@ -80,6 +80,30 @@ export class AcceptContactInvitationDto {
   consent!: ContactConsentDto;
 }
 
+export class RequestContactPasswordChangeDto {
+  @ApiProperty({ type: String, minLength: 1, writeOnly: true })
+  password!: string;
+}
+
+export class ChangeContactPasswordDto {
+  @ApiPropertyOptional({ type: String, minLength: 40, writeOnly: true })
+  token?: string;
+
+  @ApiProperty({ type: String, minLength: 12, maxLength: 512, writeOnly: true })
+  oldPassword!: string;
+
+  @ApiProperty({ type: String, minLength: 12, maxLength: 512, writeOnly: true })
+  newPassword!: string;
+
+  @ApiProperty({ type: () => ContactPrivateKeyEnvelopeDto, writeOnly: true })
+  newPrivateKeyEnvelope!: ContactPrivateKeyEnvelopeDto;
+}
+
+export class RemoveContactDto {
+  @ApiProperty({ type: String, minLength: 1, writeOnly: true })
+  password!: string;
+}
+
 function objectBody(value: unknown): Record<string, unknown> {
   if (value === null || typeof value !== "object" || Array.isArray(value)) {
     throw new BadRequestException("JSON request body must be an object");
@@ -131,4 +155,25 @@ export function parseAcceptContactInvitation(value: unknown) {
     privateKeyEnvelope: privateKeyEnvelope as unknown as ContactPrivateKeyEnvelope,
     consent: consent as unknown as ContactConsentInput,
   };
+}
+
+export function parseRequestContactPasswordChange(value: unknown) {
+  const input = objectBody(value);
+  return { password: requiredString(input.password, "password") };
+}
+
+export function parseChangeContactPassword(value: unknown) {
+  const input = objectBody(value);
+  const envelope = nestedObject(input.newPrivateKeyEnvelope, "newPrivateKeyEnvelope");
+  return {
+    ...(typeof input.token === "string" ? { token: input.token } : {}),
+    oldPassword: requiredString(input.oldPassword, "oldPassword"),
+    newPassword: requiredString(input.newPassword, "newPassword"),
+    newPrivateKeyEnvelope: envelope as unknown as ContactPrivateKeyEnvelope,
+  };
+}
+
+export function parseRemoveContact(value: unknown) {
+  const input = objectBody(value);
+  return { password: requiredString(input.password, "password") };
 }

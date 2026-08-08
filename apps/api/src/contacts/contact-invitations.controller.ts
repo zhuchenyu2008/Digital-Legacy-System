@@ -2,6 +2,7 @@ import { ContactUseCaseError, type SessionPrincipal } from "@dls/application";
 import {
   Body,
   Controller,
+  Get,
   HttpCode,
   HttpException,
   HttpStatus,
@@ -16,13 +17,21 @@ import { ApiBody, ApiOperation, ApiParam, ApiResponse, ApiTags } from "@nestjs/s
 import type { FastifyReply, FastifyRequest } from "fastify";
 import { CsrfGuard } from "../security/csrf.guard.js";
 import { OriginGuard } from "../security/origin.guard.js";
-import { OwnerSessionGuard, type SecurityRequest } from "../security/session.guard.js";
+import {
+  ContactSessionGuard,
+  OwnerSessionGuard,
+  type SecurityRequest,
+} from "../security/session.guard.js";
 import {
   AcceptContactInvitationDto,
   CreateContactInvitationDto,
   parseAcceptContactInvitation,
   parseCreateContactInvitation,
+  parseRemoveContact,
+  parseRequestContactPasswordChange,
   parseResolveContactInvitation,
+  RemoveContactDto,
+  RequestContactPasswordChangeDto,
   ResolveContactInvitationDto,
 } from "./contact.dto.js";
 import { CONTACT_RUNTIME, type ContactRuntime } from "./contact.runtime.js";
@@ -88,6 +97,74 @@ export class ContactInvitationsController {
         },
         requestId: request.id,
       };
+    } catch (error) {
+      throw this.mapError(error);
+    }
+  }
+
+  @Post("owner/contacts/:contactId/password-change-invitation")
+  @HttpCode(HttpStatus.ACCEPTED)
+  @UseGuards(OwnerSessionGuard, OriginGuard, CsrfGuard)
+  @ApiParam({ name: "contactId", format: "uuid" })
+  @ApiBody({ type: RequestContactPasswordChangeDto })
+  @ApiOperation({ summary: "Issue a one-time contact password-change invitation" })
+  public async requestPasswordChange(
+    @Param("contactId") contactId: string,
+    @Body() body: RequestContactPasswordChangeDto,
+    @Req() request: OwnerRequest,
+  ) {
+    const ownerId = request.user?.actorId;
+    if (ownerId === undefined) throw new HttpException("authentication is required", 401);
+    try {
+      const result = await this.runtime.requestPasswordChange({
+        ...parseRequestContactPasswordChange(body),
+        ownerId,
+        contactId,
+        requestId: request.id,
+      });
+      return {
+        data: { contactId: result.contactId, expiresAt: result.expiresAt },
+        requestId: request.id,
+      };
+    } catch (error) {
+      throw this.mapError(error);
+    }
+  }
+
+  @Post("owner/contacts/:contactId/remove")
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(OwnerSessionGuard, OriginGuard, CsrfGuard)
+  @ApiParam({ name: "contactId", format: "uuid" })
+  @ApiBody({ type: RemoveContactDto })
+  @ApiOperation({ summary: "Remove an emergency contact and require share regeneration" })
+  public async remove(
+    @Param("contactId") contactId: string,
+    @Body() body: RemoveContactDto,
+    @Req() request: OwnerRequest,
+  ) {
+    const ownerId = request.user?.actorId;
+    if (ownerId === undefined) throw new HttpException("authentication is required", 401);
+    try {
+      const result = await this.runtime.remove({
+        ...parseRemoveContact(body),
+        ownerId,
+        contactId,
+        requestId: request.id,
+      });
+      return { data: result, requestId: request.id };
+    } catch (error) {
+      throw this.mapError(error);
+    }
+  }
+
+  @Get("contact/crypto-material")
+  @UseGuards(ContactSessionGuard)
+  @ApiOperation({ summary: "Read the authenticated contact crypto material" })
+  public async cryptoMaterial(@Req() request: OwnerRequest) {
+    const contactId = request.user?.actorId;
+    if (contactId === undefined) throw new HttpException("authentication is required", 401);
+    try {
+      return { data: await this.runtime.cryptoMaterial(contactId), requestId: request.id };
     } catch (error) {
       throw this.mapError(error);
     }

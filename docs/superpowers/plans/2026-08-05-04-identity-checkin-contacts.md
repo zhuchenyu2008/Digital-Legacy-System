@@ -202,22 +202,22 @@ git commit -m "feat: invite and register emergency contacts"
 - Update: `apps/api/src/contacts/contact-invitations.controller.ts`
 - Create: `tests/integration/contact-security.test.ts`
 
-- [ ] **Step 1: Write failing rotation/removal tests**
+- [x] **Step 1: Write failing rotation/removal tests**
 
 Password change must prove current contact session or one-time email flow, verify old credential where applicable, keep CPK unchanged, accept a newly wrapped CSK, revoke all old sessions/tokens, and leave existing sealed shares decryptable. Removal requires owner password reauthentication and is rejected if it would violate configured minimums or an active workflow snapshot.
 
-- [ ] **Step 2: Implement contact security flows**
+- [x] **Step 2: Implement contact security flows**
 
 Removing a contact marks it removed, revokes access, supersedes active share generation eligibility, and puts the system into `CONFIGURING` until a new generation activates. Never delete historical consent/action/audit evidence.
 
-- [ ] **Step 3: Verify old/new material semantics**
+- [x] **Step 3: Verify old/new material semantics**
 
 ```powershell
 pnpm.cmd exec vitest run tests/integration/contact-security.test.ts
 pnpm.cmd --filter @dls/crypto test -t "contact password"
 ```
 
-- [ ] **Step 4: Commit contact security**
+- [x] **Step 4: Commit contact security**
 
 ```powershell
 git add packages/application/src/contacts apps/api/src/contacts tests/integration/contact-security.test.ts

@@ -38,6 +38,7 @@ export type Repositories = Readonly<{
   contacts: VersionedRepository;
   contactInvitations?: VersionedRepository;
   contactConsents?: VersionedRepository;
+  oneTimeTokens?: VersionedRepository;
   vaults: VersionedRepository;
   workflows: VersionedRepository;
   packages: VersionedRepository;

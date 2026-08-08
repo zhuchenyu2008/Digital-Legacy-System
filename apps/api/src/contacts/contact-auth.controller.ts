@@ -12,7 +12,12 @@ import {
 } from "@nestjs/common";
 import { ApiBody, ApiOperation, ApiResponse, ApiTags } from "@nestjs/swagger";
 import type { FastifyReply, FastifyRequest } from "fastify";
-import { ContactLoginDto, parseContactLogin } from "./contact.dto.js";
+import {
+  ChangeContactPasswordDto,
+  ContactLoginDto,
+  parseChangeContactPassword,
+  parseContactLogin,
+} from "./contact.dto.js";
 import { CONTACT_RUNTIME, type ContactRuntime } from "./contact.runtime.js";
 
 function setContactCookie(response: FastifyReply, token: string): void {
@@ -54,6 +59,49 @@ export class ContactAuthController {
           contactId: result.contactId,
           status: result.status,
           cryptoMaterial: result.cryptoMaterial,
+          session: {
+            csrfToken: result.session.csrfToken,
+            idleExpiresAt: result.session.principal.idleExpiresAt,
+            absoluteExpiresAt: result.session.principal.absoluteExpiresAt,
+          },
+        },
+        requestId: request.id,
+      };
+    } catch (error) {
+      if (error instanceof ContactUseCaseError) {
+        throw new HttpException({ code: error.code, message: error.message }, error.status);
+      }
+      throw error;
+    }
+  }
+}
+
+@ApiTags("Contact password")
+@Controller("contacts/password-change")
+export class ContactPasswordController {
+  public constructor(@Inject(CONTACT_RUNTIME) private readonly runtime: ContactRuntime) {}
+
+  @Post("complete")
+  @HttpCode(HttpStatus.OK)
+  @ApiBody({ type: ChangeContactPasswordDto })
+  @ApiOperation({ summary: "Rotate the contact password and wrapped private key" })
+  public async complete(
+    @Body() body: ChangeContactPasswordDto,
+    @Req() request: FastifyRequest & { sessionToken?: string },
+    @Res({ passthrough: true }) response: FastifyReply,
+  ) {
+    try {
+      const result = await this.runtime.changePassword({
+        ...parseChangeContactPassword(body),
+        requestId: request.id,
+        ...(request.sessionToken === undefined
+          ? {}
+          : { currentSessionToken: request.sessionToken }),
+      });
+      setContactCookie(response, result.session.token);
+      return {
+        data: {
+          contactId: result.contactId,
           session: {
             csrfToken: result.session.csrfToken,
             idleExpiresAt: result.session.principal.idleExpiresAt,

@@ -224,6 +224,10 @@ export function createRepositories(client: PoolClient): Repositories {
       table: "app.contact_consents",
       primaryKey: "id",
     }),
+    oneTimeTokens: buildTableRepository(client, {
+      table: "app.one_time_tokens",
+      primaryKey: "id",
+    }),
     vaults: buildTableRepository(client, { table: "app.vaults", primaryKey: "id" }),
     workflows: buildTableRepository(client, { table: "app.workflows", primaryKey: "id" }),
     packages: buildTableRepository(client, { table: "app.legacy_packages", primaryKey: "id" }),

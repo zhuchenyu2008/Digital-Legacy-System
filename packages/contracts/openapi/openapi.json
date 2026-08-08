@@ -55,6 +55,41 @@
         ],
         "type": "object"
       },
+      "ChangeContactPasswordDto": {
+        "properties": {
+          "newPassword": {
+            "maxLength": 512,
+            "minLength": 12,
+            "type": "string",
+            "writeOnly": true
+          },
+          "newPrivateKeyEnvelope": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ContactPrivateKeyEnvelopeDto"
+              }
+            ],
+            "writeOnly": true
+          },
+          "oldPassword": {
+            "maxLength": 512,
+            "minLength": 12,
+            "type": "string",
+            "writeOnly": true
+          },
+          "token": {
+            "minLength": 40,
+            "type": "string",
+            "writeOnly": true
+          }
+        },
+        "required": [
+          "oldPassword",
+          "newPassword",
+          "newPrivateKeyEnvelope"
+        ],
+        "type": "object"
+      },
       "ChangeOwnerPasswordDto": {
         "properties": {
           "newOwnerVaultEnvelope": {
@@ -444,6 +479,32 @@
         ],
         "type": "object"
       },
+      "RemoveContactDto": {
+        "properties": {
+          "password": {
+            "minLength": 1,
+            "type": "string",
+            "writeOnly": true
+          }
+        },
+        "required": [
+          "password"
+        ],
+        "type": "object"
+      },
+      "RequestContactPasswordChangeDto": {
+        "properties": {
+          "password": {
+            "minLength": 1,
+            "type": "string",
+            "writeOnly": true
+          }
+        },
+        "required": [
+          "password"
+        ],
+        "type": "object"
+      },
       "ResolveContactInvitationDto": {
         "properties": {
           "token": {
@@ -663,6 +724,46 @@
         ]
       }
     },
+    "/contact/crypto-material": {
+      "get": {
+        "operationId": "ContactInvitationsController_cryptoMaterial",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Read the authenticated contact crypto material",
+        "tags": [
+          "Contact invitations"
+        ]
+      }
+    },
+    "/contacts/password-change/complete": {
+      "post": {
+        "operationId": "ContactPasswordController_complete",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangeContactPasswordDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Rotate the contact password and wrapped private key",
+        "tags": [
+          "Contact password"
+        ]
+      }
+    },
     "/health/live": {
       "get": {
         "operationId": "HealthController_live",
@@ -750,6 +851,74 @@
           }
         },
         "summary": "Revoke and resend a contact invitation",
+        "tags": [
+          "Contact invitations"
+        ]
+      }
+    },
+    "/owner/contacts/{contactId}/password-change-invitation": {
+      "post": {
+        "operationId": "ContactInvitationsController_requestPasswordChange",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "contactId",
+            "required": true,
+            "schema": {
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestContactPasswordChangeDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": ""
+          }
+        },
+        "summary": "Issue a one-time contact password-change invitation",
+        "tags": [
+          "Contact invitations"
+        ]
+      }
+    },
+    "/owner/contacts/{contactId}/remove": {
+      "post": {
+        "operationId": "ContactInvitationsController_remove",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "contactId",
+            "required": true,
+            "schema": {
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RemoveContactDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Remove an emergency contact and require share regeneration",
         "tags": [
           "Contact invitations"
         ]

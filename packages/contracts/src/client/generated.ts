@@ -118,6 +118,40 @@ export type paths = {
         readonly patch?: never;
         readonly trace?: never;
     };
+    readonly "/contact/crypto-material": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        /** Read the authenticated contact crypto material */
+        readonly get: operations["ContactInvitationsController_cryptoMaterial"];
+        readonly put?: never;
+        readonly post?: never;
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/contacts/password-change/complete": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get?: never;
+        readonly put?: never;
+        /** Rotate the contact password and wrapped private key */
+        readonly post: operations["ContactPasswordController_complete"];
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
     readonly "/health/live": {
         readonly parameters: {
             readonly query?: never;
@@ -195,6 +229,40 @@ export type paths = {
         readonly put?: never;
         /** Revoke and resend a contact invitation */
         readonly post: operations["ContactInvitationsController_resend"];
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/owner/contacts/{contactId}/password-change-invitation": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get?: never;
+        readonly put?: never;
+        /** Issue a one-time contact password-change invitation */
+        readonly post: operations["ContactInvitationsController_requestPasswordChange"];
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/owner/contacts/{contactId}/remove": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get?: never;
+        readonly put?: never;
+        /** Remove an emergency contact and require share regeneration */
+        readonly post: operations["ContactInvitationsController_remove"];
         readonly delete?: never;
         readonly options?: never;
         readonly head?: never;
@@ -389,6 +457,12 @@ export type components = {
             readonly expectedShareGenerationId?: string;
             readonly password: string;
         };
+        readonly ChangeContactPasswordDto: {
+            readonly newPassword: string;
+            readonly newPrivateKeyEnvelope: components["schemas"]["ContactPrivateKeyEnvelopeDto"];
+            readonly oldPassword: string;
+            readonly token?: string;
+        };
         readonly ChangeOwnerPasswordDto: {
             readonly newOwnerVaultEnvelope: components["schemas"]["OwnerVaultEnvelopeDto"];
             readonly newPassword: string;
@@ -504,6 +578,12 @@ export type components = {
             /** Format: byte */
             readonly ownerEnvelopeProof: string;
             readonly vkCommitment: string;
+        };
+        readonly RemoveContactDto: {
+            readonly password: string;
+        };
+        readonly RequestContactPasswordChangeDto: {
+            readonly password: string;
         };
         readonly ResolveContactInvitationDto: {
             readonly token: string;
@@ -666,6 +746,44 @@ export interface operations {
             };
         };
     };
+    readonly ContactInvitationsController_cryptoMaterial: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly requestBody?: never;
+        readonly responses: {
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    readonly ContactPasswordController_complete: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly requestBody: {
+            readonly content: {
+                readonly "application/json": components["schemas"]["ChangeContactPasswordDto"];
+            };
+        };
+        readonly responses: {
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     readonly HealthController_live: {
         readonly parameters: {
             readonly query?: never;
@@ -751,6 +869,52 @@ export interface operations {
         readonly requestBody?: never;
         readonly responses: {
             readonly 202: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    readonly ContactInvitationsController_requestPasswordChange: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path: {
+                readonly contactId: unknown;
+            };
+            readonly cookie?: never;
+        };
+        readonly requestBody: {
+            readonly content: {
+                readonly "application/json": components["schemas"]["RequestContactPasswordChangeDto"];
+            };
+        };
+        readonly responses: {
+            readonly 202: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    readonly ContactInvitationsController_remove: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path: {
+                readonly contactId: unknown;
+            };
+            readonly cookie?: never;
+        };
+        readonly requestBody: {
+            readonly content: {
+                readonly "application/json": components["schemas"]["RemoveContactDto"];
+            };
+        };
+        readonly responses: {
+            readonly 200: {
                 headers: {
                     readonly [name: string]: unknown;
                 };
