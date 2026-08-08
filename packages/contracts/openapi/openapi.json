@@ -1,6 +1,165 @@
 {
   "components": {
-    "schemas": {}
+    "schemas": {
+      "ActivateVaultPackageDto": {
+        "properties": {
+          "expectedCurrentPackageId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "expectedShareGenerationId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "password": {
+            "minLength": 1,
+            "type": "string",
+            "writeOnly": true
+          }
+        },
+        "required": [
+          "password"
+        ],
+        "type": "object"
+      },
+      "CompleteVaultUploadDto": {
+        "properties": {
+          "ciphertextSha256": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "ciphertextSize": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "number"
+          },
+          "parts": {
+            "items": {
+              "$ref": "#/components/schemas/VaultUploadPartDto"
+            },
+            "type": "array"
+          },
+          "uploadId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "uploadId",
+          "ciphertextSize",
+          "ciphertextSha256"
+        ],
+        "type": "object"
+      },
+      "CreateVaultUploadDto": {
+        "properties": {
+          "cipherAlgorithm": {
+            "example": "XCHACHA20_POLY1305_SECRETSTREAM_V1",
+            "type": "string"
+          },
+          "ciphertextSha256": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "clientCryptoVersion": {
+            "type": "string"
+          },
+          "dekEnvelope": {
+            "description": "Base64url encoded DEK envelope",
+            "type": "string"
+          },
+          "dekEnvelopeAadHash": {
+            "description": "Base64url encoded DEK envelope AAD hash",
+            "type": "string"
+          },
+          "dekEnvelopeAlgorithm": {
+            "type": "string"
+          },
+          "dekEnvelopeNonce": {
+            "description": "Base64url encoded DEK envelope nonce",
+            "type": "string"
+          },
+          "dekEnvelopeProtocolVersion": {
+            "minimum": 1,
+            "type": "number"
+          },
+          "encryptedSize": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "number"
+          },
+          "manifestAadHash": {
+            "description": "Base64url encoded manifest AAD hash",
+            "type": "string"
+          },
+          "manifestAlgorithm": {
+            "type": "string"
+          },
+          "manifestCiphertext": {
+            "description": "Base64url encoded authenticated manifest",
+            "type": "string"
+          },
+          "manifestNonce": {
+            "description": "Base64url encoded manifest nonce",
+            "type": "string"
+          },
+          "shareGenerationId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "streamHeader": {
+            "description": "Base64url encoded secretstream header",
+            "type": "string"
+          },
+          "vaultId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "vaultId",
+          "shareGenerationId",
+          "cipherAlgorithm",
+          "streamHeader",
+          "encryptedSize",
+          "ciphertextSha256",
+          "dekEnvelope",
+          "dekEnvelopeNonce",
+          "dekEnvelopeAlgorithm",
+          "dekEnvelopeProtocolVersion",
+          "dekEnvelopeAadHash",
+          "manifestCiphertext",
+          "manifestNonce",
+          "manifestAlgorithm",
+          "manifestAadHash",
+          "clientCryptoVersion"
+        ],
+        "type": "object"
+      },
+      "VaultUploadPartDto": {
+        "properties": {
+          "etag": {
+            "type": "string"
+          },
+          "partNumber": {
+            "minimum": 1,
+            "type": "number"
+          }
+        },
+        "required": [
+          "partNumber",
+          "etag"
+        ],
+        "type": "object"
+      }
+    },
+    "securitySchemes": {
+      "bearer": {
+        "bearerFormat": "JWT",
+        "scheme": "bearer",
+        "type": "http"
+      }
+    }
   },
   "info": {
     "contact": {},
@@ -35,6 +194,319 @@
         },
         "tags": [
           "Health"
+        ]
+      }
+    },
+    "/owner/packages": {
+      "get": {
+        "operationId": "VaultController_list",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-vault-id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Package versions"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List encrypted vault package versions",
+        "tags": [
+          "Vault"
+        ]
+      }
+    },
+    "/owner/packages/{packageId}/abort": {
+      "post": {
+        "operationId": "VaultController_abort",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "idempotency-key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-csrf-token",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-upload-id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "packageId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Upload aborted"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Abort an upload and remove its staging object",
+        "tags": [
+          "Vault"
+        ]
+      }
+    },
+    "/owner/packages/{packageId}/activate": {
+      "post": {
+        "operationId": "VaultController_activate",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "idempotency-key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-csrf-token",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "packageId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ActivateVaultPackageDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Package is ACTIVE"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Atomically activate a verified encrypted package",
+        "tags": [
+          "Vault"
+        ]
+      }
+    },
+    "/owner/packages/{packageId}/complete": {
+      "post": {
+        "operationId": "VaultController_complete",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "idempotency-key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-csrf-token",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "packageId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompleteVaultUploadDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Package is READY"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Verify the staged ciphertext and mark the package READY",
+        "tags": [
+          "Vault"
+        ]
+      }
+    },
+    "/owner/packages/{packageId}/content": {
+      "put": {
+        "operationId": "VaultController_streamContent",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "content-length",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "content-type",
+            "required": true,
+            "schema": {
+              "example": "application/octet-stream",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "idempotency-key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-csrf-token",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-upload-id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "packageId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Ciphertext staged"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Stream encrypted ciphertext into staging storage",
+        "tags": [
+          "Vault"
+        ]
+      }
+    },
+    "/owner/packages/uploads": {
+      "post": {
+        "operationId": "VaultController_createUploadSession",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "idempotency-key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-csrf-token",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateVaultUploadDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Upload session created"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create an encrypted vault package upload session",
+        "tags": [
+          "Vault"
         ]
       }
     }

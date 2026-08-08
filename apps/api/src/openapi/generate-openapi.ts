@@ -54,6 +54,7 @@ export async function buildOpenApiDocument(): Promise<OpenAPIObject> {
       .setTitle("Digital Legacy System API")
       .setDescription("Local V1 HTTP contract")
       .setVersion("0.1.0")
+      .addBearerAuth()
       .build();
     return sortOpenApiDocument(SwaggerModule.createDocument(app, options));
   } finally {

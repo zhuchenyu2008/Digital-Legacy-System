@@ -373,19 +373,19 @@ git commit -m "feat: validate archives and render wills safely"
 - Create: `apps/api/src/vault/vault.dto.ts`
 - Create: `tests/integration/vault-upload.test.ts`
 
-- [ ] **Step 1: Write failing API/application tests from sections 7.1–7.5 of `docs/04-api-design.md`**
+- [x] **Step 1: Write failing API/application tests from sections 7.1–7.5 of `docs/04-api-design.md`**
 
 Filesystem flow returns an authenticated API streaming endpoint. S3 flow may return presigned multipart details. Both flows create server-owned object keys, bind upload ID/package version/expected cipher size and hash, enforce expiry/limits, recompute actual storage metadata, and require a complete authenticated secretstream manifest before `READY`.
 
-- [ ] **Step 2: Implement session and upload streaming**
+- [x] **Step 2: Implement session and upload streaming**
 
 Stream request body directly to storage with byte limit and request cancellation. Never parse ZIP server-side before release because it is encrypted. Store ciphertext SHA-256, byte count, format version, wrapped DEK, package metadata, and upload status.
 
-- [ ] **Step 3: Implement transactional activation**
+- [x] **Step 3: Implement transactional activation**
 
 Lock the vault and package rows, verify expected versions and current share generation, set one package `ACTIVE`, supersede the old row, insert outbox cleanup for old private ciphertext, and audit the new digest. Cleanup is idempotent and cannot delete the new object.
 
-- [ ] **Step 4: Verify interruptions and races**
+- [ ] **Step 4: Verify interruptions and races** *(new in-memory upload/API tests pass; PostgreSQL race test remains blocked while Docker Desktop is stopped)*
 
 ```powershell
 pnpm.cmd exec vitest run tests/integration/vault-upload.test.ts
@@ -409,11 +409,11 @@ git commit -m "feat: upload and activate encrypted vault packages"
 - Create: `docs/security/cryptographic-protocol-v1.md`
 - Create: `docs/acceptance/03-cryptography-storage.md`
 
-- [ ] **Step 1: Document the protocol and residual risk**
+- [x] **Step 1: Document the protocol and residual risk**
 
 Include key hierarchy, all AAD fields, wire bytes, KDF calibration procedure, state-key permissions, share contexts, buffer lifecycle, browser limitations, dependency provenance, vector hashes, and explicit independent-review blocker. Do not include any operational secret.
 
-- [ ] **Step 2: Run all gates**
+- [ ] **Step 2: Run all gates** *(crypto 33/33, storage 13 passed + 1 optional skip, upload/API, OpenAPI, and full TypeScript build pass; Docker PostgreSQL/concurrency/S3 compose gates remain blocked by stopped Docker Desktop)*
 
 ```powershell
 pnpm.cmd test:crypto
@@ -423,7 +423,7 @@ docker compose --profile s3 --profile test up --build --abort-on-container-exit 
 pnpm.cmd build
 ```
 
-- [ ] **Step 3: Record and commit evidence**
+- [ ] **Step 3: Record and commit evidence** *(evidence docs written; commit remains open until Docker-dependent gates are rerun)*
 
 Record browser/Node/Rust versions, WASM and vector hashes, both adapter results, corruption/resource-bound cases, and Beijing timestamps.
 
