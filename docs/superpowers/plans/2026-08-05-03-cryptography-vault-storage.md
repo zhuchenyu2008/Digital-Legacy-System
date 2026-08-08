@@ -338,19 +338,19 @@ git commit -m "feat: add optional s3 object storage"
 - Update: `packages/storage/package.json`
 - Update: `pnpm-lock.yaml`
 
-- [ ] **Step 1: Generate synthetic safe and hostile fixtures**
+- [x] **Step 1: Generate synthetic safe and hostile fixtures**
 
 Fixtures cover valid `will.md`, missing/duplicate/case-mismatched `will.md`, path traversal, absolute/UNC paths, Windows device names, slash/backslash aliases, Unicode normalization collisions, symlink attributes, overlapping entries, encrypted entries, ZIP64 anomalies, >10,000 entries, compression ratio >100, total configured budget exceeded, `will.md` >2 MiB, invalid UTF-8, a plain nested archive treated as opaque downloadable content, an encrypted nested archive rejected by policy, and raw HTML/script/unsafe links in Markdown.
 
-- [ ] **Step 2: Write failing inspector tests**
+- [x] **Step 2: Write failing inspector tests**
 
 The inspector returns metadata and streams only root `will.md`; it never extracts the full archive. Rendering disables raw HTML, permits a narrow Markdown subset, sanitizes URL schemes, adds safe link attributes, and returns rendered HTML plus source/rendered SHA-256.
 
-- [ ] **Step 3: Implement with yauzl, marked, and sanitize-html**
+- [x] **Step 3: Implement with yauzl, marked, and sanitize-html**
 
 Use lazy entries, validate central/local header consistency, normalize each path before comparison, accumulate declared sizes with overflow checks, and stop at the first policy breach. No entry is written to the filesystem during validation.
 
-- [ ] **Step 4: Verify resource bounds and commit**
+- [x] **Step 4: Verify resource bounds and commit**
 
 ```powershell
 pnpm.cmd --filter @dls/storage test -- zip-inspector.test.ts

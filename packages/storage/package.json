@@ -23,9 +23,14 @@
   "dependencies": {
     "@aws-sdk/client-s3": "3.1103.0",
     "@dls/application": "workspace:*",
-    "@dls/domain": "workspace:*"
+    "@dls/domain": "workspace:*",
+    "marked": "18.0.9",
+    "sanitize-html": "2.17.6",
+    "yauzl": "3.4.0"
   },
   "devDependencies": {
-    "@types/node": "24.13.3"
+    "@types/node": "24.13.3",
+    "@types/sanitize-html": "2.16.1",
+    "@types/yauzl": "3.4.0"
   }
 }
