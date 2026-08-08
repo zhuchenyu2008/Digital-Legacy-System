@@ -296,26 +296,26 @@ git commit -m "feat: add durable filesystem object storage"
 - Update: `packages/storage/package.json`
 - Update: `pnpm-lock.yaml`
 
-- [ ] **Step 1: Instantiate the shared contract against MinIO**
+- [x] **Step 1: Instantiate the shared contract against MinIO**
 
 Run `storageContract(() => new S3Storage(...))` with unique bucket prefixes and failure injection. Add multipart abort, stale upload cleanup, ETag-not-MD5, conditional destination write, range response, and provider timeout cases.
 
-- [ ] **Step 2: Observe failure with the optional profile**
+- [x] **Step 2: Observe failure with the optional profile**
 
 ```powershell
 docker compose --profile s3 up -d minio minio-init
 pnpm.cmd --filter @dls/storage test -- s3-storage.test.ts
 ```
 
-- [ ] **Step 3: Implement with AWS SDK**
+- [x] **Step 3: Implement with AWS SDK**
 
 Use exact AWS packages `3.1103.0`. Persist SHA-256 in object metadata and verify it independently; do not treat multipart ETag as a content digest. Promotion copies to an immutable destination with metadata replacement and verified hash before deleting staging. Configure endpoint/force-path-style only from typed config.
 
-- [ ] **Step 4: Verify conditional factory behavior**
+- [x] **Step 4: Verify conditional factory behavior**
 
 When driver is filesystem, tests prove no AWS client is constructed and no `S3_*` values are required. When driver is S3, missing values fail before app bootstrap.
 
-- [ ] **Step 5: Commit optional S3 support**
+- [x] **Step 5: Commit optional S3 support**
 
 ```powershell
 pnpm.cmd --filter @dls/storage test

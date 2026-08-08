@@ -21,6 +21,7 @@
     "test": "vitest run --config vitest.config.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "3.1103.0",
     "@dls/application": "workspace:*",
     "@dls/domain": "workspace:*"
   },
