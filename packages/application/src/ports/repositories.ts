@@ -19,7 +19,10 @@ export interface VersionedRepository {
 
 export type Repositories = Readonly<{
   ownerProfile: VersionedRepository;
+  ownerCredentials: VersionedRepository;
   systemSettings: VersionedRepository;
+  checkIns: VersionedRepository;
+  checkinSchedules: VersionedRepository;
   contacts: VersionedRepository;
   vaults: VersionedRepository;
   workflows: VersionedRepository;

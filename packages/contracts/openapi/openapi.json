@@ -51,6 +51,40 @@
         ],
         "type": "object"
       },
+      "CreateOwnerDto": {
+        "properties": {
+          "backupEmail": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "ownerVaultEnvelope": {
+            "$ref": "#/components/schemas/OwnerVaultEnvelopeDto"
+          },
+          "password": {
+            "maxLength": 512,
+            "minLength": 12,
+            "type": "string",
+            "writeOnly": true
+          },
+          "primaryEmail": {
+            "type": "string"
+          },
+          "setupToken": {
+            "type": "string",
+            "writeOnly": true
+          }
+        },
+        "required": [
+          "setupToken",
+          "displayName",
+          "primaryEmail",
+          "password",
+          "ownerVaultEnvelope"
+        ],
+        "type": "object"
+      },
       "CreateVaultUploadDto": {
         "properties": {
           "cipherAlgorithm": {
@@ -133,6 +167,73 @@
           "manifestAlgorithm",
           "manifestAadHash",
           "clientCryptoVersion"
+        ],
+        "type": "object"
+      },
+      "OwnerVaultEnvelopeDto": {
+        "properties": {
+          "aadHash": {
+            "format": "byte",
+            "type": "string",
+            "writeOnly": true
+          },
+          "ciphertext": {
+            "format": "byte",
+            "type": "string",
+            "writeOnly": true
+          },
+          "kdfParams": {
+            "example": {
+              "algorithm": "argon2id",
+              "iterations": 3,
+              "memoryKiB": 65536,
+              "parallelism": 1,
+              "purpose": "owner-vault-kek-v1",
+              "version": 19
+            },
+            "type": "object",
+            "writeOnly": true
+          },
+          "kdfSalt": {
+            "format": "byte",
+            "type": "string",
+            "writeOnly": true
+          },
+          "keyVerifierCiphertext": {
+            "format": "byte",
+            "type": "string",
+            "writeOnly": true
+          },
+          "keyVerifierNonce": {
+            "format": "byte",
+            "type": "string",
+            "writeOnly": true
+          },
+          "nonce": {
+            "format": "byte",
+            "type": "string",
+            "writeOnly": true
+          },
+          "ownerEnvelopeProof": {
+            "format": "byte",
+            "type": "string",
+            "writeOnly": true
+          },
+          "vkCommitment": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string",
+            "writeOnly": true
+          }
+        },
+        "required": [
+          "ciphertext",
+          "nonce",
+          "kdfSalt",
+          "kdfParams",
+          "keyVerifierCiphertext",
+          "keyVerifierNonce",
+          "vkCommitment",
+          "ownerEnvelopeProof"
         ],
         "type": "object"
       },
@@ -507,6 +608,46 @@
         "summary": "Create an encrypted vault package upload session",
         "tags": [
           "Vault"
+        ]
+      }
+    },
+    "/setup/owner": {
+      "post": {
+        "operationId": "SetupController_create",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateOwnerDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Owner created and signed in"
+          }
+        },
+        "summary": "Create the singleton owner exactly once",
+        "tags": [
+          "Setup"
+        ]
+      }
+    },
+    "/setup/status": {
+      "get": {
+        "operationId": "SetupController_status",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Initialization status"
+          }
+        },
+        "summary": "Get non-sensitive initialization status",
+        "tags": [
+          "Setup"
         ]
       }
     }

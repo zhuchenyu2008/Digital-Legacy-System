@@ -81,17 +81,17 @@ git commit -m "feat: secure sessions and http request boundaries"
 - Create: `apps/api/src/setup/setup.module.ts`
 - Create: `tests/integration/setup.test.ts`
 
-- [ ] **Step 1: Write failing setup contract tests**
+- [x] **Step 1: Write failing setup contract tests**
 
 Cover blank database, valid owner creation, duplicate/concurrent creation, invalid bootstrap secret, expired setup window, weak/too-long password, email normalization collision, invalid wrapped VK/commitment/KDF profile, crash rollback, and post-setup endpoint disablement.
 
 `POST /api/v1/setup/owner` requires a setup secret in the body and accepts owner profile, server authentication password, client KDF profile, wrapped VK, and VK commitment. It returns an owner session but never echoes password/key material.
 
-- [ ] **Step 2: Implement setup atomically**
+- [x] **Step 2: Implement setup atomically**
 
 Hash the owner password with the server-only pepper. Validate the browser wrapping with schemas and lengths without decrypting it. Insert owner/profile/credentials/vault/default settings/initial check-in schedule/audit/outbox and consume setup capability in one serializable transaction. Singleton constraints arbitrate races.
 
-- [ ] **Step 3: Verify and commit**
+- [x] **Step 3: Verify and commit**
 
 ```powershell
 pnpm.cmd exec vitest run tests/integration/setup.test.ts

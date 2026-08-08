@@ -1,13 +1,12 @@
-import type { PoolClient } from "pg";
-
 import type {
   Repositories,
   RepositoryInput,
   RepositoryRow,
   VersionedRepository,
 } from "@dls/application";
+import type { PoolClient } from "pg";
 
-import { PersistenceError, mapDatabaseError } from "./errors.js";
+import { mapDatabaseError, PersistenceError } from "./errors.js";
 import { PgIdempotencyRepository } from "./pg-idempotency.js";
 
 type Queryable = Pick<PoolClient, "query">;
@@ -33,10 +32,6 @@ function normalizeRow(row: Record<string, unknown>): RepositoryRow {
     ...row,
     ...(row.version === undefined ? {} : { version: Number(row.version) }),
   } as RepositoryRow;
-}
-
-function normalizeRows(rows: readonly Record<string, unknown>[]): readonly RepositoryRow[] {
-  return rows.map(normalizeRow);
 }
 
 function buildColumns(input: RepositoryInput): readonly string[] {
@@ -81,7 +76,8 @@ function buildTableRepository(client: Queryable, definition: TableDefinition): V
           values,
         );
         const row = result.rows[0] as Record<string, unknown> | undefined;
-        if (row === undefined) throw new PersistenceError("DATABASE_ERROR", "Insert returned no row");
+        if (row === undefined)
+          throw new PersistenceError("DATABASE_ERROR", "Insert returned no row");
         return normalizeRow(row);
       } catch (error) {
         throw mapDatabaseError(error);
@@ -93,11 +89,14 @@ function buildTableRepository(client: Queryable, definition: TableDefinition): V
         throw new RangeError("Expected version must be a nonnegative safe integer");
       }
       const columns = buildColumns(patch).filter(
-        (column) => column !== definition.primaryKey && column !== "version" && column !== "updated_at",
+        (column) =>
+          column !== definition.primaryKey && column !== "version" && column !== "updated_at",
       );
       if (columns.length === 0) throw new Error("Versioned update requires a mutable column");
       const values = columns.map((column) => patch[column]);
-      const assignments = columns.map((column, index) => `${quoteIdentifier(column)} = $${index + 1}`);
+      const assignments = columns.map(
+        (column, index) => `${quoteIdentifier(column)} = $${index + 1}`,
+      );
       const idPlaceholder = `$${values.length + 1}`;
       const versionPlaceholder = `$${values.length + 2}`;
       try {
@@ -128,8 +127,23 @@ function buildTableRepository(client: Queryable, definition: TableDefinition): V
 
 export function createRepositories(client: PoolClient): Repositories {
   return {
-    ownerProfile: buildTableRepository(client, { table: "app.owner_profile", primaryKey: "singleton_id" }),
-    systemSettings: buildTableRepository(client, { table: "app.system_settings", primaryKey: "singleton_id" }),
+    ownerProfile: buildTableRepository(client, {
+      table: "app.owner_profile",
+      primaryKey: "singleton_id",
+    }),
+    ownerCredentials: buildTableRepository(client, {
+      table: "app.owner_credentials",
+      primaryKey: "singleton_id",
+    }),
+    systemSettings: buildTableRepository(client, {
+      table: "app.system_settings",
+      primaryKey: "singleton_id",
+    }),
+    checkIns: buildTableRepository(client, { table: "app.check_ins", primaryKey: "id" }),
+    checkinSchedules: buildTableRepository(client, {
+      table: "app.checkin_schedules",
+      primaryKey: "id",
+    }),
     contacts: buildTableRepository(client, { table: "app.emergency_contacts", primaryKey: "id" }),
     vaults: buildTableRepository(client, { table: "app.vaults", primaryKey: "id" }),
     workflows: buildTableRepository(client, { table: "app.workflows", primaryKey: "id" }),

@@ -10,12 +10,13 @@
     "test": "vitest run --config vitest.config.ts"
   },
   "dependencies": {
-    "@fastify/helmet": "13.1.0",
     "@dls/application": "workspace:*",
     "@dls/contracts": "workspace:*",
+    "@dls/crypto": "workspace:*",
     "@dls/email-templates": "workspace:*",
     "@dls/persistence": "workspace:*",
     "@dls/storage": "workspace:*",
+    "@fastify/helmet": "13.1.0",
     "@nestjs/common": "11.1.28",
     "@nestjs/core": "11.1.28",
     "@nestjs/platform-fastify": "11.1.28",
