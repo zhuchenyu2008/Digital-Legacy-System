@@ -322,11 +322,11 @@ git commit -m "feat: add durable job and outbox dispatch"
 - Create: `tests/concurrency/share-activation-race.test.ts`
 - Create: `docs/acceptance/02-domain-persistence.md`
 
-- [ ] **Step 1: Add simultaneous-client tests**
+- [x] **Step 1: Add simultaneous-client tests**
 
 Use at least 20 synchronized database clients per case. Assert exactly one threshold transition, one outbox event per resulting version, one active share generation, no counter under/overflow, and a deterministic winner between release and cancellation based on row-lock acquisition plus current persisted state.
 
-- [ ] **Step 2: Run each test repeatedly**
+- [x] **Step 2: Run each test repeatedly**
 
 ```powershell
 1..20 | ForEach-Object { pnpm.cmd exec vitest run tests/concurrency --no-file-parallelism; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE } }
@@ -334,7 +334,7 @@ pnpm.cmd --filter @dls/persistence migrate:down -- --steps 1
 pnpm.cmd --filter @dls/persistence migrate:up
 ```
 
-- [ ] **Step 3: Record and commit evidence**
+- [x] **Step 3: Record and commit evidence**
 
 `docs/acceptance/02-domain-persistence.md` records PostgreSQL version, isolation decisions, repetitions, and Beijing timestamps.
 
