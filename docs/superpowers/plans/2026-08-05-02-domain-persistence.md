@@ -196,7 +196,7 @@ git commit -m "feat: add postgres schema and migrations"
 - Create: `packages/persistence/src/postgres/idempotency.ts`
 - Create: `tests/integration/repositories.test.ts`
 
-- [ ] **Step 1: Write failing repository contract tests**
+- [x] **Step 1: Write failing repository contract tests**
 
 Define and test this transaction shape:
 
@@ -215,21 +215,21 @@ export interface TransactionManager {
 
 Contract tests cover rollback, nested-call rejection, version-checked updates, `SELECT ... FOR UPDATE`, mapper round trips, unique violation mapping, and atomically inserted aggregate plus outbox event.
 
-- [ ] **Step 2: Run and observe failures**
+- [x] **Step 2: Run and observe failures**
 
 ```powershell
 pnpm.cmd exec vitest run tests/integration/repositories.test.ts
 ```
 
-- [ ] **Step 3: Implement explicit SQL repositories**
+- [x] **Step 3: Implement explicit SQL repositories**
 
 Use parameterized statements only. Repository methods accept the transaction client; they cannot silently use the global pool. Optimistic updates include `WHERE id=$1 AND version=$2` and increment version. Map database errors to stable application error codes without leaking SQL.
 
-- [ ] **Step 4: Implement idempotency storage**
+- [x] **Step 4: Implement idempotency storage**
 
 Add a documented `app.idempotency_records` table via migration `007_idempotency`. Store actor scope, route/command name, key digest, canonical request hash, status, and response body/hash. Same key+request returns the stored response; same key+different request returns `IDEMPOTENCY_CONFLICT`.
 
-- [ ] **Step 5: Verify and commit**
+- [x] **Step 5: Verify and commit**
 
 ```powershell
 pnpm.cmd exec vitest run tests/integration/repositories.test.ts

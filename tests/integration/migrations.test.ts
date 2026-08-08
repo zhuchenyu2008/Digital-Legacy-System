@@ -38,7 +38,7 @@ describe("production migration inventory", () => {
     try {
       const runner = new MigrationRunner(asMigrationClient(client));
       const applied = await runner.up();
-      expect(applied.map((migration) => migration.version)).toEqual([1, 2, 3, 4, 5, 6]);
+      expect(applied.map((migration) => migration.version)).toEqual([1, 2, 3, 4, 5, 6, 7]);
 
       const result = await client.query(
         `SELECT table_schema || '.' || table_name AS qualified_name
@@ -52,9 +52,9 @@ describe("production migration inventory", () => {
       }
 
       const afterDown = await runner.down(1);
-      expect(afterDown.map((migration) => migration.version)).toEqual([1, 2, 3, 4, 5]);
+      expect(afterDown.map((migration) => migration.version)).toEqual([1, 2, 3, 4, 5, 6]);
       const afterUp = await runner.up();
-      expect(afterUp.map((migration) => migration.version)).toEqual([1, 2, 3, 4, 5, 6]);
+      expect(afterUp.map((migration) => migration.version)).toEqual([1, 2, 3, 4, 5, 6, 7]);
     } finally {
       await client.end();
     }

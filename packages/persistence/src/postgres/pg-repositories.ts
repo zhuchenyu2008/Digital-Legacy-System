@@ -1,0 +1,139 @@
+import type { PoolClient } from "pg";
+
+import type {
+  Repositories,
+  RepositoryInput,
+  RepositoryRow,
+  VersionedRepository,
+} from "@dls/application";
+
+import { PersistenceError, mapDatabaseError } from "./errors.js";
+import { PgIdempotencyRepository } from "./pg-idempotency.js";
+
+type Queryable = Pick<PoolClient, "query">;
+
+type TableDefinition = Readonly<{
+  table: string;
+  primaryKey: string;
+}>;
+
+function assertIdentifier(value: string): void {
+  if (!/^[a-z_][a-z0-9_]*$/i.test(value)) {
+    throw new Error(`Invalid SQL identifier: ${value}`);
+  }
+}
+
+function quoteIdentifier(value: string): string {
+  assertIdentifier(value);
+  return `"${value}"`;
+}
+
+function normalizeRow(row: Record<string, unknown>): RepositoryRow {
+  return {
+    ...row,
+    ...(row.version === undefined ? {} : { version: Number(row.version) }),
+  } as RepositoryRow;
+}
+
+function normalizeRows(rows: readonly Record<string, unknown>[]): readonly RepositoryRow[] {
+  return rows.map(normalizeRow);
+}
+
+function buildColumns(input: RepositoryInput): readonly string[] {
+  const columns = Object.keys(input).sort();
+  if (columns.length === 0) throw new Error("Repository insert requires at least one column");
+  columns.forEach(assertIdentifier);
+  return columns;
+}
+
+function buildTableRepository(client: Queryable, definition: TableDefinition): VersionedRepository {
+  const [schema, table] = definition.table.split(".");
+  if (schema === undefined || table === undefined) throw new Error("Invalid table definition");
+  assertIdentifier(schema);
+  assertIdentifier(table);
+  assertIdentifier(definition.primaryKey);
+  const qualifiedTable = `${quoteIdentifier(schema)}.${quoteIdentifier(table)}`;
+  const primaryKey = quoteIdentifier(definition.primaryKey);
+
+  return {
+    async findById(id, options) {
+      const lock = options?.forUpdate ? " FOR UPDATE" : "";
+      try {
+        const result = await client.query(
+          `SELECT * FROM ${qualifiedTable} WHERE ${primaryKey} = $1${lock}`,
+          [id],
+        );
+        const row = result.rows[0] as Record<string, unknown> | undefined;
+        return row === undefined ? null : normalizeRow(row);
+      } catch (error) {
+        throw mapDatabaseError(error);
+      }
+    },
+
+    async insert(input) {
+      const columns = buildColumns(input);
+      const values = columns.map((column) => input[column]);
+      const placeholders = columns.map((_, index) => `$${index + 1}`);
+      try {
+        const result = await client.query(
+          `INSERT INTO ${qualifiedTable} (${columns.map(quoteIdentifier).join(", ")})
+           VALUES (${placeholders.join(", ")}) RETURNING *`,
+          values,
+        );
+        const row = result.rows[0] as Record<string, unknown> | undefined;
+        if (row === undefined) throw new PersistenceError("DATABASE_ERROR", "Insert returned no row");
+        return normalizeRow(row);
+      } catch (error) {
+        throw mapDatabaseError(error);
+      }
+    },
+
+    async updateVersioned(id, expectedVersion, patch) {
+      if (!Number.isSafeInteger(expectedVersion) || expectedVersion < 0) {
+        throw new RangeError("Expected version must be a nonnegative safe integer");
+      }
+      const columns = buildColumns(patch).filter(
+        (column) => column !== definition.primaryKey && column !== "version" && column !== "updated_at",
+      );
+      if (columns.length === 0) throw new Error("Versioned update requires a mutable column");
+      const values = columns.map((column) => patch[column]);
+      const assignments = columns.map((column, index) => `${quoteIdentifier(column)} = $${index + 1}`);
+      const idPlaceholder = `$${values.length + 1}`;
+      const versionPlaceholder = `$${values.length + 2}`;
+      try {
+        const result = await client.query(
+          `UPDATE ${qualifiedTable}
+           SET ${assignments.join(", ")}, "version" = "version" + 1, "updated_at" = clock_timestamp()
+           WHERE ${primaryKey} = ${idPlaceholder} AND "version" = ${versionPlaceholder}
+           RETURNING *`,
+          [...values, id, expectedVersion],
+        );
+        const row = result.rows[0] as Record<string, unknown> | undefined;
+        if (row !== undefined) return normalizeRow(row);
+
+        const current = await client.query(
+          `SELECT "version" FROM ${qualifiedTable} WHERE ${primaryKey} = $1`,
+          [id],
+        );
+        if (current.rows[0] === undefined) {
+          throw new PersistenceError("NOT_FOUND", "Repository row was not found");
+        }
+        throw new PersistenceError("VERSION_CONFLICT", "Repository row version is stale");
+      } catch (error) {
+        throw mapDatabaseError(error);
+      }
+    },
+  };
+}
+
+export function createRepositories(client: PoolClient): Repositories {
+  return {
+    ownerProfile: buildTableRepository(client, { table: "app.owner_profile", primaryKey: "singleton_id" }),
+    systemSettings: buildTableRepository(client, { table: "app.system_settings", primaryKey: "singleton_id" }),
+    contacts: buildTableRepository(client, { table: "app.emergency_contacts", primaryKey: "id" }),
+    vaults: buildTableRepository(client, { table: "app.vaults", primaryKey: "id" }),
+    workflows: buildTableRepository(client, { table: "app.workflows", primaryKey: "id" }),
+    packages: buildTableRepository(client, { table: "app.legacy_packages", primaryKey: "id" }),
+    idempotency: new PgIdempotencyRepository(client),
+  };
+}
