@@ -1,20 +1,20 @@
 import { InMemorySessionStore, SessionService } from "@dls/application";
 import { Module } from "@nestjs/common";
+import { getApiRuntimeConfig } from "../config/api-runtime-config.js";
 import { CsrfGuard } from "./csrf.guard.js";
-import { OriginGuard } from "./origin.guard.js";
+import { ALLOWED_ORIGINS, OriginGuard } from "./origin.guard.js";
 import { RateLimitGuard } from "./rate-limit.guard.js";
 import { ContactSessionGuard, OwnerSessionGuard, SESSION_SERVICE } from "./session.guard.js";
 
 function sessionServiceFactory(): SessionService {
-  const pepper = new TextEncoder().encode(
-    process.env.SESSION_PEPPER ?? "local-development-session-pepper",
-  );
+  const pepper = getApiRuntimeConfig().sessionPepper;
   return new SessionService(new InMemorySessionStore(), { pepper });
 }
 
 @Module({
   providers: [
     { provide: SESSION_SERVICE, useFactory: sessionServiceFactory },
+    { provide: ALLOWED_ORIGINS, useFactory: () => getApiRuntimeConfig().allowedOrigins },
     OwnerSessionGuard,
     ContactSessionGuard,
     CsrfGuard,

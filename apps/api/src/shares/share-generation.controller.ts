@@ -54,7 +54,7 @@ export class ShareGenerationController {
 
   @Post(":generationId/upload")
   @UseGuards(OwnerSessionGuard, OriginGuard, CsrfGuard)
-  @ApiParam({ name: "generationId", format: "uuid" })
+  @ApiParam({ name: "generationId", type: String, format: "uuid" })
   @ApiBody({ type: UploadShareGenerationDto })
   @ApiOperation({ summary: "Validate and store the encrypted shares for a draft" })
   public async upload(
@@ -75,7 +75,7 @@ export class ShareGenerationController {
 
   @Post(":generationId/activate")
   @UseGuards(OwnerSessionGuard, OriginGuard, CsrfGuard)
-  @ApiParam({ name: "generationId", format: "uuid" })
+  @ApiParam({ name: "generationId", type: String, format: "uuid" })
   @ApiBody({ type: ActivateShareGenerationDto })
   @ApiOperation({ summary: "Atomically activate a complete share generation" })
   public async activate(
@@ -96,7 +96,7 @@ export class ShareGenerationController {
 
   @Get(":generationId/material")
   @UseGuards(OwnerSessionGuard)
-  @ApiParam({ name: "generationId", format: "uuid" })
+  @ApiParam({ name: "generationId", type: String, format: "uuid" })
   @ApiOperation({ summary: "Read public material needed to build a share generation" })
   public async material(@Param("generationId") generationId: string, @Req() request: OwnerRequest) {
     this.ownerId(request);

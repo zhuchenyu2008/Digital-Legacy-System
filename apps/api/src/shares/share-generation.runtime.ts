@@ -12,6 +12,7 @@ import {
   uploadShareGeneration,
 } from "@dls/application";
 import { createPgPool, PgTransactionManager } from "@dls/persistence";
+import { getApiRuntimeConfig } from "../config/api-runtime-config.js";
 
 export const SHARE_GENERATION_RUNTIME = Symbol("DLS_SHARE_GENERATION_RUNTIME");
 
@@ -44,7 +45,7 @@ export class PostgresShareGenerationRuntime implements ShareGenerationRuntime {
 
 export function createShareGenerationRuntime(): ShareGenerationRuntime {
   const pool = createPgPool({
-    connectionString: process.env.DATABASE_URL ?? "postgresql://postgres:test@127.0.0.1:55432/dls",
+    connectionString: getApiRuntimeConfig().databaseUrl,
   });
   return new PostgresShareGenerationRuntime(new PgTransactionManager(pool));
 }

@@ -15,6 +15,7 @@ import {
 } from "@nestjs/common";
 import { ApiBody, ApiOperation, ApiParam, ApiResponse, ApiTags } from "@nestjs/swagger";
 import type { FastifyReply, FastifyRequest } from "fastify";
+import { getApiRuntimeConfig } from "../config/api-runtime-config.js";
 import { CsrfGuard } from "../security/csrf.guard.js";
 import { OriginGuard } from "../security/origin.guard.js";
 import {
@@ -39,7 +40,7 @@ import { CONTACT_RUNTIME, type ContactRuntime } from "./contact.runtime.js";
 type OwnerRequest = FastifyRequest & SecurityRequest & { user?: SessionPrincipal };
 
 function setContactCookie(response: FastifyReply, token: string): void {
-  const secure = process.env.NODE_ENV === "production" ? "; Secure" : "";
+  const secure = getApiRuntimeConfig().nodeEnv === "production" ? "; Secure" : "";
   response.header(
     "set-cookie",
     `__Host-dls-contact=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Strict${secure}`,
@@ -82,7 +83,7 @@ export class ContactInvitationsController {
   @Post("owner/contacts/:contactId/invitation/resend")
   @HttpCode(HttpStatus.ACCEPTED)
   @UseGuards(OwnerSessionGuard, OriginGuard, CsrfGuard)
-  @ApiParam({ name: "contactId", format: "uuid" })
+  @ApiParam({ name: "contactId", type: String, format: "uuid" })
   @ApiOperation({ summary: "Revoke and resend a contact invitation" })
   public async resend(@Param("contactId") contactId: string, @Req() request: OwnerRequest) {
     const ownerId = request.user?.actorId;
@@ -105,7 +106,7 @@ export class ContactInvitationsController {
   @Post("owner/contacts/:contactId/password-change-invitation")
   @HttpCode(HttpStatus.ACCEPTED)
   @UseGuards(OwnerSessionGuard, OriginGuard, CsrfGuard)
-  @ApiParam({ name: "contactId", format: "uuid" })
+  @ApiParam({ name: "contactId", type: String, format: "uuid" })
   @ApiBody({ type: RequestContactPasswordChangeDto })
   @ApiOperation({ summary: "Issue a one-time contact password-change invitation" })
   public async requestPasswordChange(
@@ -134,7 +135,7 @@ export class ContactInvitationsController {
   @Post("owner/contacts/:contactId/remove")
   @HttpCode(HttpStatus.OK)
   @UseGuards(OwnerSessionGuard, OriginGuard, CsrfGuard)
-  @ApiParam({ name: "contactId", format: "uuid" })
+  @ApiParam({ name: "contactId", type: String, format: "uuid" })
   @ApiBody({ type: RemoveContactDto })
   @ApiOperation({ summary: "Remove an emergency contact and require share regeneration" })
   public async remove(

@@ -19,7 +19,8 @@ import {
 } from "@dls/application";
 import { hashServerPassword, verifyServerPassword } from "@dls/crypto/node";
 import { createPgPool, PgTransactionManager } from "@dls/persistence";
-import { AesFieldProtector, secretBytes } from "../setup/setup.runtime.js";
+import { getApiRuntimeConfig } from "../config/api-runtime-config.js";
+import { AesFieldProtector } from "../setup/setup.runtime.js";
 
 export const CONTACT_RUNTIME = Symbol("DLS_CONTACT_RUNTIME");
 
@@ -68,30 +69,17 @@ export class PostgresContactRuntime implements ContactRuntime {
   readonly #protector: AesFieldProtector;
   readonly #consentVersion: string;
   readonly #consentDocumentSha256: Uint8Array;
+  readonly #config = getApiRuntimeConfig();
 
   public constructor(transaction: PgTransactionManager, sessions: SessionService) {
     this.#transaction = transaction;
     this.#sessions = sessions;
-    this.#tokenPepper = secretBytes(
-      process.env.TOKEN_PEPPER,
-      "local-token-pepper-0123456789012345",
-    );
-    this.#passwordPepper = secretBytes(
-      process.env.CONTACT_PASSWORD_PEPPER,
-      "local-contact-password-pepper-0123456789012345",
-    );
-    this.#ownerPasswordPepper = secretBytes(
-      process.env.TOKEN_PEPPER,
-      "local-token-pepper-0123456789012345",
-    );
-    this.#protector = new AesFieldProtector(
-      secretBytes(process.env.SESSION_SECRET, "local-session-secret-0123456789012345"),
-    );
-    this.#consentVersion = process.env.CONTACT_CONSENT_VERSION ?? "2026-08-01";
-    this.#consentDocumentSha256 = Buffer.from(
-      process.env.CONTACT_CONSENT_SHA256 ?? "00".repeat(32),
-      "hex",
-    );
+    this.#tokenPepper = this.#config.tokenPepper;
+    this.#passwordPepper = this.#config.contactPasswordPepper;
+    this.#ownerPasswordPepper = this.#config.tokenPepper;
+    this.#protector = new AesFieldProtector(this.#config.sessionSecret);
+    this.#consentVersion = this.#config.contactConsentVersion;
+    this.#consentDocumentSha256 = Buffer.from(this.#config.contactConsentSha256, "hex");
   }
 
   public invite(command: InviteContactCommand) {
@@ -197,7 +185,7 @@ export class PostgresContactRuntime implements ContactRuntime {
 
 export function createContactRuntime(sessions: SessionService): ContactRuntime {
   const pool = createPgPool({
-    connectionString: process.env.DATABASE_URL ?? "postgresql://postgres:test@127.0.0.1:55432/dls",
+    connectionString: getApiRuntimeConfig().databaseUrl,
   });
   return new PostgresContactRuntime(new PgTransactionManager(pool), sessions);
 }

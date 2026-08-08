@@ -19,6 +19,7 @@ import {
 } from "@nestjs/common";
 import { ApiBody, ApiOperation, ApiResponse, ApiTags } from "@nestjs/swagger";
 import type { FastifyReply, FastifyRequest } from "fastify";
+import { getApiRuntimeConfig } from "../config/api-runtime-config.js";
 import { CsrfGuard } from "../security/csrf.guard.js";
 import { OwnerSessionGuard, type SecurityRequest } from "../security/session.guard.js";
 import {
@@ -32,7 +33,7 @@ import { OWNER_RUNTIME, type OwnerRuntime } from "./owner.runtime.js";
 type AuthenticatedRequest = FastifyRequest & SecurityRequest & { user?: SessionPrincipal };
 
 function setOwnerCookie(response: FastifyReply, token: string): void {
-  const secure = process.env.NODE_ENV === "production" ? "; Secure" : "";
+  const secure = getApiRuntimeConfig().nodeEnv === "production" ? "; Secure" : "";
   response.header(
     "set-cookie",
     `${SESSION_COOKIE_NAMES.OWNER}=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Strict${secure}`,

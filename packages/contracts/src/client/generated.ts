@@ -967,7 +967,7 @@ export interface operations {
             readonly query?: never;
             readonly header?: never;
             readonly path: {
-                readonly contactId: unknown;
+                readonly contactId: string;
             };
             readonly cookie?: never;
         };
@@ -986,7 +986,7 @@ export interface operations {
             readonly query?: never;
             readonly header?: never;
             readonly path: {
-                readonly contactId: unknown;
+                readonly contactId: string;
             };
             readonly cookie?: never;
         };
@@ -1009,7 +1009,7 @@ export interface operations {
             readonly query?: never;
             readonly header?: never;
             readonly path: {
-                readonly contactId: unknown;
+                readonly contactId: string;
             };
             readonly cookie?: never;
         };
@@ -1262,7 +1262,7 @@ export interface operations {
             readonly query?: never;
             readonly header?: never;
             readonly path: {
-                readonly generationId: unknown;
+                readonly generationId: string;
             };
             readonly cookie?: never;
         };
@@ -1285,7 +1285,7 @@ export interface operations {
             readonly query?: never;
             readonly header?: never;
             readonly path: {
-                readonly generationId: unknown;
+                readonly generationId: string;
             };
             readonly cookie?: never;
         };
@@ -1304,7 +1304,7 @@ export interface operations {
             readonly query?: never;
             readonly header?: never;
             readonly path: {
-                readonly generationId: unknown;
+                readonly generationId: string;
             };
             readonly cookie?: never;
         };

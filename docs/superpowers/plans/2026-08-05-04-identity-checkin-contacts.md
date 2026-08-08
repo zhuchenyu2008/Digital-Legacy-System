@@ -259,7 +259,7 @@ pnpm.cmd exec vitest run tests/concurrency/share-activation-race.test.ts
 pnpm.cmd test:crypto
 ```
 
-- [ ] **Step 5: Commit share activation**
+- [x] **Step 5: Commit share activation**
 
 ```powershell
 git add packages/application/src/shares apps/api/src/shares tests/integration/share-generation.test.ts
@@ -273,7 +273,7 @@ git commit -m "feat: activate verifiable share generations"
 **Files:**
 - Create: `docs/acceptance/04-identity-checkin-contacts.md`
 
-- [ ] **Step 1: Run all focused and contract gates**
+- [x] **Step 1: Run all focused and contract gates**
 
 ```powershell
 pnpm.cmd test:unit
@@ -283,11 +283,11 @@ pnpm.cmd openapi:check
 pnpm.cmd build
 ```
 
-- [ ] **Step 2: Record evidence**
+- [x] **Step 2: Record evidence**
 
 Record setup race, login/check-in atomicity, password rotations, consent version, fragment token behavior, contact removal, share generation, system arming, log-redaction scan, and Beijing timestamps.
 
-- [ ] **Step 3: Commit evidence**
+- [x] **Step 3: Commit evidence**
 
 ```powershell
 git add docs/acceptance/04-identity-checkin-contacts.md

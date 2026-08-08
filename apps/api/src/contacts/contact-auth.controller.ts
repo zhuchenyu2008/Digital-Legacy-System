@@ -12,6 +12,7 @@ import {
 } from "@nestjs/common";
 import { ApiBody, ApiOperation, ApiResponse, ApiTags } from "@nestjs/swagger";
 import type { FastifyReply, FastifyRequest } from "fastify";
+import { getApiRuntimeConfig } from "../config/api-runtime-config.js";
 import {
   ChangeContactPasswordDto,
   ContactLoginDto,
@@ -21,7 +22,7 @@ import {
 import { CONTACT_RUNTIME, type ContactRuntime } from "./contact.runtime.js";
 
 function setContactCookie(response: FastifyReply, token: string): void {
-  const secure = process.env.NODE_ENV === "production" ? "; Secure" : "";
+  const secure = getApiRuntimeConfig().nodeEnv === "production" ? "; Secure" : "";
   response.header(
     "set-cookie",
     `__Host-dls-contact=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Strict${secure}`,

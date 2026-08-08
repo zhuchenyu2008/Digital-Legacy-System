@@ -1,5 +1,5 @@
 import type { CanActivate, ExecutionContext } from "@nestjs/common";
-import { HttpException, HttpStatus, Injectable } from "@nestjs/common";
+import { HttpException, HttpStatus, Injectable, Optional } from "@nestjs/common";
 
 export type RateLimitDecision = Readonly<{
   allowed: boolean;
@@ -46,8 +46,8 @@ export class RateLimiter {
 @Injectable()
 export class RateLimitGuard implements CanActivate {
   public constructor(
-    private readonly limiter = new RateLimiter({ windowMs: 60_000, maxAttempts: 30 }),
-    private readonly key = "request",
+    @Optional() private readonly limiter = new RateLimiter({ windowMs: 60_000, maxAttempts: 30 }),
+    @Optional() private readonly key = "request",
   ) {}
 
   public canActivate(context: ExecutionContext): boolean {

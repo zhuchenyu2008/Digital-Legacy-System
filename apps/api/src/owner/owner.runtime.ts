@@ -18,6 +18,7 @@ import {
 } from "@dls/application";
 import { hashServerPassword, verifyServerPassword } from "@dls/crypto/node";
 import { createPgPool, PgTransactionManager } from "@dls/persistence";
+import { getApiRuntimeConfig } from "../config/api-runtime-config.js";
 
 export const OWNER_RUNTIME = Symbol("DLS_OWNER_RUNTIME");
 
@@ -32,12 +33,6 @@ export interface OwnerRuntime {
   logout(token: string): Promise<void>;
 }
 
-function secretBytes(value: string | undefined, fallback: string): Uint8Array {
-  return Uint8Array.from(
-    Buffer.from(value ?? Buffer.from(fallback, "utf8").toString("base64"), "base64"),
-  );
-}
-
 export class PostgresOwnerRuntime implements OwnerRuntime {
   readonly #transaction: PgTransactionManager;
   readonly #sessions: SessionService;
@@ -46,10 +41,7 @@ export class PostgresOwnerRuntime implements OwnerRuntime {
   public constructor(transaction: PgTransactionManager, sessions: SessionService) {
     this.#transaction = transaction;
     this.#sessions = sessions;
-    this.#passwordPepper = secretBytes(
-      process.env.TOKEN_PEPPER,
-      "local-token-pepper-0123456789012345",
-    );
+    this.#passwordPepper = getApiRuntimeConfig().tokenPepper;
   }
 
   public login(command: OwnerLoginCommand): Promise<OwnerLoginResult> {
@@ -106,7 +98,7 @@ export class PostgresOwnerRuntime implements OwnerRuntime {
 
 export function createOwnerRuntime(sessions: SessionService): OwnerRuntime {
   const pool = createPgPool({
-    connectionString: process.env.DATABASE_URL ?? "postgresql://postgres:test@127.0.0.1:55432/dls",
+    connectionString: getApiRuntimeConfig().databaseUrl,
   });
   return new PostgresOwnerRuntime(new PgTransactionManager(pool), sessions);
 }

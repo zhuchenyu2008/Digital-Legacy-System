@@ -1,5 +1,7 @@
 import type { CanActivate, ExecutionContext } from "@nestjs/common";
-import { Injectable } from "@nestjs/common";
+import { Inject, Injectable, Optional } from "@nestjs/common";
+
+export const ALLOWED_ORIGINS = Symbol("DLS_ALLOWED_ORIGINS");
 
 type GuardRequest = Readonly<{
   method?: string;
@@ -15,7 +17,11 @@ function readOrigin(request: GuardRequest): string | undefined {
 export class OriginGuard implements CanActivate {
   readonly #allowedOrigins: ReadonlySet<string>;
 
-  public constructor(allowedOrigins: readonly string[] = ["http://localhost:3000"]) {
+  public constructor(
+    @Optional() @Inject(ALLOWED_ORIGINS) allowedOrigins: readonly string[] = [
+      "http://localhost:3000",
+    ],
+  ) {
     this.#allowedOrigins = new Set(allowedOrigins.map((origin) => new URL(origin).origin));
   }
 

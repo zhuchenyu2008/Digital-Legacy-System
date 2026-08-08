@@ -968,7 +968,8 @@
             "name": "contactId",
             "required": true,
             "schema": {
-              "format": "uuid"
+              "format": "uuid",
+              "type": "string"
             }
           }
         ],
@@ -992,7 +993,8 @@
             "name": "contactId",
             "required": true,
             "schema": {
-              "format": "uuid"
+              "format": "uuid",
+              "type": "string"
             }
           }
         ],
@@ -1026,7 +1028,8 @@
             "name": "contactId",
             "required": true,
             "schema": {
-              "format": "uuid"
+              "format": "uuid",
+              "type": "string"
             }
           }
         ],
@@ -1461,7 +1464,8 @@
             "name": "generationId",
             "required": true,
             "schema": {
-              "format": "uuid"
+              "format": "uuid",
+              "type": "string"
             }
           }
         ],
@@ -1495,7 +1499,8 @@
             "name": "generationId",
             "required": true,
             "schema": {
-              "format": "uuid"
+              "format": "uuid",
+              "type": "string"
             }
           }
         ],
@@ -1519,7 +1524,8 @@
             "name": "generationId",
             "required": true,
             "schema": {
-              "format": "uuid"
+              "format": "uuid",
+              "type": "string"
             }
           }
         ],
