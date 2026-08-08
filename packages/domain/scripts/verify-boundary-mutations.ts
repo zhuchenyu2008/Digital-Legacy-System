@@ -2,43 +2,25 @@ import { spawnSync } from "node:child_process";
 import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-
-type Mutation = Readonly<{
-  id: string;
-  file: string;
-  from: string;
-  to: string;
-}>;
+import {
+  boundaryMutations as mutations,
+  boundarySourceFiles,
+  findUncoveredBoundaryComparisons,
+} from "./boundary-mutations.js";
 
 const packageRoot = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
 const repositoryRoot = path.resolve(packageRoot, "../..");
 const vitestEntry = path.join(repositoryRoot, "node_modules", "vitest", "vitest.mjs");
-const mutations: readonly Mutation[] = [
-  {
-    id: "exact-deadline-is-due",
-    file: "src/shared/instant.ts",
-    from: "Temporal.Instant.compare(now, deadline) >= 0",
-    to: "Temporal.Instant.compare(now, deadline) > 0",
-  },
-  {
-    id: "threshold-may-equal-active-contacts",
-    file: "src/policies/threshold-policy.ts",
-    from: "threshold > activeContacts",
-    to: "threshold >= activeContacts",
-  },
-  {
-    id: "death-approval-threshold-is-inclusive",
-    file: "src/workflows/death-workflow.ts",
-    from: "approvedContactIds.length >= state.requiredConfirmations",
-    to: "approvedContactIds.length > state.requiredConfirmations",
-  },
-  {
-    id: "recovery-approval-threshold-is-inclusive",
-    file: "src/workflows/recovery-workflow.ts",
-    from: "approvedContactIds.length >= state.requiredApprovals",
-    to: "approvedContactIds.length > state.requiredApprovals",
-  },
-];
+
+const sources = Object.fromEntries(
+  await Promise.all(
+    boundarySourceFiles.map(async (file) => [file, await readFile(path.join(packageRoot, file), "utf8")]),
+  ),
+);
+const uncoveredComparisons = findUncoveredBoundaryComparisons(sources, mutations);
+if (uncoveredComparisons.length > 0) {
+  throw new Error(`Missing boundary mutations:\n${uncoveredComparisons.join("\n")}`);
+}
 
 const mutationWorkspace = path.join(repositoryRoot, ".superpowers");
 await mkdir(mutationWorkspace, { recursive: true });

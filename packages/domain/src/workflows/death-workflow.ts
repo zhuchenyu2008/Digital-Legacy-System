@@ -1,6 +1,7 @@
 import { computeReleaseDeadline } from "../policies/release-policy.js";
 import type { AggregateId } from "../shared/aggregate-id.js";
 import { type Instant, isDue } from "../shared/instant.js";
+import { assertPackageVersion, type PackageVersion } from "../shared/package-version.js";
 import type { AggregateVersion } from "../shared/version.js";
 import { createWorkflowEvent, type DomainEvent } from "./workflow-events.js";
 import {
@@ -28,6 +29,7 @@ export type DeathWorkflow = Readonly<{
   approvedCount: number;
   shareGenerationId: AggregateId;
   packageId: AggregateId;
+  packageVersion: PackageVersion;
   graceDeadline: Instant;
   releaseDelayDays: number;
   releaseAt?: Instant;
@@ -156,6 +158,8 @@ function immutableDeathWorkflow(state: DeathWorkflow): DeathWorkflow {
 }
 
 function assertSnapshot(state: DeathWorkflow): void {
+  assertPackageVersion(state.packageVersion);
+
   const thresholdReached = state.approvedCount >= state.requiredConfirmations;
   const approvalsAreUnique =
     new Set(state.approvedContactIds).size === state.approvedContactIds.length;

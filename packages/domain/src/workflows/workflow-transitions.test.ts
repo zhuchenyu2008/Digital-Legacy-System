@@ -5,6 +5,7 @@ import {
 } from "../contacts/contact-lifecycle.js";
 import { parseAggregateId } from "../shared/aggregate-id.js";
 import { parseInstant } from "../shared/instant.js";
+import { parsePackageVersion } from "../shared/package-version.js";
 import { parseAggregateVersion } from "../shared/version.js";
 import { type PackageLifecycle, transitionPackageLifecycle } from "../vault/package-lifecycle.js";
 import {
@@ -23,6 +24,7 @@ const contactB = parseAggregateId("01890a5d-ac96-7cc3-98c9-0bb31376f243");
 const contactC = parseAggregateId("01890a5d-ac96-7cc3-98c9-0bb31376f244");
 const packageId = parseAggregateId("01890a5d-ac96-7cc3-98c9-0bb31376f245");
 const shareGenerationId = parseAggregateId("01890a5d-ac96-7cc3-98c9-0bb31376f246");
+const packageVersion = parsePackageVersion(3);
 const versionZero = parseAggregateVersion(0);
 
 describe("contact lifecycle", () => {
@@ -267,6 +269,30 @@ describe("package lifecycle", () => {
 });
 
 describe("death workflow", () => {
+  test("rejects a missing or invalid package version snapshot", () => {
+    const missingVersion = createDeathWorkflow();
+    Reflect.deleteProperty(missingVersion, "packageVersion");
+
+    expect(() =>
+      transitionDeathWorkflow(
+        missingVersion,
+        { type: "CANCEL", reason: "invalid", expectedVersion: missingVersion.version },
+        at,
+      ),
+    ).toThrow("package version");
+
+    const invalidVersion = createDeathWorkflow();
+    Reflect.set(invalidVersion, "packageVersion", 0);
+
+    expect(() =>
+      transitionDeathWorkflow(
+        invalidVersion,
+        { type: "CANCEL", reason: "invalid", expectedVersion: invalidVersion.version },
+        at,
+      ),
+    ).toThrow("package version");
+  });
+
   test("requires unique snapshot contacts and enters grace after the threshold", () => {
     const workflow = createDeathWorkflow();
     const first = transitionDeathWorkflow(
@@ -370,6 +396,7 @@ describe("death workflow", () => {
     );
     expect(pending.state).toMatchObject({
       state: "RELEASE_PENDING",
+      packageVersion,
       releaseAt: "2026-08-08T12:00:00Z",
     });
 
@@ -378,7 +405,7 @@ describe("death workflow", () => {
       { type: "FINALIZE_RELEASE", expectedVersion: pending.state.version },
       parseInstant("2026-08-08T12:00:00Z"),
     );
-    expect(released.state.state).toBe("RELEASED");
+    expect(released.state).toMatchObject({ state: "RELEASED", packageVersion });
   });
 
   test("rejects release advancement from wrong states, before deadlines, or without metadata", () => {
@@ -683,10 +710,41 @@ describe("recovery workflow", () => {
 });
 
 describe("release workflow", () => {
+  test("rejects a missing or invalid package version snapshot", () => {
+    const missingVersion: ReleaseWorkflow = {
+      state: "PENDING",
+      packageId,
+      packageVersion,
+      releaseAt: parseInstant("2026-08-07T12:00:00Z"),
+      version: versionZero,
+    };
+    Reflect.deleteProperty(missingVersion, "packageVersion");
+
+    expect(() =>
+      transitionReleaseWorkflow(
+        missingVersion,
+        { type: "CANCEL", expectedVersion: missingVersion.version },
+        at,
+      ),
+    ).toThrow("package version");
+
+    const invalidVersion = { ...missingVersion };
+    Reflect.set(invalidVersion, "packageVersion", 0);
+
+    expect(() =>
+      transitionReleaseWorkflow(
+        invalidVersion,
+        { type: "CANCEL", expectedVersion: invalidVersion.version },
+        at,
+      ),
+    ).toThrow("package version");
+  });
+
   test("locks at the exact release deadline and then finalizes", () => {
     const workflow: ReleaseWorkflow = {
       state: "PENDING",
       packageId,
+      packageVersion,
       releaseAt: parseInstant("2026-08-06T12:00:00Z"),
       version: versionZero,
     };
@@ -695,20 +753,21 @@ describe("release workflow", () => {
       { type: "LOCK", expectedVersion: workflow.version },
       at,
     );
-    expect(locked.state.state).toBe("LOCKED");
+    expect(locked.state).toMatchObject({ state: "LOCKED", packageVersion });
 
     const released = transitionReleaseWorkflow(
       locked.state,
       { type: "FINALIZE", expectedVersion: locked.state.version },
       later,
     );
-    expect(released.state.state).toBe("RELEASED");
+    expect(released.state).toMatchObject({ state: "RELEASED", packageVersion });
   });
 
   test("allows cancellation before the release deadline but never after locking", () => {
     const workflow: ReleaseWorkflow = {
       state: "PENDING",
       packageId,
+      packageVersion,
       releaseAt: parseInstant("2026-08-07T12:00:00Z"),
       version: versionZero,
     };
@@ -732,6 +791,7 @@ describe("release workflow", () => {
     const workflow: ReleaseWorkflow = {
       state: "PENDING",
       packageId,
+      packageVersion,
       releaseAt: parseInstant("2026-08-07T12:00:00Z"),
       version: versionZero,
     };
@@ -799,6 +859,7 @@ function createDeathWorkflow(overrides: Partial<DeathWorkflow> = {}): DeathWorkf
     approvedCount: thresholdReached ? 2 : 0,
     shareGenerationId,
     packageId,
+    packageVersion,
     graceDeadline: parseInstant("2026-08-07T12:00:00Z"),
     releaseDelayDays: 1,
     version: versionZero,

@@ -4,6 +4,7 @@ export * from "./policies/release-policy.js";
 export * from "./policies/threshold-policy.js";
 export * from "./shared/aggregate-id.js";
 export * from "./shared/instant.js";
+export * from "./shared/package-version.js";
 export * from "./shared/version.js";
 export * from "./vault/package-lifecycle.js";
 export * from "./vault/share-generation-lifecycle.js";

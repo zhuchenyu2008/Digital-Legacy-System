@@ -7,6 +7,7 @@ import {
 } from "../contacts/contact-lifecycle.js";
 import { parseAggregateId } from "../shared/aggregate-id.js";
 import { type Instant, parseInstant } from "../shared/instant.js";
+import { parsePackageVersion } from "../shared/package-version.js";
 import { parseAggregateVersion } from "../shared/version.js";
 import {
   type PackageCommand,
@@ -49,23 +50,27 @@ const contactB = parseAggregateId("01890a5d-ac96-7cc3-98c9-0bb31376f243");
 const contactC = parseAggregateId("01890a5d-ac96-7cc3-98c9-0bb31376f244");
 const packageId = parseAggregateId("01890a5d-ac96-7cc3-98c9-0bb31376f245");
 const shareGenerationId = parseAggregateId("01890a5d-ac96-7cc3-98c9-0bb31376f246");
+const packageVersion = parsePackageVersion(3);
 
 type MatrixCommand<C> = Readonly<{ command: C; at: Instant }>;
 
-function assertCartesianMatrix<S extends string, C extends { readonly type: string }>(options: {
+function assertCartesianMatrix<
+  S extends string,
+  Snapshot,
+  C extends { readonly type: string },
+>(options: {
   scope: string;
   states: readonly S[];
   commands: readonly MatrixCommand<C>[];
   allowed: Readonly<Record<S, readonly C["type"][]>>;
-  createState: (state: S) => unknown;
-  transition: (state: never, command: C, at: Instant) => unknown;
+  createState: (state: S) => Snapshot;
+  transition: (state: Snapshot, command: C, at: Instant) => unknown;
 }): void {
   for (const stateName of options.states) {
     for (const entry of options.commands) {
       const isAllowed = options.allowed[stateName].includes(entry.command.type);
       test(`${options.scope}: ${stateName} -> ${entry.command.type} is ${isAllowed ? "allowed" : "rejected"}`, () => {
-        const invoke = () =>
-          options.transition(options.createState(stateName) as never, entry.command, entry.at);
+        const invoke = () => options.transition(options.createState(stateName), entry.command, entry.at);
 
         if (isAllowed) {
           expect(invoke).not.toThrow();
@@ -310,6 +315,7 @@ describe("complete state-command transition matrices", () => {
         state,
         version: versionZero,
         packageId,
+        packageVersion,
         releaseAt: releaseDeadline,
       }),
       transition: transitionReleaseWorkflow,
@@ -329,6 +335,7 @@ function createDeathWorkflow(state: DeathWorkflowState): DeathWorkflow {
     approvedCount: thresholdReached ? 2 : 0,
     shareGenerationId,
     packageId,
+    packageVersion,
     graceDeadline: invitationDeadline,
     releaseDelayDays: 1,
     ...(state === "RELEASE_PENDING" || state === "RELEASED" ? { releaseAt: releaseDeadline } : {}),

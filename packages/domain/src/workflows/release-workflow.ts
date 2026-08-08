@@ -1,5 +1,6 @@
 import type { AggregateId } from "../shared/aggregate-id.js";
 import { type Instant, isDue } from "../shared/instant.js";
+import { assertPackageVersion, type PackageVersion } from "../shared/package-version.js";
 import type { AggregateVersion } from "../shared/version.js";
 import { createWorkflowEvent, type DomainEvent } from "./workflow-events.js";
 import {
@@ -17,6 +18,7 @@ export type ReleaseWorkflow = Readonly<{
   state: ReleaseWorkflowState;
   version: AggregateVersion;
   packageId: AggregateId;
+  packageVersion: PackageVersion;
   releaseAt: Instant;
 }>;
 
@@ -30,6 +32,7 @@ export function transitionReleaseWorkflow(
   command: ReleaseCommand,
   at: Instant,
 ): TransitionResult<ReleaseWorkflow, DomainEvent> {
+  assertPackageVersion(state.packageVersion);
   assertExpectedVersion(state.version, command.expectedVersion);
 
   if (command.type === "LOCK") {
