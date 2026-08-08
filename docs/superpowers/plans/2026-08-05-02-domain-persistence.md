@@ -8,7 +8,7 @@
 
 **Tech Stack:** TypeScript 6.0.3, PostgreSQL 18.4, `pg` 8.22.0, pg-boss 12.27.0, UUID 14.0.1, `@js-temporal/polyfill` 0.5.1, Vitest 4.1.10, Docker Compose.
 
-> **Handoff status (August 7, 2026, Beijing):** Task 1 and Task 2 checkboxes reflect committed implementation and rerun gates (Task 2 commit 0b2b084). Independent review of Task 2 remains a handoff follow-up. Tasks 3-7 remain intentionally unchecked.
+> **Handoff status (August 8, 2026, Beijing):** Task 1 and Task 2 are complete. Independent review findings for Task 2 were fixed in commit `aa6b534`: workflow snapshots now freeze a validated package version, and the mutation gate discovers uncovered numeric comparisons before killing all 16 registered boundary mutations. Fresh gates passed with 227 tests and 100% branch coverage. Tasks 3-7 remain intentionally unchecked. Before Task 3, start Docker Desktop (the daemon was unavailable during handoff); the host Node runtime is 24.14.0 while the pinned project runtime is 24.18.0, so use the pinned Docker image or install the exact host version.
 
 ## Global Constraints
 
