@@ -1,0 +1,24 @@
+{
+  "status": "TEST ONLY",
+  "protocol": "dls-pedersen-vss-v1",
+  "curve": "ristretto255",
+  "library": "vsss-rs@5.4.0",
+  "secretHex": "5b5c5d5e5f606162636465666768696a6b6c6d6e6f707172737475767778797a",
+  "contextUtf8": "vault-01/generation-02/vector",
+  "threshold": 2,
+  "shareCount": 3,
+  "testOnlySeedsHex": [
+    "1111111111111111111111111111111111111111111111111111111111111111",
+    "2222222222222222222222222222222222222222222222222222222222222222"
+  ],
+  "sha256": {
+    "secret": "1edf1a9e9637ae2cbc26062bdc653f77b3fdf39e4d46dd00ffcdaa9e5e8cf7b8",
+    "context": "bf7e4196cb292135a9c702068629f0e8fe655f70fdda750d73179cc90aa9984e",
+    "commitments": "8927276978b317e904a13837ccab7aa1a964719300b3bbb879cc120b8b7ce982",
+    "shares": [
+      "a6c5c8e91bfa0241bdaac8a302f8918de38bd50043fdba05b2fc8209a347505e",
+      "e432d5daec6b48061beb93d57efe88f8354a010ee35b7127e3e0d16895fbe47f",
+      "c6dfe1376ff9082b28cbeab03630223728dd170f9d6625755f956bd1aef18478"
+    ]
+  }
+}

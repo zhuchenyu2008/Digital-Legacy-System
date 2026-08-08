@@ -3,6 +3,25 @@
 ARG NODE_IMAGE=node:24.18.0-bookworm-slim@sha256:6f7b03f7c2c8e2e784dcf9295400527b9b1270fd37b7e9a7285cf83b6951452d
 ARG GO_IMAGE=golang:1.24.8-bookworm@sha256:4ed690d6649d63c312b99a6120025ec79ce3b542968a37da53d6236c7c61a848
 ARG CADDY_IMAGE=caddy:2.11.4-alpine@sha256:5f5c8640aae01df9654968d946d8f1a56c497f1dd5c5cda4cf95ab7c14d58648
+ARG RUST_IMAGE=rust:1.97.1-bookworm@sha256:14bc9c5966e7b3a385794b3d5389a8765668342025fbcc7b2e3d2866ac4bd8c3
+
+FROM ${RUST_IMAGE} AS rust-test
+
+WORKDIR /workspace
+
+COPY rust-toolchain.toml Cargo.toml Cargo.lock ./
+COPY packages/vss-wasm ./packages/vss-wasm
+
+RUN cargo test --locked
+
+FROM rust-test AS rust-wasm
+
+RUN rustup target add wasm32-unknown-unknown \
+  && cargo install wasm-bindgen-cli --version 0.2.126 --locked \
+  && cargo build --release -p dls-vss --target wasm32-unknown-unknown --locked \
+  && mkdir -p packages/vss-wasm/dist/browser packages/vss-wasm/dist/node \
+  && wasm-bindgen target/wasm32-unknown-unknown/release/dls_vss.wasm --target web --out-dir packages/vss-wasm/dist/browser \
+  && wasm-bindgen target/wasm32-unknown-unknown/release/dls_vss.wasm --target nodejs --out-dir packages/vss-wasm/dist/node
 
 FROM ${NODE_IMAGE} AS node-toolchain
 
@@ -27,12 +46,15 @@ COPY packages/email-templates/package.json ./packages/email-templates/package.js
 COPY packages/persistence/package.json ./packages/persistence/package.json
 COPY packages/storage/package.json ./packages/storage/package.json
 COPY packages/test-fixtures/package.json ./packages/test-fixtures/package.json
+COPY packages/vss-wasm/package.json ./packages/vss-wasm/package.json
 
 FROM dependency-manifests AS development-dependencies
 RUN pnpm install --frozen-lockfile
 
 FROM development-dependencies AS build
 COPY . .
+COPY --from=rust-wasm /workspace/packages/vss-wasm/dist ./packages/vss-wasm/dist
+RUN printf '{\n  "type": "commonjs"\n}\n' > packages/vss-wasm/dist/node/package.json
 RUN pnpm run build
 
 FROM dependency-manifests AS production-dependencies
@@ -58,6 +80,7 @@ COPY --from=build --chown=node:node /workspace/packages/email-templates/dist ./p
 COPY --from=build --chown=node:node /workspace/packages/persistence/dist ./packages/persistence/dist
 COPY --from=build --chown=node:node /workspace/packages/storage/dist ./packages/storage/dist
 COPY --from=build --chown=node:node /workspace/packages/test-fixtures/dist ./packages/test-fixtures/dist
+COPY --from=build --chown=node:node /workspace/packages/vss-wasm/dist ./packages/vss-wasm/dist
 
 USER node
 

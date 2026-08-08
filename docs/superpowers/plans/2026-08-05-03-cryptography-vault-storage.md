@@ -110,7 +110,7 @@ git commit -m "feat: freeze cryptographic protocol v1"
 - Create: `packages/vss-wasm/SECURITY.md`
 - Update: `Dockerfile`
 
-- [ ] **Step 1: Write failing Rust fixed-vector tests**
+- [x] **Step 1: Write failing Rust fixed-vector tests**
 
 Pin Rust `1.97.1`, `vsss-rs = "=5.4.0"`, and `wasm-bindgen = "=0.2.126"`. Root `Cargo.toml` is a workspace containing only `packages/vss-wasm`, so the generated `Cargo.lock` lives at repository root. Tests cover 32-byte secrets for `2-of-3`, `3-of-5`, and configured maximum contact count; reconstruct every valid combination; reject too few, duplicates, zero/out-of-range identifiers, mixed generations, wrong purposes, corrupted shares, and corrupted commitments.
 
@@ -123,7 +123,7 @@ export function verifyPedersenShare(share: Uint8Array, commitments: Uint8Array, 
 export function combinePedersen(shares: readonly Uint8Array[], commitments: Uint8Array, context: Uint8Array): Uint8Array;
 ```
 
-- [ ] **Step 2: Observe the Rust test failure inside the pinned builder**
+- [x] **Step 2: Observe the Rust test failure inside the pinned builder**
 
 ```powershell
 docker build --target rust-test -t dls-rust-test .
@@ -132,15 +132,15 @@ docker run --rm dls-rust-test cargo test --locked
 
 Expected: missing crate/package implementation.
 
-- [ ] **Step 3: Implement the narrow wrapper**
+- [x] **Step 3: Implement the narrow wrapper**
 
 The `context` is a domain-separated digest of vault, generation, purpose, threshold, share count, and VK commitment. Rust validates all lengths/ranges. Production split obtains randomness from the supported CSPRNG; the deterministic function is compiled only with `--features test-vectors` and is not re-exported by `index.ts`.
 
-- [ ] **Step 4: Produce deterministic browser and Node WASM bundles**
+- [x] **Step 4: Produce deterministic browser and Node WASM bundles**
 
 The build script runs `cargo test --locked`, `wasm-bindgen` for bundler and Node targets, strips nondeterministic metadata, and records SHA-256 hashes. Commit generated JS/TypeScript/WASM under `packages/vss-wasm/dist/` because application builds must not fetch toolchains at runtime.
 
-- [ ] **Step 5: Run cross-runtime and negative tests**
+- [x] **Step 5: Run cross-runtime and negative tests**
 
 ```powershell
 pnpm.cmd --filter @dls/vss-wasm build
@@ -148,9 +148,9 @@ pnpm.cmd --filter @dls/vss-wasm test
 docker run --rm dls-rust-test cargo test --locked
 ```
 
-`index.test.ts` executes the same vectors in Node and Playwright Chromium, byte-compares results, and confirms production exports do not contain deterministic RNG hooks.
+`index.test.ts` executes the same vectors in Node and Playwright Chromium, byte-compares results, and confirms production exports do not contain deterministic RNG hooks. The committed browser bundle uses the `web` target so static HTTP/browser loading performs explicit WASM initialization; the Node bundle uses the `nodejs` target.
 
-- [ ] **Step 6: Document provenance and commit**
+- [x] **Step 6: Document provenance and commit**
 
 `SECURITY.md` records source versions/licenses, upstream audit status, selected curve/features, test evidence, and the external-review blocker.
 

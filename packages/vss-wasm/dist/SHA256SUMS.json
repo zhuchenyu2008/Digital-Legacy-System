@@ -1,0 +1,15 @@
+{
+  "browser": {
+    "dls_vss.d.ts": "6a39a643e47b187a0597a5cf294fdc2509702cb325ff9a5c391a3ce67ca1c82e",
+    "dls_vss.js": "384456adc267cddf06714a51ce901ca4e8ec4ab92f2e5d85abfeb81803e73031",
+    "dls_vss_bg.wasm": "1782dc4695f2d567a3757d9d0bf9748256b2201676b4e18e80a2baba86eb0c3d",
+    "dls_vss_bg.wasm.d.ts": "6734d2c03904371f093440246d0abc10d4ee1d1591799d62910f7ffb034bf31d"
+  },
+  "node": {
+    "dls_vss.d.ts": "2928c547cebc85d9d6acadd063eff7e21fa732c3e8453b43b15447842c0d465c",
+    "dls_vss.js": "d88fa78aa6249ce811655cddfd1558cdd7324fd1592cb31294441f25e37de009",
+    "dls_vss_bg.wasm": "1782dc4695f2d567a3757d9d0bf9748256b2201676b4e18e80a2baba86eb0c3d",
+    "dls_vss_bg.wasm.d.ts": "6734d2c03904371f093440246d0abc10d4ee1d1591799d62910f7ffb034bf31d",
+    "package.json": "8005a3491db7d92f36ac66369861589f9c47123d3a7c71e643fc2c06168cd45a"
+  }
+}
