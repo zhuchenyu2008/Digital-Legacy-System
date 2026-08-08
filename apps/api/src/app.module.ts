@@ -11,12 +11,20 @@ import {
 import { OwnerModule } from "./owner/owner.module.js";
 import { SecurityModule } from "./security/security.module.js";
 import { SetupModule } from "./setup/setup.module.js";
+import { ShareGenerationModule } from "./shares/share-generation.module.js";
 import { VaultModule } from "./vault/vault.module.js";
 
 const startupProbe: HealthProbe = Object.freeze({ check: async () => undefined });
 
 @Module({
-  imports: [SecurityModule, SetupModule, OwnerModule, ContactModule, VaultModule],
+  imports: [
+    SecurityModule,
+    SetupModule,
+    OwnerModule,
+    ContactModule,
+    VaultModule,
+    ShareGenerationModule,
+  ],
   controllers: [HealthController],
   providers: [
     { provide: DATABASE_HEALTH_PROBE, useValue: startupProbe },

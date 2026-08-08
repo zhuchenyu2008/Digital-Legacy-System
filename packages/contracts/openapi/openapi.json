@@ -34,6 +34,22 @@
         ],
         "type": "object"
       },
+      "ActivateShareGenerationDto": {
+        "properties": {
+          "contactSetVersion": {
+            "minimum": 0,
+            "type": "number"
+          },
+          "expectedCurrentGenerationId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "contactSetVersion"
+        ],
+        "type": "object"
+      },
       "ActivateVaultPackageDto": {
         "properties": {
           "expectedCurrentPackageId": {
@@ -301,6 +317,27 @@
         ],
         "type": "object"
       },
+      "CreateShareGenerationDto": {
+        "properties": {
+          "contactSetVersion": {
+            "minimum": 0,
+            "type": "number"
+          },
+          "expectedCurrentGenerationId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "vaultId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "vaultId",
+          "contactSetVersion"
+        ],
+        "type": "object"
+      },
       "CreateVaultUploadDto": {
         "properties": {
           "cipherAlgorithm": {
@@ -518,6 +555,45 @@
         ],
         "type": "object"
       },
+      "ShareGenerationShareDto": {
+        "properties": {
+          "contactId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "deathShareCiphertext": {
+            "format": "byte",
+            "type": "string",
+            "writeOnly": true
+          },
+          "deathShareCommitment": {
+            "format": "byte",
+            "type": "string"
+          },
+          "recoveryShareCiphertext": {
+            "format": "byte",
+            "type": "string",
+            "writeOnly": true
+          },
+          "recoveryShareCommitment": {
+            "format": "byte",
+            "type": "string"
+          },
+          "shareIndex": {
+            "minimum": 1,
+            "type": "number"
+          }
+        },
+        "required": [
+          "contactId",
+          "shareIndex",
+          "deathShareCiphertext",
+          "recoveryShareCiphertext",
+          "deathShareCommitment",
+          "recoveryShareCommitment"
+        ],
+        "type": "object"
+      },
       "UpdateOwnerSettingsDto": {
         "properties": {
           "missedDaysThreshold": {
@@ -533,6 +609,57 @@
         },
         "required": [
           "password"
+        ],
+        "type": "object"
+      },
+      "UploadShareGenerationDto": {
+        "properties": {
+          "contactSetVersion": {
+            "minimum": 0,
+            "type": "number"
+          },
+          "contactsSnapshotSha256": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "generationCommitment": {
+            "format": "byte",
+            "type": "string",
+            "writeOnly": true
+          },
+          "generationProof": {
+            "format": "byte",
+            "type": "string",
+            "writeOnly": true
+          },
+          "protocolVersion": {
+            "minimum": 1,
+            "type": "number"
+          },
+          "shares": {
+            "items": {
+              "$ref": "#/components/schemas/ShareGenerationShareDto"
+            },
+            "type": "array",
+            "writeOnly": true
+          },
+          "vkCommitment": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "vssScheme": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "contactSetVersion",
+          "contactsSnapshotSha256",
+          "protocolVersion",
+          "vssScheme",
+          "generationCommitment",
+          "vkCommitment",
+          "generationProof",
+          "shares"
         ],
         "type": "object"
       },
@@ -1297,6 +1424,123 @@
         "summary": "Update owner settings after password reauthentication",
         "tags": [
           "Owner"
+        ]
+      }
+    },
+    "/owner/vault/share-generations": {
+      "post": {
+        "operationId": "ShareGenerationController_create",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateShareGenerationDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Create a share generation draft and return the roster snapshot",
+        "tags": [
+          "Share generations"
+        ]
+      }
+    },
+    "/owner/vault/share-generations/{generationId}/activate": {
+      "post": {
+        "operationId": "ShareGenerationController_activate",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "generationId",
+            "required": true,
+            "schema": {
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ActivateShareGenerationDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Atomically activate a complete share generation",
+        "tags": [
+          "Share generations"
+        ]
+      }
+    },
+    "/owner/vault/share-generations/{generationId}/material": {
+      "get": {
+        "operationId": "ShareGenerationController_material",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "generationId",
+            "required": true,
+            "schema": {
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Read public material needed to build a share generation",
+        "tags": [
+          "Share generations"
+        ]
+      }
+    },
+    "/owner/vault/share-generations/{generationId}/upload": {
+      "post": {
+        "operationId": "ShareGenerationController_upload",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "generationId",
+            "required": true,
+            "schema": {
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UploadShareGenerationDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Validate and store the encrypted shares for a draft",
+        "tags": [
+          "Share generations"
         ]
       }
     },

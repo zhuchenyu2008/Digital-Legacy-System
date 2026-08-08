@@ -239,19 +239,19 @@ git commit -m "feat: rotate and revoke contact access"
 - Create: `apps/api/src/shares/share-generation.module.ts`
 - Create: `tests/integration/share-generation.test.ts`
 
-- [ ] **Step 1: Write failing generation validation tests**
+- [x] **Step 1: Write failing generation validation tests**
 
 Test exact active-contact snapshot, sequential share indexes, unique contact envelopes, separate death/recovery commitment sets, threshold formulas (`ceil(N*0.70)` and `floor(N/2)+1`), VK commitment match, purpose/context binding, stale roster/version, missing/extra/duplicate contact, invalid commitment/share proof, retry, and concurrent activation.
 
-- [ ] **Step 2: Implement two-phase generation**
+- [x] **Step 2: Implement two-phase generation**
 
 Owner starts a `DRAFT` with roster and vault version. Browser unwraps VK, creates both Pedersen generations, sealed-box encrypts one share per active CPK, and uploads commitments/envelopes. API verifies structural/context/commitment proofs without learning share plaintext, then marks `DISTRIBUTING`.
 
-- [ ] **Step 3: Implement atomic activation and arming gate**
+- [x] **Step 3: Implement atomic activation and arming gate**
 
 Lock vault/settings/contact roster/current generation. Revalidate all snapshots and package readiness; activate both purpose sets under one generation ID, supersede prior generation, and emit audit/outbox. The system becomes `ARMED` only when owner profile, >=3 active contacts, active package with `will.md` preflight metadata, tested SMTP, current share generation, and irreversible-release acknowledgement are all present.
 
-- [ ] **Step 4: Verify old-generation rejection**
+- [x] **Step 4: Verify old-generation rejection**
 
 ```powershell
 pnpm.cmd exec vitest run tests/integration/share-generation.test.ts

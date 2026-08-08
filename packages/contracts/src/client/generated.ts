@@ -406,6 +406,74 @@ export type paths = {
         readonly patch: operations["OwnerController_updateSettings"];
         readonly trace?: never;
     };
+    readonly "/owner/vault/share-generations": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get?: never;
+        readonly put?: never;
+        /** Create a share generation draft and return the roster snapshot */
+        readonly post: operations["ShareGenerationController_create"];
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/owner/vault/share-generations/{generationId}/activate": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get?: never;
+        readonly put?: never;
+        /** Atomically activate a complete share generation */
+        readonly post: operations["ShareGenerationController_activate"];
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/owner/vault/share-generations/{generationId}/material": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        /** Read public material needed to build a share generation */
+        readonly get: operations["ShareGenerationController_material"];
+        readonly put?: never;
+        readonly post?: never;
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/owner/vault/share-generations/{generationId}/upload": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get?: never;
+        readonly put?: never;
+        /** Validate and store the encrypted shares for a draft */
+        readonly post: operations["ShareGenerationController_upload"];
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
     readonly "/setup/owner": {
         readonly parameters: {
             readonly query?: never;
@@ -449,6 +517,11 @@ export type components = {
             readonly password: string;
             readonly privateKeyEnvelope: components["schemas"]["ContactPrivateKeyEnvelopeDto"];
             readonly token: string;
+        };
+        readonly ActivateShareGenerationDto: {
+            readonly contactSetVersion: number;
+            /** Format: uuid */
+            readonly expectedCurrentGenerationId?: string;
         };
         readonly ActivateVaultPackageDto: {
             /** Format: uuid */
@@ -515,6 +588,13 @@ export type components = {
             readonly password: string;
             readonly primaryEmail: string;
             readonly setupToken: string;
+        };
+        readonly CreateShareGenerationDto: {
+            readonly contactSetVersion: number;
+            /** Format: uuid */
+            readonly expectedCurrentGenerationId?: string;
+            /** Format: uuid */
+            readonly vaultId: string;
         };
         readonly CreateVaultUploadDto: {
             /** @example XCHACHA20_POLY1305_SECRETSTREAM_V1 */
@@ -588,9 +668,34 @@ export type components = {
         readonly ResolveContactInvitationDto: {
             readonly token: string;
         };
+        readonly ShareGenerationShareDto: {
+            /** Format: uuid */
+            readonly contactId: string;
+            /** Format: byte */
+            readonly deathShareCiphertext: string;
+            /** Format: byte */
+            readonly deathShareCommitment: string;
+            /** Format: byte */
+            readonly recoveryShareCiphertext: string;
+            /** Format: byte */
+            readonly recoveryShareCommitment: string;
+            readonly shareIndex: number;
+        };
         readonly UpdateOwnerSettingsDto: {
             readonly missedDaysThreshold?: number;
             readonly password: string;
+        };
+        readonly UploadShareGenerationDto: {
+            readonly contactSetVersion: number;
+            readonly contactsSnapshotSha256: string;
+            /** Format: byte */
+            readonly generationCommitment: string;
+            /** Format: byte */
+            readonly generationProof: string;
+            readonly protocolVersion: number;
+            readonly shares: readonly components["schemas"]["ShareGenerationShareDto"][];
+            readonly vkCommitment: string;
+            readonly vssScheme: string;
         };
         readonly VaultUploadPartDto: {
             readonly etag: string;
@@ -1124,6 +1229,92 @@ export interface operations {
         };
         readonly responses: {
             readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    readonly ShareGenerationController_create: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly requestBody: {
+            readonly content: {
+                readonly "application/json": components["schemas"]["CreateShareGenerationDto"];
+            };
+        };
+        readonly responses: {
+            readonly 201: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    readonly ShareGenerationController_activate: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path: {
+                readonly generationId: unknown;
+            };
+            readonly cookie?: never;
+        };
+        readonly requestBody: {
+            readonly content: {
+                readonly "application/json": components["schemas"]["ActivateShareGenerationDto"];
+            };
+        };
+        readonly responses: {
+            readonly 201: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    readonly ShareGenerationController_material: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path: {
+                readonly generationId: unknown;
+            };
+            readonly cookie?: never;
+        };
+        readonly requestBody?: never;
+        readonly responses: {
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    readonly ShareGenerationController_upload: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path: {
+                readonly generationId: unknown;
+            };
+            readonly cookie?: never;
+        };
+        readonly requestBody: {
+            readonly content: {
+                readonly "application/json": components["schemas"]["UploadShareGenerationDto"];
+            };
+        };
+        readonly responses: {
+            readonly 201: {
                 headers: {
                     readonly [name: string]: unknown;
                 };

@@ -209,6 +209,7 @@ export function createRepositories(client: PoolClient): Repositories {
     systemSettings: buildTableRepository(client, {
       table: "app.system_settings",
       primaryKey: "singleton_id",
+      versionColumn: "settings_version",
     }),
     checkIns: buildTableRepository(client, { table: "app.check_ins", primaryKey: "id" }),
     checkinSchedules: buildTableRepository(client, {
@@ -226,6 +227,14 @@ export function createRepositories(client: PoolClient): Repositories {
     }),
     oneTimeTokens: buildTableRepository(client, {
       table: "app.one_time_tokens",
+      primaryKey: "id",
+    }),
+    shareGenerations: buildTableRepository(client, {
+      table: "app.share_generations",
+      primaryKey: "id",
+    }),
+    contactKeyShares: buildTableRepository(client, {
+      table: "app.contact_key_shares",
       primaryKey: "id",
     }),
     vaults: buildTableRepository(client, { table: "app.vaults", primaryKey: "id" }),
