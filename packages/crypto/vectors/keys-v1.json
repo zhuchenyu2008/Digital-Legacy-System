@@ -1,0 +1,20 @@
+{
+  "testOnly": true,
+  "version": 1,
+  "labels": {
+    "vaultKeyCommitment": "DLS/VK-COMMITMENT/V1\u0000",
+    "contactPublicKeyId": "DLS/CONTACT-PUBLIC-KEY-ID/V1\u0000",
+    "shareCommitmentDigest": "DLS/SHARE-COMMITMENT-DIGEST/V1\u0000"
+  },
+  "vaultKeyCommitment": {
+    "vaultKey": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+    "commitment": "W9qhLL1dzuPJ4PLB1AZe_9zVe0LxUpAXtyHTU1_X_8A"
+  },
+  "negativeCases": [
+    "wrong wrapping key",
+    "wrong vault, generation, purpose, package, or version context",
+    "wrong contact private key",
+    "sealed ciphertext bit flip",
+    "mixed death and recovery generation"
+  ]
+}

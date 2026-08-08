@@ -172,27 +172,27 @@ git commit -m "feat: add pedersen vss wasm core"
 - Create: `packages/crypto/src/keys/keys.test.ts`
 - Create: `packages/crypto/vectors/keys-v1.json`
 
-- [ ] **Step 1: Write failing hierarchy/interoperability tests**
+- [x] **Step 1: Write failing hierarchy/interoperability tests**
 
 Test random 32-byte VK generation, VK commitment, owner KEK wrap/unwrap, contact X25519 key generation, CONTACT_KEK private-key wrap, sealed-box share encrypt/decrypt, separate death/recovery generation, and package DEK wrap. Test wrong password/key/contact/generation/purpose/vault/package/version, ciphertext bit flips, replay, and mixed share sets.
 
 Use `crypto_generichash` with explicit labels for commitments and key IDs. A contact share plaintext contains version, purpose, vault/generation/contact IDs, share index, threshold, commitment digest, and share bytes before sealed-box encryption.
 
-- [ ] **Step 2: Run and observe missing-export failures**
+- [x] **Step 2: Run and observe missing-export failures**
 
 ```powershell
 pnpm.cmd --filter @dls/crypto test -- keys.test.ts
 ```
 
-- [ ] **Step 3: Implement browser and Node facades**
+- [x] **Step 3: Implement browser and Node facades**
 
 Expose only `Uint8Array` and immutable DTOs. Browser facade has no Node imports; Node facade has no DOM globals. Keep death-release and password-recovery shares in separate invocations with independent randomness and context.
 
-- [ ] **Step 4: Prove password rotation semantics**
+- [x] **Step 4: Prove password rotation semantics**
 
 Tests show owner password change rewraps VK without changing `vkCommitment`, contact password change rewraps only CSK without changing CPK or sealed shares, and any partial failure leaves old wrapping active.
 
-- [ ] **Step 5: Commit key hierarchy**
+- [x] **Step 5: Commit key hierarchy**
 
 ```powershell
 pnpm.cmd --filter @dls/crypto test
