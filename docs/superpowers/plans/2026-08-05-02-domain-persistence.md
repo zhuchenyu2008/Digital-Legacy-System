@@ -288,15 +288,15 @@ git commit -m "feat: persist tamper evident audit chains"
 - Update: `apps/worker/package.json`
 - Update: `pnpm-lock.yaml`
 
-- [ ] **Step 1: Write failing retry and deduplication tests**
+- [x] **Step 1: Write failing retry and deduplication tests**
 
 Assert one logical job for `(jobName, aggregateId, aggregateVersion)`, at-least-once handler invocation, exponential retry with bounded jitter, dead-letter metadata after configured attempts, restart recovery, and no outbox loss when a worker crashes after external work but before acknowledgement.
 
-- [ ] **Step 2: Implement scheduler and dispatcher**
+- [x] **Step 2: Implement scheduler and dispatcher**
 
 Use names `checkin.evaluate`, `workflow.advance`, `notification.deliver`, `package.validate`, `publication.finalize`, `outbox.dispatch`, and `reconciliation.scan`. Job payloads contain IDs and expected versions, never secrets or full domain payloads. Handlers reload state and are no-ops when the expected version/state no longer matches.
 
-- [ ] **Step 3: Verify crash recovery**
+- [x] **Step 3: Verify crash recovery**
 
 ```powershell
 pnpm.cmd exec vitest run tests/integration/jobs.test.ts
@@ -304,7 +304,7 @@ docker compose restart worker
 pnpm.cmd exec vitest run tests/integration/jobs.test.ts -t "restart recovery"
 ```
 
-- [ ] **Step 4: Commit job infrastructure**
+- [x] **Step 4: Commit job infrastructure**
 
 ```powershell
 git add packages/application/src/ports packages/persistence/src/jobs apps/worker/src/jobs tests/integration/jobs.test.ts

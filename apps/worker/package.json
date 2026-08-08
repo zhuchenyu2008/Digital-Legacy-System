@@ -13,6 +13,7 @@
     "@dls/email-templates": "workspace:*",
     "@dls/persistence": "workspace:*",
     "@dls/storage": "workspace:*",
+    "pg-boss": "12.27.0",
     "@nestjs/common": "11.1.28",
     "@nestjs/core": "11.1.28",
     "reflect-metadata": "0.2.2",

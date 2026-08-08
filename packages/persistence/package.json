@@ -24,6 +24,7 @@
     "@dls/application": "workspace:*",
     "@dls/contracts": "workspace:*",
     "@dls/domain": "workspace:*",
+    "pg-boss": "12.27.0",
     "pg": "8.22.0"
   },
   "devDependencies": {
