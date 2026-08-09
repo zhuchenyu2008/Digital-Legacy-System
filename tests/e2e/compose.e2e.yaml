@@ -1,0 +1,28 @@
+services:
+  mailpit:
+    ports:
+      - 127.0.0.1:${DLS_E2E_MAILPIT_PORT:-18025}:8025
+
+  api:
+    environment:
+      NODE_ENV: test
+      DLS_SIMULATION_MODE: enabled
+      SIMULATION_STORAGE_ROOT: /var/lib/dls/simulations
+      SIMULATION_MAIL_ALLOWLIST: "*@example.test"
+    command:
+      - |
+        export SESSION_SECRET="$$(cat /run/secrets/session_secret)"
+        export TOKEN_PEPPER="$$(cat /run/secrets/token_pepper)"
+        export RELEASE_INGRESS_PUBLIC_KEY="$$(cat /run/secrets/release_ingress_public_key)"
+        export RECOVERY_INGRESS_PUBLIC_KEY="$$(cat /run/secrets/recovery_ingress_public_key)"
+        export RECOVERY_INGRESS_PRIVATE_KEY="$$(cat /run/secrets/recovery_ingress_private_key)"
+        export RECOVERY_STAGE_KEK="$$(cat /run/secrets/recovery_stage_kek)"
+        api_password="$$(cat /run/secrets/api_db_password)"
+        export DATABASE_URL="postgresql://dls_api:$$api_password@postgres:5432/dls"
+        export SIMULATION_DATABASE_URL="postgresql://dls_api:$$api_password@postgres:5432/dls_simulation"
+        exec node apps/api/dist/main.js
+    volumes:
+      - simulation_objects:/var/lib/dls/simulations
+
+volumes:
+  simulation_objects:

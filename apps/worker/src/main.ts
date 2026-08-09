@@ -20,7 +20,7 @@ async function bootstrap(): Promise<void> {
     logger: new ConsoleLogger({ json: true, prefix: "worker" }),
   });
   const pool = createPgPool({ connectionString: config.databaseUrl });
-  const boss = await new PgBoss(config.databaseUrl).start();
+  const boss = await new PgBoss({ connectionString: config.databaseUrl, migrate: false }).start();
   for (const jobName of Object.values(JOB_NAMES)) await boss.createQueue(jobName);
   const checkinEvaluate = app.get(CheckinEvaluateHandler);
   const processReleaseFragment = app.get(ProcessReleaseFragmentHandler);

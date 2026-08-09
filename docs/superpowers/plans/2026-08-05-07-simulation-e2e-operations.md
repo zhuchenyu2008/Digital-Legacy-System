@@ -74,19 +74,19 @@ git commit -m "feat: add isolated workflow simulation mode"
 - Create: `tests/e2e/fixtures/assert-no-secrets.ts`
 - Create: `tests/e2e/fixtures/test.zip`
 
-- [ ] **Step 1: Write a failing stack-readiness fixture test**
+- [x] **Step 1: Write a failing stack-readiness fixture test**
 
 Global setup starts a unique Compose project with `test` profile, waits for API/web/worker/PostgreSQL/Mailpit health, applies production plus test migrations, verifies blank formal/test state, and rejects any SMTP host not equal to the Compose Mailpit service.
 
-- [ ] **Step 2: Implement API/UI/mail helpers without bypassing business behavior**
+- [x] **Step 2: Implement API/UI/mail helpers without bypassing business behavior**
 
 Helpers may read Mailpit messages and extract fragment links, but setup/login/invite/accept/upload/share/decision/recovery/publication actions go through browser UI and generated API contracts. Synthetic contacts use real X25519 keys, encrypted private keys, VSS shares, and secretstream files. `test.zip` is generated from committed deterministic fixture sources and contains root `will.md` plus a small binary file.
 
-- [ ] **Step 3: Instrument secret detection**
+- [x] **Step 3: Instrument secret detection**
 
 Register known synthetic passwords, raw keys, shares, tokens, codes, will text, and fragment values with `assert-no-secrets`. Scan browser console/network URLs/HTML/storage, Caddy/API/worker logs, pg-boss payloads, and Mailpit messages according to their allowed field policy after every test.
 
-- [ ] **Step 4: Verify and commit fixtures**
+- [x] **Step 4: Verify and commit fixtures**
 
 ```powershell
 pnpm.cmd exec playwright test tests/e2e/fixtures --project=chromium

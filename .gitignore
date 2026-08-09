@@ -13,6 +13,7 @@ coverage/
 .corepack-bin/
 .docker-config/
 .compose-smoke-secrets/
+.e2e-runtime/
 .pnpm-store/
 ops/secrets/generated/
 
