@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { GET } from "./route.js";
+import { GET } from "./route";
 
 describe("GET /health", () => {
   test("reports only the Next.js process health", async () => {
@@ -9,7 +9,6 @@ describe("GET /health", () => {
     await expect(response.json()).resolves.toEqual({
       status: "ok",
       service: "web",
-      version: "0.1.0",
     });
   });
 });

@@ -11,7 +11,6 @@ export const WORKER_HEARTBEAT_HEALTH_PROBE = Symbol("WORKER_HEARTBEAT_HEALTH_PRO
 const liveStatus = Object.freeze({
   status: "ok" as const,
   service: "api" as const,
-  version: "0.1.0",
 });
 
 @Injectable()
@@ -31,10 +30,8 @@ export class HealthService {
       await this.database.check();
       await this.storage.check();
       await this.workerHeartbeat.check();
-    } catch (error) {
-      throw new ServiceUnavailableException(
-        error instanceof Error ? error.message : "dependency unavailable",
-      );
+    } catch {
+      throw new ServiceUnavailableException("dependency unavailable");
     }
 
     return {

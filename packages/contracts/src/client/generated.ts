@@ -320,6 +320,57 @@ export type paths = {
         readonly patch?: never;
         readonly trace?: never;
     };
+    readonly "/owner/audit-events": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        /** Read a redacted page of immutable private audit events */
+        readonly get: operations["AuditController_list"];
+        readonly put?: never;
+        readonly post?: never;
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/owner/audit-events/{eventId}/detail": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get?: never;
+        readonly put?: never;
+        /** Reauthenticate before reading digest-only audit detail */
+        readonly post: operations["AuditController_detail"];
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/owner/audit-integrity": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        /** Verify the complete private audit hash chain */
+        readonly get: operations["AuditController_integrity"];
+        readonly put?: never;
+        readonly post?: never;
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
     readonly "/owner/check-in-schedule": {
         readonly parameters: {
             readonly query?: never;
@@ -557,6 +608,23 @@ export type paths = {
         readonly head?: never;
         /** Update owner settings after password reauthentication */
         readonly patch: operations["OwnerController_updateSettings"];
+        readonly trace?: never;
+    };
+    readonly "/owner/system-health": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        /** Read redacted operational health categories */
+        readonly get: operations["OwnerSystemHealthController_read"];
+        readonly put?: never;
+        readonly post?: never;
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
         readonly trace?: never;
     };
     readonly "/owner/vault/share-generations": {
@@ -804,6 +872,9 @@ export type components = {
             /** @enum {number} */
             readonly protocolVersion: 1;
             readonly shareIndex: number;
+        };
+        readonly AuditDetailDto: {
+            readonly password: string;
         };
         readonly CancelDeathWorkflowDto: {
             readonly password: string;
@@ -1487,6 +1558,63 @@ export interface operations {
             };
         };
     };
+    readonly AuditController_list: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly requestBody?: never;
+        readonly responses: {
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    readonly AuditController_detail: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path: {
+                readonly eventId: string;
+            };
+            readonly cookie?: never;
+        };
+        readonly requestBody: {
+            readonly content: {
+                readonly "application/json": components["schemas"]["AuditDetailDto"];
+            };
+        };
+        readonly responses: {
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    readonly AuditController_integrity: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly requestBody?: never;
+        readonly responses: {
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     readonly OwnerController_schedule: {
         readonly parameters: {
             readonly query?: never;
@@ -1808,6 +1936,23 @@ export interface operations {
                 readonly "application/json": components["schemas"]["UpdateOwnerSettingsDto"];
             };
         };
+        readonly responses: {
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    readonly OwnerSystemHealthController_read: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly requestBody?: never;
         readonly responses: {
             readonly 200: {
                 headers: {

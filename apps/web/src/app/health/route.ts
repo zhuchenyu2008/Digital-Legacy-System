@@ -1,4 +1,4 @@
-const health = Object.freeze({ status: "ok", service: "web", version: "0.1.0" });
+const health = Object.freeze({ status: "ok", service: "web" });
 
 export function GET(): Response {
   return Response.json(health, { status: 200 });

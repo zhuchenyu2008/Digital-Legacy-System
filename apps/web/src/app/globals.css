@@ -645,6 +645,43 @@ code,
 .dls-recovery-purpose { border-color: #edce89; background: #fff8e7; color: #7a4b00; }
 .dls-recovery-purpose p { margin: 8px 0 0; }
 
+.dls-operational-page { display: grid; gap: 32px; }
+.dls-operational-page > .dls-page-heading { margin-bottom: 0; }
+.dls-audit-integrity .dls-summary-list code { max-width: min(48vw, 520px); }
+.dls-audit-events { display: grid; gap: 20px; }
+.dls-audit-events .dls-section-heading h2 { margin: 0; }
+.dls-audit-events .dls-table { min-width: 920px; }
+.dls-audit-events td time { font-family: var(--dls-font-mono); font-size: 13px; white-space: nowrap; }
+.dls-audit-reauth { display: grid; grid-template-columns: minmax(240px, 1fr) minmax(240px, 1fr) auto; align-items: end; gap: 16px; border-left: 4px solid var(--dls-status-recovery); background: #fff8e7; padding: 20px; }
+.dls-audit-reauth label { grid-column: 1 / -1; font-weight: 700; }
+.dls-audit-detail { display: grid; gap: 12px; }
+.dls-audit-detail h3,
+.dls-audit-detail p { margin: 0; }
+.dls-health-grid { display: grid; grid-template-columns: minmax(240px, 0.75fr) minmax(0, 1.6fr); gap: 40px; }
+.dls-health-summary { position: sticky; top: calc(var(--dls-header-height) + 32px); align-self: start; border-top: 4px solid #000; padding-top: 24px; }
+.dls-health-summary > p:not(.dls-eyebrow) { color: var(--dls-text-secondary); line-height: 1.7; }
+.dls-health-summary dl div { border-top: 1px solid var(--dls-border-subtle); padding-top: 20px; }
+.dls-health-summary dt { color: var(--dls-text-secondary); }
+.dls-health-summary dd { margin: 8px 0 0; font-family: var(--dls-font-mono); font-size: 32px; }
+.dls-health-categories { border-top: 1px solid var(--dls-border-subtle); }
+.dls-health-categories > section { border-bottom: 1px solid var(--dls-border-subtle); padding: 24px 0; }
+.dls-health-categories h3 { margin: 0; font-size: 20px; }
+.dls-health-categories p { margin: 8px 0 0; color: var(--dls-text-secondary); }
+.dls-policy-page { min-height: 100svh; padding: 72px 16px 96px; }
+.dls-legal-document { width: min(100%, 760px); margin: 0 auto; }
+.dls-legal-document > header { border-bottom: 1px solid var(--dls-border-subtle); padding-bottom: 32px; }
+.dls-legal-document > header > p:last-child { color: var(--dls-text-secondary); font-family: var(--dls-font-mono); }
+.dls-legal-document section,
+.dls-legal-document footer { border-bottom: 1px solid var(--dls-border-subtle); padding: 32px 0; }
+.dls-legal-document section p,
+.dls-legal-document footer p { margin: 0; color: var(--dls-text-secondary); font-size: 16px; line-height: 1.85; }
+.dls-support-page { display: grid; min-height: 100svh; place-items: center; padding: 32px 16px; }
+.dls-support-error { width: min(100%, 720px); border-top: 6px solid #000; background: #fff; padding: clamp(28px, 6vw, 56px); box-shadow: var(--dls-shadow-subtle); }
+.dls-support-error > p:not(.dls-eyebrow) { max-width: 58ch; color: var(--dls-text-secondary); font-size: 17px; line-height: 1.75; }
+.dls-request-id { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 12px; margin: 28px 0; border-block: 1px solid var(--dls-border-subtle); padding: 16px 0; }
+.dls-request-id > span { color: var(--dls-text-secondary); font-size: 13px; }
+.dls-support-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 32px; }
+
 @media (max-width: 767px) {
   .dls-app-shell > .dls-desktop-header { display: none; }
   .dls-mobile-brand { display: block; }
@@ -711,6 +748,13 @@ code,
   .dls-contact-decision-list > article:only-child { grid-column: auto; }
   .dls-dialog-actions { align-items: stretch; flex-direction: column-reverse; }
   .dls-dialog-actions .dls-button { width: 100%; }
+  .dls-audit-reauth { grid-template-columns: 1fr; }
+  .dls-audit-reauth label { grid-column: auto; }
+  .dls-health-grid { grid-template-columns: 1fr; gap: 24px; }
+  .dls-health-summary { position: static; }
+  .dls-policy-page { padding-top: 40px; }
+  .dls-request-id { grid-template-columns: 1fr; }
+  .dls-support-actions { align-items: stretch; flex-direction: column; }
 }
 
 @media (min-width: 768px) {

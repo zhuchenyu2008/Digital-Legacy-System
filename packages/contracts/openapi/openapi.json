@@ -148,6 +148,19 @@
         ],
         "type": "object"
       },
+      "AuditDetailDto": {
+        "properties": {
+          "password": {
+            "minLength": 1,
+            "type": "string",
+            "writeOnly": true
+          }
+        },
+        "required": [
+          "password"
+        ],
+        "type": "object"
+      },
       "CancelDeathWorkflowDto": {
         "properties": {
           "password": {
@@ -1626,6 +1639,71 @@
         ]
       }
     },
+    "/owner/audit-events": {
+      "get": {
+        "operationId": "AuditController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Read a redacted page of immutable private audit events",
+        "tags": [
+          "Owner private audit"
+        ]
+      }
+    },
+    "/owner/audit-events/{eventId}/detail": {
+      "post": {
+        "operationId": "AuditController_detail",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "eventId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AuditDetailDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Reauthenticate before reading digest-only audit detail",
+        "tags": [
+          "Owner private audit"
+        ]
+      }
+    },
+    "/owner/audit-integrity": {
+      "get": {
+        "operationId": "AuditController_integrity",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Verify the complete private audit hash chain",
+        "tags": [
+          "Owner private audit"
+        ]
+      }
+    },
     "/owner/check-in-schedule": {
       "get": {
         "operationId": "OwnerController_schedule",
@@ -2149,6 +2227,21 @@
         "summary": "Update owner settings after password reauthentication",
         "tags": [
           "Owner"
+        ]
+      }
+    },
+    "/owner/system-health": {
+      "get": {
+        "operationId": "OwnerSystemHealthController_read",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Read redacted operational health categories",
+        "tags": [
+          "Owner system health"
         ]
       }
     },

@@ -9,7 +9,7 @@ describe("HealthController", () => {
     const heartbeat = { check: vi.fn() };
     const controller = new HealthController(new HealthService(database, storage, heartbeat));
 
-    expect(controller.live()).toEqual({ status: "ok", service: "api", version: "0.1.0" });
+    expect(controller.live()).toEqual({ status: "ok", service: "api" });
     expect(database.check).not.toHaveBeenCalled();
     expect(storage.check).not.toHaveBeenCalled();
     expect(heartbeat.check).not.toHaveBeenCalled();
@@ -24,7 +24,6 @@ describe("HealthController", () => {
     await expect(controller.ready()).resolves.toEqual({
       status: "ok",
       service: "api",
-      version: "0.1.0",
       checks: { database: "ok", storage: "ok", workerHeartbeat: "ok" },
     });
     expect(database.check).toHaveBeenCalledOnce();
@@ -41,6 +40,7 @@ describe("HealthController", () => {
       ),
     );
 
-    await expect(controller.ready()).rejects.toThrow("database unavailable");
+    await expect(controller.ready()).rejects.toThrow("dependency unavailable");
+    await expect(controller.ready()).rejects.not.toThrow("database unavailable");
   });
 });

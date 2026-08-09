@@ -1,4 +1,5 @@
 import { Module } from "@nestjs/common";
+import { AuditModule } from "./audit/audit.module.js";
 import { ContactModule } from "./contacts/contact.module.js";
 import { HealthController } from "./health/health.controller.js";
 import {
@@ -8,6 +9,11 @@ import {
   STORAGE_HEALTH_PROBE,
   WORKER_HEARTBEAT_HEALTH_PROBE,
 } from "./health/health.service.js";
+import { OwnerSystemHealthController } from "./health/owner-system-health.controller.js";
+import {
+  createOwnerSystemHealthRuntime,
+  OWNER_SYSTEM_HEALTH_RUNTIME,
+} from "./health/owner-system-health.runtime.js";
 import { OwnerModule } from "./owner/owner.module.js";
 import { PublicModule } from "./public/public.module.js";
 import { RecoveryModule } from "./recovery/recovery.module.js";
@@ -21,6 +27,7 @@ const startupProbe: HealthProbe = Object.freeze({ check: async () => undefined }
 
 @Module({
   imports: [
+    AuditModule,
     SecurityModule,
     SetupModule,
     OwnerModule,
@@ -31,11 +38,12 @@ const startupProbe: HealthProbe = Object.freeze({ check: async () => undefined }
     RecoveryModule,
     PublicModule,
   ],
-  controllers: [HealthController],
+  controllers: [HealthController, OwnerSystemHealthController],
   providers: [
     { provide: DATABASE_HEALTH_PROBE, useValue: startupProbe },
     { provide: STORAGE_HEALTH_PROBE, useValue: startupProbe },
     { provide: WORKER_HEARTBEAT_HEALTH_PROBE, useValue: startupProbe },
+    { provide: OWNER_SYSTEM_HEALTH_RUNTIME, useFactory: createOwnerSystemHealthRuntime },
     {
       provide: HealthService,
       inject: [DATABASE_HEALTH_PROBE, STORAGE_HEALTH_PROBE, WORKER_HEARTBEAT_HEALTH_PROBE],
