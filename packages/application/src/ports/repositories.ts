@@ -51,6 +51,7 @@ export type Repositories = Readonly<{
   passwordRewrapSessions?: VersionedRepository;
   emailVerificationCodes?: VersionedRepository;
   notifications?: VersionedRepository;
+  notificationAttempts?: VersionedRepository;
   authSessions?: VersionedRepository;
   packages: VersionedRepository;
   idempotency: IdempotencyRepository;

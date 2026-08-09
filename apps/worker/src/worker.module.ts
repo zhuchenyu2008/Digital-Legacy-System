@@ -9,6 +9,10 @@ import {
   createCheckinEvaluateHandler,
 } from "./jobs/checkin-evaluate.handler.js";
 import {
+  createNotificationDeliverHandler,
+  NotificationDeliverHandler,
+} from "./jobs/notification-deliver.handler.js";
+import {
   createProcessReleaseFragmentHandler,
   ProcessReleaseFragmentHandler,
 } from "./jobs/process-release-fragment.handler.js";
@@ -27,12 +31,14 @@ import {
       useFactory: (port: InMemoryWorkerHeartbeatPort) => new WorkerHeartbeat(port),
     },
     { provide: CheckinEvaluateHandler, useFactory: createCheckinEvaluateHandler },
+    { provide: NotificationDeliverHandler, useFactory: createNotificationDeliverHandler },
     { provide: ProcessReleaseFragmentHandler, useFactory: createProcessReleaseFragmentHandler },
     { provide: WorkflowAdvanceHandler, useFactory: createWorkflowAdvanceHandler },
   ],
   exports: [
     WorkerHeartbeat,
     CheckinEvaluateHandler,
+    NotificationDeliverHandler,
     ProcessReleaseFragmentHandler,
     WorkflowAdvanceHandler,
   ],

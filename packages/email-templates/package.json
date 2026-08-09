@@ -13,10 +13,13 @@
     }
   },
   "scripts": {
-    "build": "tsc -b"
+    "build": "tsc -b && node scripts/copy-assets.mjs",
+    "test": "vitest run --config vitest.config.ts"
   },
   "dependencies": {
     "@dls/application": "workspace:*",
-    "@dls/contracts": "workspace:*"
+    "@dls/contracts": "workspace:*",
+    "handlebars": "4.7.9",
+    "juice": "12.1.2"
   }
 }

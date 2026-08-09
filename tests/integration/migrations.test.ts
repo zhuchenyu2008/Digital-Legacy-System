@@ -42,7 +42,7 @@ describe("production migration inventory", () => {
       const runner = new MigrationRunner(asMigrationClient(client));
       const applied = await runner.up();
       expect(applied.map((migration) => migration.version)).toEqual([
-        1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
+        1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12,
       ]);
 
       const result = await client.query(
@@ -178,13 +178,30 @@ describe("production migration inventory", () => {
           .every((row) => row.is_nullable === "NO"),
       ).toBe(true);
 
+      const notificationColumns = await client.query(
+        `SELECT table_name, column_name, is_nullable
+         FROM information_schema.columns
+         WHERE table_schema = 'app'
+           AND (
+             (table_name = 'notifications' AND column_name IN (
+               'template_version', 'fallback_email_ciphertext', 'fallback_email_nonce'
+             ))
+             OR
+             (table_name = 'notification_attempts' AND column_name = 'provider_message_id_nonce')
+           )`,
+      );
+      expect(notificationColumns.rows).toHaveLength(4);
+      expect(
+        notificationColumns.rows.find((row) => row.column_name === "template_version")?.is_nullable,
+      ).toBe("NO");
+
       const afterDown = await runner.down(1);
       expect(afterDown.map((migration) => migration.version)).toEqual([
-        1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
+        1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
       ]);
       const afterUp = await runner.up();
       expect(afterUp.map((migration) => migration.version)).toEqual([
-        1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
+        1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12,
       ]);
     } finally {
       await client.end();
