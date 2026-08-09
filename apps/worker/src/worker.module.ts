@@ -12,6 +12,10 @@ import {
   createProcessReleaseFragmentHandler,
   ProcessReleaseFragmentHandler,
 } from "./jobs/process-release-fragment.handler.js";
+import {
+  createWorkflowAdvanceHandler,
+  WorkflowAdvanceHandler,
+} from "./jobs/workflow-advance.handler.js";
 
 @Module({
   providers: [
@@ -24,7 +28,13 @@ import {
     },
     { provide: CheckinEvaluateHandler, useFactory: createCheckinEvaluateHandler },
     { provide: ProcessReleaseFragmentHandler, useFactory: createProcessReleaseFragmentHandler },
+    { provide: WorkflowAdvanceHandler, useFactory: createWorkflowAdvanceHandler },
   ],
-  exports: [WorkerHeartbeat, CheckinEvaluateHandler, ProcessReleaseFragmentHandler],
+  exports: [
+    WorkerHeartbeat,
+    CheckinEvaluateHandler,
+    ProcessReleaseFragmentHandler,
+    WorkflowAdvanceHandler,
+  ],
 })
 export class WorkerModule {}

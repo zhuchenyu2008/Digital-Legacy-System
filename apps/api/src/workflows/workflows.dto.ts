@@ -135,6 +135,11 @@ export class ConfirmAliveDto {
   confirmationText!: string;
 }
 
+export class CancelDeathWorkflowDto {
+  @SwaggerProperty({ type: String, writeOnly: true })
+  password!: string;
+}
+
 function record(value: unknown, field = "body"): Record<string, unknown> {
   if (value === null || typeof value !== "object" || Array.isArray(value)) {
     throw new BadRequestException(`${field} must be an object`);
@@ -191,4 +196,9 @@ export function parseConfirmAlive(value: unknown) {
     password: string(input.password, "password"),
     confirmationText: string(input.confirmationText, "confirmationText"),
   };
+}
+
+export function parseCancelDeathWorkflow(value: unknown) {
+  const input = record(value);
+  return { password: string(input.password, "password") };
 }

@@ -118,6 +118,26 @@ describe("durable jobs and outbox dispatch", () => {
     ]);
   });
 
+  it("routes release deadlines to the irreversible workflow advance worker", async () => {
+    await manager.run((tx) =>
+      tx.outbox.enqueue(outboxEvent("job-workflow-advance", "WORKFLOW_ADVANCE_REQUESTED")),
+    );
+    const published: Array<{ name: string; payload: unknown }> = [];
+    const dispatcher = new PgOutboxDispatcher(pool, {
+      async publish(name, payload) {
+        published.push({ name, payload });
+      },
+    });
+
+    expect(await dispatcher.dispatchBatch()).toBe(1);
+    expect(published).toEqual([
+      {
+        name: JOB_NAMES.WORKFLOW_ADVANCE,
+        payload: { aggregateId: "00000000-0000-0000-0000-000000000021", aggregateVersion: 4 },
+      },
+    ]);
+  });
+
   it("recovers the pending row after a dispatcher restart", async () => {
     await manager.run((tx) => tx.outbox.enqueue(outboxEvent("job-test-restart")));
     let attempts = 0;

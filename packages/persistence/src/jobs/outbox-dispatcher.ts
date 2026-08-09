@@ -10,6 +10,8 @@ export interface JobPublisher {
 const EVENT_JOB_ROUTES: Readonly<Record<string, string>> = Object.freeze({
   CHECKIN_EVALUATE_REQUESTED: JOB_NAMES.CHECKIN_EVALUATE,
   WORKFLOW_FRAGMENT_SUBMITTED: JOB_NAMES.PROCESS_RELEASE_FRAGMENT,
+  WORKFLOW_ADVANCE_REQUESTED: JOB_NAMES.WORKFLOW_ADVANCE,
+  PUBLICATION_FINALIZE_REQUESTED: JOB_NAMES.PUBLICATION_FINALIZE,
 });
 
 function extractJobPayload(value: unknown, fallbackAggregateId: string): JobPayload {

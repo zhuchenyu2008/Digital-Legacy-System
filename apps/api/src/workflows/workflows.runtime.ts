@@ -2,7 +2,10 @@ import {
   type AffirmDeathCommand,
   type AffirmDeathResult,
   affirmDeath,
+  type CancelDeathWorkflowCommand,
+  type CancelDeathWorkflowResult,
   type ConfirmAliveResult,
+  cancelDeathWorkflow,
   confirmAlive,
   getContactWorkflow,
   getOwnerWorkflow,
@@ -22,6 +25,7 @@ export interface WorkflowRuntime {
   ownerCurrent(): ReturnType<typeof getOwnerWorkflow>;
   contactCurrent(contactId: string): ReturnType<typeof getContactWorkflow>;
   affirmDeath(command: AffirmDeathCommand): Promise<AffirmDeathResult>;
+  cancelDeath(command: CancelDeathWorkflowCommand): Promise<CancelDeathWorkflowResult>;
   confirmAlive(
     command: Readonly<{
       workflowId: string;
@@ -67,6 +71,14 @@ export class PostgresWorkflowRuntime implements WorkflowRuntime {
       passwordVerifier: (password, hash) =>
         verifyServerPassword(password, getApiRuntimeConfig().contactPasswordPepper, hash),
       ownerDisplayName: (snapshot) => this.ownerDisplayName(snapshot),
+    });
+  }
+
+  public cancelDeath(command: CancelDeathWorkflowCommand) {
+    return cancelDeathWorkflow(command, {
+      transaction: this.transaction,
+      passwordVerifier: (password, hash) =>
+        verifyServerPassword(password, getApiRuntimeConfig().tokenPepper, hash),
     });
   }
 

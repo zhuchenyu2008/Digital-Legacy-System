@@ -47,9 +47,8 @@ export class PgTransactionManager implements TransactionManager {
         // Preserve the original transaction error.
       }
       const databaseCode = (error as { code?: unknown } | null)?.code;
-      throw error instanceof PersistenceError || typeof databaseCode !== "string"
-        ? error
-        : mapDatabaseError(error);
+      const isSqlState = typeof databaseCode === "string" && /^[0-9A-Z]{5}$/u.test(databaseCode);
+      throw error instanceof PersistenceError || !isSqlState ? error : mapDatabaseError(error);
     } finally {
       client.release();
     }

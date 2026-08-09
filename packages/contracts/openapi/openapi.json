@@ -96,6 +96,18 @@
         ],
         "type": "object"
       },
+      "CancelDeathWorkflowDto": {
+        "properties": {
+          "password": {
+            "type": "string",
+            "writeOnly": true
+          }
+        },
+        "required": [
+          "password"
+        ],
+        "type": "object"
+      },
       "ChangeContactPasswordDto": {
         "properties": {
           "newPassword": {
@@ -1895,6 +1907,40 @@
         "summary": "Validate and store the encrypted shares for a draft",
         "tags": [
           "Share generations"
+        ]
+      }
+    },
+    "/owner/workflows/{workflowId}/cancel": {
+      "post": {
+        "operationId": "OwnerActionsController_cancel",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workflowId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CancelDeathWorkflowDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "The pending death release was cancelled before publish lock"
+          }
+        },
+        "summary": "Cancel a pending death release after master-password reauthentication",
+        "tags": [
+          "Owner workflow actions"
         ]
       }
     },

@@ -525,6 +525,23 @@ export type paths = {
         readonly patch?: never;
         readonly trace?: never;
     };
+    readonly "/owner/workflows/{workflowId}/cancel": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get?: never;
+        readonly put?: never;
+        /** Cancel a pending death release after master-password reauthentication */
+        readonly post: operations["OwnerActionsController_cancel"];
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
     readonly "/owner/workflows/current": {
         readonly parameters: {
             readonly query?: never;
@@ -601,6 +618,9 @@ export type components = {
         readonly AffirmDeathDto: {
             readonly confirmationText: string;
             readonly fragment: components["schemas"]["DeathFragmentIngressDto"];
+            readonly password: string;
+        };
+        readonly CancelDeathWorkflowDto: {
             readonly password: string;
         };
         readonly ChangeContactPasswordDto: {
@@ -1518,6 +1538,30 @@ export interface operations {
         };
         readonly responses: {
             readonly 201: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    readonly OwnerActionsController_cancel: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path: {
+                readonly workflowId: string;
+            };
+            readonly cookie?: never;
+        };
+        readonly requestBody: {
+            readonly content: {
+                readonly "application/json": components["schemas"]["CancelDeathWorkflowDto"];
+            };
+        };
+        readonly responses: {
+            /** @description The pending death release was cancelled before publish lock */
+            readonly 200: {
                 headers: {
                     readonly [name: string]: unknown;
                 };

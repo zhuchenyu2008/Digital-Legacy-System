@@ -83,7 +83,7 @@ function vssContext(
   });
 }
 
-class WorkerStageKeys implements StageKeyProvider {
+export class WorkerStageKeys implements StageKeyProvider {
   public constructor(private readonly capabilities: WorkerKeyCapabilities) {}
 
   public async ingressKeyPair(purpose: "DEATH" | "RECOVERY", version: number) {
