@@ -52,6 +52,13 @@ function setContactCookie(response: FastifyReply, token: string): void {
 export class ContactInvitationsController {
   public constructor(@Inject(CONTACT_RUNTIME) private readonly runtime: ContactRuntime) {}
 
+  @Get("owner/contacts")
+  @UseGuards(OwnerSessionGuard)
+  @ApiOperation({ summary: "List the owner's sanitized emergency contacts" })
+  public async list(@Req() request: OwnerRequest) {
+    return { data: await this.runtime.list(), requestId: request.id };
+  }
+
   @Post("owner/contacts/invitations")
   @HttpCode(HttpStatus.ACCEPTED)
   @UseGuards(OwnerSessionGuard, OriginGuard, CsrfGuard)

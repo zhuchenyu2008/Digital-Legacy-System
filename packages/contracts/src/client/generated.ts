@@ -354,6 +354,23 @@ export type paths = {
         readonly patch?: never;
         readonly trace?: never;
     };
+    readonly "/owner/contacts": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        /** List the owner's sanitized emergency contacts */
+        readonly get: operations["ContactInvitationsController_list"];
+        readonly put?: never;
+        readonly post?: never;
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
     readonly "/owner/contacts/{contactId}/invitation/resend": {
         readonly parameters: {
             readonly query?: never;
@@ -1484,6 +1501,23 @@ export interface operations {
         };
         readonly responses: {
             /** @description Check-in recorded */
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    readonly ContactInvitationsController_list: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly requestBody?: never;
+        readonly responses: {
             readonly 200: {
                 headers: {
                     readonly [name: string]: unknown;

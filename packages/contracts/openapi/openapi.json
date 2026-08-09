@@ -1666,6 +1666,21 @@
         ]
       }
     },
+    "/owner/contacts": {
+      "get": {
+        "operationId": "ContactInvitationsController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "List the owner's sanitized emergency contacts",
+        "tags": [
+          "Contact invitations"
+        ]
+      }
+    },
     "/owner/contacts/{contactId}/invitation/resend": {
       "post": {
         "operationId": "ContactInvitationsController_resend",
