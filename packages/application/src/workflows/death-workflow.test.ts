@@ -139,6 +139,10 @@ function fixture(
         : [],
     ],
     ["workflowContactActions", []],
+    ["recoverySecretSessions", []],
+    ["passwordRewrapSessions", []],
+    ["emailVerificationCodes", []],
+    ["oneTimeTokens", []],
   ]);
   const repository = (table: string) => ({
     async findById(id: unknown) {
@@ -188,6 +192,10 @@ function fixture(
     workflowContacts: repository("workflowContacts"),
     workflowContactActions: repository("workflowContactActions"),
     workflowKeyFragments: repository("workflowKeyFragments"),
+    recoverySecretSessions: repository("recoverySecretSessions"),
+    passwordRewrapSessions: repository("passwordRewrapSessions"),
+    emailVerificationCodes: repository("emailVerificationCodes"),
+    oneTimeTokens: repository("oneTimeTokens"),
     packages: repository("packages"),
     idempotency: {} as never,
   } as unknown as TransactionContext["repositories"];

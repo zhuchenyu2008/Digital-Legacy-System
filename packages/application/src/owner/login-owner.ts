@@ -2,6 +2,7 @@ import { beijingDateAt, computeCheckinDeadline, parseInstant } from "@dls/domain
 import type { IssuedSession } from "../auth/session.js";
 import type { SessionService } from "../auth/session-service.js";
 import type { TransactionManager } from "../ports/transaction-manager.js";
+import { cancelActiveRecovery } from "../recovery/recovery-common.js";
 import { OWNER_ACTOR_ID } from "./owner-identity.js";
 
 export type OwnerLoginCommand = Readonly<{
@@ -85,6 +86,7 @@ export async function loginOwner(
       }
 
       const now = await tx.clock.now();
+      const workflowCancellation = await cancelActiveRecovery(tx, now, "OWNER_AUTHENTICATED");
       const day = beijingDateAt(now);
       const existing = await tx.repositories.checkIns.findOneBy?.("beijing_date", day, {
         forUpdate: true,
@@ -162,7 +164,7 @@ export async function loginOwner(
           existing === null || existing === undefined
             ? deadlineAt
             : instant(schedule.deadline_at, "deadline"),
-        workflowCancellation: { cancelled: false, previousState: null },
+        workflowCancellation,
       };
     },
     { isolation: "serializable" },

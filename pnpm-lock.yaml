@@ -73,6 +73,9 @@ importers:
       '@dls/storage':
         specifier: workspace:*
         version: link:../../packages/storage
+      '@dls/vss-wasm':
+        specifier: workspace:*
+        version: link:../../packages/vss-wasm
       '@fastify/helmet':
         specifier: 13.1.0
         version: 13.1.0

@@ -96,6 +96,58 @@
         ],
         "type": "object"
       },
+      "ApproveRecoveryDto": {
+        "properties": {
+          "ciphertext": {
+            "format": "byte",
+            "type": "string",
+            "writeOnly": true
+          },
+          "commitmentDigest": {
+            "format": "byte",
+            "type": "string",
+            "writeOnly": true
+          },
+          "generationId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "ingressKeyVersion": {
+            "minimum": 1,
+            "type": "number"
+          },
+          "nonce": {
+            "format": "byte",
+            "type": "string",
+            "writeOnly": true
+          },
+          "password": {
+            "type": "string",
+            "writeOnly": true
+          },
+          "protocolVersion": {
+            "enum": [
+              1
+            ],
+            "type": "number"
+          },
+          "shareIndex": {
+            "minimum": 1,
+            "type": "number"
+          }
+        },
+        "required": [
+          "password",
+          "generationId",
+          "shareIndex",
+          "commitmentDigest",
+          "ingressKeyVersion",
+          "protocolVersion",
+          "nonce",
+          "ciphertext"
+        ],
+        "type": "object"
+      },
       "CancelDeathWorkflowDto": {
         "properties": {
           "password": {
@@ -173,6 +225,35 @@
           "oldPassword",
           "newPassword",
           "newOwnerVaultEnvelope"
+        ],
+        "type": "object"
+      },
+      "CompleteRecoveryDto": {
+        "properties": {
+          "newOwnerVaultEnvelope": {
+            "$ref": "#/components/schemas/RecoveryOwnerVaultEnvelopeDto"
+          },
+          "newPassword": {
+            "maxLength": 512,
+            "minLength": 12,
+            "type": "string",
+            "writeOnly": true
+          },
+          "resetSessionToken": {
+            "type": "string",
+            "writeOnly": true
+          },
+          "vaultKeyProof": {
+            "format": "byte",
+            "type": "string",
+            "writeOnly": true
+          }
+        },
+        "required": [
+          "resetSessionToken",
+          "newPassword",
+          "newOwnerVaultEnvelope",
+          "vaultKeyProof"
         ],
         "type": "object"
       },
@@ -481,6 +562,30 @@
         ],
         "type": "object"
       },
+      "CreateRecoveryMaterialDto": {
+        "properties": {
+          "clientEphemeralPublicKey": {
+            "format": "byte",
+            "type": "string",
+            "writeOnly": true
+          },
+          "emailVerificationCode": {
+            "pattern": "^[0-9]{8}$",
+            "type": "string",
+            "writeOnly": true
+          },
+          "token": {
+            "type": "string",
+            "writeOnly": true
+          }
+        },
+        "required": [
+          "token",
+          "emailVerificationCode",
+          "clientEphemeralPublicKey"
+        ],
+        "type": "object"
+      },
       "CreateShareGenerationDto": {
         "properties": {
           "contactSetVersion": {
@@ -769,6 +874,111 @@
         ],
         "type": "object"
       },
+      "RecoveryKdfParamsDto": {
+        "properties": {
+          "algorithm": {
+            "enum": [
+              "argon2id"
+            ],
+            "type": "string"
+          },
+          "iterations": {
+            "enum": [
+              3
+            ],
+            "type": "number"
+          },
+          "memoryKiB": {
+            "enum": [
+              65536
+            ],
+            "type": "number"
+          },
+          "parallelism": {
+            "enum": [
+              1
+            ],
+            "type": "number"
+          },
+          "purpose": {
+            "enum": [
+              "owner-vault-kek-v1"
+            ],
+            "type": "string"
+          },
+          "version": {
+            "enum": [
+              19
+            ],
+            "type": "number"
+          }
+        },
+        "required": [
+          "algorithm",
+          "memoryKiB",
+          "iterations",
+          "parallelism",
+          "version",
+          "purpose"
+        ],
+        "type": "object"
+      },
+      "RecoveryOwnerVaultEnvelopeDto": {
+        "properties": {
+          "aadHash": {
+            "format": "byte",
+            "type": "string"
+          },
+          "ciphertext": {
+            "format": "byte",
+            "type": "string",
+            "writeOnly": true
+          },
+          "kdfParams": {
+            "$ref": "#/components/schemas/RecoveryKdfParamsDto"
+          },
+          "kdfSalt": {
+            "format": "byte",
+            "type": "string",
+            "writeOnly": true
+          },
+          "keyVerifierCiphertext": {
+            "format": "byte",
+            "type": "string",
+            "writeOnly": true
+          },
+          "keyVerifierNonce": {
+            "format": "byte",
+            "type": "string",
+            "writeOnly": true
+          },
+          "nonce": {
+            "format": "byte",
+            "type": "string",
+            "writeOnly": true
+          },
+          "ownerEnvelopeProof": {
+            "format": "byte",
+            "type": "string",
+            "writeOnly": true
+          },
+          "vkCommitment": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ciphertext",
+          "nonce",
+          "kdfSalt",
+          "kdfParams",
+          "keyVerifierCiphertext",
+          "keyVerifierNonce",
+          "vkCommitment",
+          "ownerEnvelopeProof"
+        ],
+        "type": "object"
+      },
       "RemoveContactDto": {
         "properties": {
           "password": {
@@ -844,6 +1054,18 @@
           "recoveryShareCiphertext",
           "deathShareCommitment",
           "recoveryShareCommitment"
+        ],
+        "type": "object"
+      },
+      "StartRecoveryDto": {
+        "properties": {
+          "token": {
+            "type": "string",
+            "writeOnly": true
+          }
+        },
+        "required": [
+          "token"
         ],
         "type": "object"
       },
@@ -1056,6 +1278,96 @@
         ]
       }
     },
+    "/auth/owner/password-recovery/material": {
+      "post": {
+        "operationId": "OwnerRecoveryController_material",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateRecoveryMaterialDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "A 15-minute, browser-bound rewrap session"
+          }
+        },
+        "summary": "Seal recovered vault key to a one-time browser key",
+        "tags": [
+          "Owner password recovery"
+        ]
+      }
+    },
+    "/auth/owner/password-recovery/request": {
+      "post": {
+        "operationId": "OwnerRecoveryController_request",
+        "parameters": [],
+        "responses": {
+          "202": {
+            "description": "The same response is returned for every request"
+          }
+        },
+        "summary": "Request password recovery with a non-enumerating response",
+        "tags": [
+          "Owner password recovery"
+        ]
+      }
+    },
+    "/auth/owner/password-recovery/reset": {
+      "post": {
+        "operationId": "OwnerRecoveryController_reset",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompleteRecoveryDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Password recovery completed and prior sessions revoked"
+          }
+        },
+        "summary": "Atomically replace owner credentials and wrapped vault key",
+        "tags": [
+          "Owner password recovery"
+        ]
+      }
+    },
+    "/auth/owner/password-recovery/start": {
+      "post": {
+        "operationId": "OwnerRecoveryController_start",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StartRecoveryDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "The password recovery workflow snapshot"
+          }
+        },
+        "summary": "Start one seven-day threshold recovery workflow",
+        "tags": [
+          "Owner password recovery"
+        ]
+      }
+    },
     "/auth/session": {
       "get": {
         "operationId": "OwnerAuthController_session",
@@ -1133,6 +1445,41 @@
         "summary": "Read the authenticated contact crypto material",
         "tags": [
           "Contact invitations"
+        ]
+      }
+    },
+    "/contact/workflows/{workflowId}/approve-password-recovery": {
+      "post": {
+        "operationId": "ContactRecoveryController_approve",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workflowId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApproveRecoveryDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "The sealed recovery share was validated and staged"
+          }
+        },
+        "summary": "Approve recovery after contact password reauthentication",
+        "tags": [
+          "Contact password recovery actions"
         ]
       }
     },

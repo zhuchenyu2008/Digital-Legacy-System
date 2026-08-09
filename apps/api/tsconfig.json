@@ -14,8 +14,10 @@
   "references": [
     { "path": "../../packages/application" },
     { "path": "../../packages/contracts" },
+    { "path": "../../packages/crypto" },
     { "path": "../../packages/email-templates" },
     { "path": "../../packages/persistence" },
-    { "path": "../../packages/storage" }
+    { "path": "../../packages/storage" },
+    { "path": "../../packages/vss-wasm" }
   ]
 }

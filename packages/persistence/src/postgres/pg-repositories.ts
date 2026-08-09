@@ -263,6 +263,22 @@ export function createRepositories(client: PoolClient): Repositories {
       table: "app.release_secret_sessions",
       primaryKey: "id",
     }),
+    recoverySecretSessions: buildTableRepository(client, {
+      table: "app.recovery_secret_sessions",
+      primaryKey: "id",
+    }),
+    passwordRewrapSessions: buildTableRepository(client, {
+      table: "app.password_rewrap_sessions",
+      primaryKey: "id",
+    }),
+    emailVerificationCodes: buildTableRepository(client, {
+      table: "app.email_verification_codes",
+      primaryKey: "id",
+    }),
+    notifications: buildTableRepository(client, {
+      table: "app.notifications",
+      primaryKey: "id",
+    }),
     authSessions: buildTableRepository(client, {
       table: "app.auth_sessions",
       primaryKey: "id",

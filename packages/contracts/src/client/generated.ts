@@ -67,6 +67,74 @@ export type paths = {
         readonly patch?: never;
         readonly trace?: never;
     };
+    readonly "/auth/owner/password-recovery/material": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get?: never;
+        readonly put?: never;
+        /** Seal recovered vault key to a one-time browser key */
+        readonly post: operations["OwnerRecoveryController_material"];
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/auth/owner/password-recovery/request": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get?: never;
+        readonly put?: never;
+        /** Request password recovery with a non-enumerating response */
+        readonly post: operations["OwnerRecoveryController_request"];
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/auth/owner/password-recovery/reset": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get?: never;
+        readonly put?: never;
+        /** Atomically replace owner credentials and wrapped vault key */
+        readonly post: operations["OwnerRecoveryController_reset"];
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/auth/owner/password-recovery/start": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get?: never;
+        readonly put?: never;
+        /** Start one seven-day threshold recovery workflow */
+        readonly post: operations["OwnerRecoveryController_start"];
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
     readonly "/auth/session": {
         readonly parameters: {
             readonly query?: never;
@@ -129,6 +197,23 @@ export type paths = {
         readonly get: operations["ContactInvitationsController_cryptoMaterial"];
         readonly put?: never;
         readonly post?: never;
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/contact/workflows/{workflowId}/approve-password-recovery": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get?: never;
+        readonly put?: never;
+        /** Approve recovery after contact password reauthentication */
+        readonly post: operations["ContactRecoveryController_approve"];
         readonly delete?: never;
         readonly options?: never;
         readonly head?: never;
@@ -620,6 +705,21 @@ export type components = {
             readonly fragment: components["schemas"]["DeathFragmentIngressDto"];
             readonly password: string;
         };
+        readonly ApproveRecoveryDto: {
+            /** Format: byte */
+            readonly ciphertext: string;
+            /** Format: byte */
+            readonly commitmentDigest: string;
+            /** Format: uuid */
+            readonly generationId: string;
+            readonly ingressKeyVersion: number;
+            /** Format: byte */
+            readonly nonce: string;
+            readonly password: string;
+            /** @enum {number} */
+            readonly protocolVersion: 1;
+            readonly shareIndex: number;
+        };
         readonly CancelDeathWorkflowDto: {
             readonly password: string;
         };
@@ -634,6 +734,13 @@ export type components = {
             readonly newPassword: string;
             readonly oldPassword: string;
             readonly vaultKeyProof?: string;
+        };
+        readonly CompleteRecoveryDto: {
+            readonly newOwnerVaultEnvelope: components["schemas"]["RecoveryOwnerVaultEnvelopeDto"];
+            readonly newPassword: string;
+            readonly resetSessionToken: string;
+            /** Format: byte */
+            readonly vaultKeyProof: string;
         };
         readonly CompleteVaultUploadDto: {
             readonly ciphertextSha256: string;
@@ -715,6 +822,12 @@ export type components = {
             readonly password: string;
             readonly primaryEmail: string;
             readonly setupToken: string;
+        };
+        readonly CreateRecoveryMaterialDto: {
+            /** Format: byte */
+            readonly clientEphemeralPublicKey: string;
+            readonly emailVerificationCode: string;
+            readonly token: string;
         };
         readonly CreateShareGenerationDto: {
             readonly contactSetVersion: number;
@@ -810,6 +923,38 @@ export type components = {
             /** Format: uuid */
             readonly workflowId: string;
         };
+        readonly RecoveryKdfParamsDto: {
+            /** @enum {string} */
+            readonly algorithm: "argon2id";
+            /** @enum {number} */
+            readonly iterations: 3;
+            /** @enum {number} */
+            readonly memoryKiB: 65536;
+            /** @enum {number} */
+            readonly parallelism: 1;
+            /** @enum {string} */
+            readonly purpose: "owner-vault-kek-v1";
+            /** @enum {number} */
+            readonly version: 19;
+        };
+        readonly RecoveryOwnerVaultEnvelopeDto: {
+            /** Format: byte */
+            readonly aadHash?: string;
+            /** Format: byte */
+            readonly ciphertext: string;
+            readonly kdfParams: components["schemas"]["RecoveryKdfParamsDto"];
+            /** Format: byte */
+            readonly kdfSalt: string;
+            /** Format: byte */
+            readonly keyVerifierCiphertext: string;
+            /** Format: byte */
+            readonly keyVerifierNonce: string;
+            /** Format: byte */
+            readonly nonce: string;
+            /** Format: byte */
+            readonly ownerEnvelopeProof: string;
+            readonly vkCommitment: string;
+        };
         readonly RemoveContactDto: {
             readonly password: string;
         };
@@ -831,6 +976,9 @@ export type components = {
             /** Format: byte */
             readonly recoveryShareCommitment: string;
             readonly shareIndex: number;
+        };
+        readonly StartRecoveryDto: {
+            readonly token: string;
         };
         readonly UpdateOwnerSettingsDto: {
             readonly missedDaysThreshold?: number;
@@ -948,6 +1096,90 @@ export interface operations {
             };
         };
     };
+    readonly OwnerRecoveryController_material: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly requestBody: {
+            readonly content: {
+                readonly "application/json": components["schemas"]["CreateRecoveryMaterialDto"];
+            };
+        };
+        readonly responses: {
+            /** @description A 15-minute, browser-bound rewrap session */
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    readonly OwnerRecoveryController_request: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly requestBody?: never;
+        readonly responses: {
+            /** @description The same response is returned for every request */
+            readonly 202: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    readonly OwnerRecoveryController_reset: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly requestBody: {
+            readonly content: {
+                readonly "application/json": components["schemas"]["CompleteRecoveryDto"];
+            };
+        };
+        readonly responses: {
+            /** @description Password recovery completed and prior sessions revoked */
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    readonly OwnerRecoveryController_start: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly requestBody: {
+            readonly content: {
+                readonly "application/json": components["schemas"]["StartRecoveryDto"];
+            };
+        };
+        readonly responses: {
+            /** @description The password recovery workflow snapshot */
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     readonly OwnerAuthController_session: {
         readonly parameters: {
             readonly query?: never;
@@ -1017,6 +1249,30 @@ export interface operations {
         readonly requestBody?: never;
         readonly responses: {
             readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    readonly ContactRecoveryController_approve: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path: {
+                readonly workflowId: string;
+            };
+            readonly cookie?: never;
+        };
+        readonly requestBody: {
+            readonly content: {
+                readonly "application/json": components["schemas"]["ApproveRecoveryDto"];
+            };
+        };
+        readonly responses: {
+            /** @description The sealed recovery share was validated and staged */
+            readonly 202: {
                 headers: {
                     readonly [name: string]: unknown;
                 };

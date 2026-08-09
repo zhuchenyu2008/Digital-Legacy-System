@@ -16,6 +16,7 @@
     "@dls/email-templates": "workspace:*",
     "@dls/persistence": "workspace:*",
     "@dls/storage": "workspace:*",
+    "@dls/vss-wasm": "workspace:*",
     "@fastify/helmet": "13.1.0",
     "@nestjs/common": "11.1.28",
     "@nestjs/core": "11.1.28",

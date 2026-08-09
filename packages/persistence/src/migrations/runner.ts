@@ -21,6 +21,7 @@ export const REQUIRED_TABLES = [
   "app.workflow_contact_actions",
   "app.workflow_key_fragments",
   "app.release_secret_sessions",
+  "app.recovery_secret_sessions",
   "app.password_rewrap_sessions",
   "app.auth_sessions",
   "app.one_time_tokens",

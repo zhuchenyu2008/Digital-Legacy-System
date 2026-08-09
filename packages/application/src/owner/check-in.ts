@@ -1,5 +1,6 @@
 import { beijingDateAt, computeCheckinDeadline, parseInstant } from "@dls/domain";
 import type { TransactionManager } from "../ports/transaction-manager.js";
+import { cancelActiveRecovery } from "../recovery/recovery-common.js";
 import { OwnerLoginError, type OwnerServerPasswordVerifier } from "./login-owner.js";
 import { OWNER_ACTOR_ID } from "./owner-identity.js";
 
@@ -52,6 +53,7 @@ export async function checkInOwner(
         throw new OwnerLoginError("OWNER_LOGIN_INVALID", "owner credentials are invalid");
       }
       const now = await tx.clock.now();
+      const workflowCancellation = await cancelActiveRecovery(tx, now, "OWNER_AUTHENTICATED");
       const day = beijingDateAt(now);
       const existing = await tx.repositories.checkIns.findOneBy?.("beijing_date", day, {
         forUpdate: true,
@@ -117,7 +119,7 @@ export async function checkInOwner(
           existing === null || existing === undefined
             ? deadlineAt
             : parseInstant(String(schedule.deadline_at)),
-        workflowCancellation: { cancelled: false, previousState: null },
+        workflowCancellation,
       };
     },
     { isolation: "serializable" },

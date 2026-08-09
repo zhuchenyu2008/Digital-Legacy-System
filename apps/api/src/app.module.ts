@@ -9,6 +9,7 @@ import {
   WORKER_HEARTBEAT_HEALTH_PROBE,
 } from "./health/health.service.js";
 import { OwnerModule } from "./owner/owner.module.js";
+import { RecoveryModule } from "./recovery/recovery.module.js";
 import { SecurityModule } from "./security/security.module.js";
 import { SetupModule } from "./setup/setup.module.js";
 import { ShareGenerationModule } from "./shares/share-generation.module.js";
@@ -26,6 +27,7 @@ const startupProbe: HealthProbe = Object.freeze({ check: async () => undefined }
     VaultModule,
     ShareGenerationModule,
     WorkflowsModule,
+    RecoveryModule,
   ],
   controllers: [HealthController],
   providers: [

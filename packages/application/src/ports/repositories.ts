@@ -47,6 +47,10 @@ export type Repositories = Readonly<{
   workflowContactActions?: VersionedRepository;
   workflowKeyFragments?: VersionedRepository;
   releaseSecretSessions?: VersionedRepository;
+  recoverySecretSessions?: VersionedRepository;
+  passwordRewrapSessions?: VersionedRepository;
+  emailVerificationCodes?: VersionedRepository;
+  notifications?: VersionedRepository;
   authSessions?: VersionedRepository;
   packages: VersionedRepository;
   idempotency: IdempotencyRepository;

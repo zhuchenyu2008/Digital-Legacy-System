@@ -42,7 +42,7 @@ describe("production migration inventory", () => {
       const runner = new MigrationRunner(asMigrationClient(client));
       const applied = await runner.up();
       expect(applied.map((migration) => migration.version)).toEqual([
-        1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
+        1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
       ]);
 
       const result = await client.query(
@@ -155,11 +155,36 @@ describe("production migration inventory", () => {
       expect(decisionColumns.rows).toHaveLength(4);
       expect(decisionColumns.rows.every((row) => row.is_nullable === "NO")).toBe(true);
 
+      const recoveryColumns = await client.query(
+        `SELECT table_name, column_name, is_nullable
+         FROM information_schema.columns
+         WHERE table_schema = 'app'
+           AND (
+             (table_name = 'recovery_secret_sessions' AND column_name IN (
+               'stage_key_envelope', 'stage_key_nonce', 'stage_key_version',
+               'vault_key_commitment', 'status', 'version'
+             ))
+             OR
+             (table_name = 'password_rewrap_sessions' AND column_name IN (
+               'reset_token_hash', 'client_ephemeral_public_key',
+               'sealed_vault_key_digest', 'status', 'version'
+             ))
+           )`,
+      );
+      expect(recoveryColumns.rows).toHaveLength(11);
+      expect(
+        recoveryColumns.rows
+          .filter((row) => !["stage_key_envelope", "stage_key_nonce"].includes(row.column_name))
+          .every((row) => row.is_nullable === "NO"),
+      ).toBe(true);
+
       const afterDown = await runner.down(1);
-      expect(afterDown.map((migration) => migration.version)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9]);
+      expect(afterDown.map((migration) => migration.version)).toEqual([
+        1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
+      ]);
       const afterUp = await runner.up();
       expect(afterUp.map((migration) => migration.version)).toEqual([
-        1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
+        1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
       ]);
     } finally {
       await client.end();

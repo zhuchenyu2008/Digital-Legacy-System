@@ -1,6 +1,7 @@
 import { parseInstant } from "@dls/domain";
 import type { RepositoryRow, VersionedRepository } from "../ports/repositories.js";
 import type { TransactionContext, TransactionManager } from "../ports/transaction-manager.js";
+import { cancelActiveRecovery } from "../recovery/recovery-common.js";
 
 const TERMINAL_STATES = new Set(["COMPLETED", "CANCELLED", "EXPIRED", "RELEASED"]);
 
@@ -55,33 +56,6 @@ export function activeWorkflow(rows: readonly RepositoryRow[]): RepositoryRow | 
   return rows.find((row) => !TERMINAL_STATES.has(String(row.state)));
 }
 
-async function destroyRecoveryState(
-  tx: TransactionContext,
-  recovery: RepositoryRow,
-  now: string,
-): Promise<void> {
-  await tx.repositories.workflows.updateVersioned(recovery.id, Number(recovery.version ?? 0), {
-    state: "CANCELLED",
-    ended_at: now,
-    end_reason: "DEATH_WORKFLOW_PRIORITY",
-  });
-  const fragments = requiredRepository(
-    tx.repositories.workflowKeyFragments,
-    "workflow key fragments",
-  );
-  const rows =
-    (await fragments.findMany?.("workflow_id", String(recovery.id), { forUpdate: true })) ?? [];
-  for (const fragment of rows) {
-    if (fragment.status === "DESTROYED") continue;
-    await fragments.updateVersioned(fragment.id, Number(fragment.version ?? 0), {
-      status: "DESTROYED",
-      fragment_ciphertext: null,
-      fragment_nonce: null,
-      stage_key_version: null,
-    });
-  }
-}
-
 export async function startDeathWorkflowInTransaction(
   command: StartDeathWorkflowCommand,
   dependencies: Readonly<{
@@ -109,7 +83,7 @@ export async function startDeathWorkflowInTransaction(
   const recovery = dependencies.currentWorkflows.find(
     (row) => row.kind === "PASSWORD_RECOVERY" && !TERMINAL_STATES.has(String(row.state)),
   );
-  if (recovery !== undefined) await destroyRecoveryState(tx, recovery, now);
+  if (recovery !== undefined) await cancelActiveRecovery(tx, now, "DEATH_WORKFLOW_PRIORITY");
 
   const generations = requiredRepository(tx.repositories.shareGenerations, "share generations");
   const generation = await generations.findOneBy?.("status", "ACTIVE", { forUpdate: true });
