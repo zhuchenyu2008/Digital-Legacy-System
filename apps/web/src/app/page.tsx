@@ -1,9 +1,5 @@
-export default function HomePage() {
-  return (
-    <main>
-      <p className="eyebrow">DIGITAL LEGACY SYSTEM</p>
-      <h1>数字遗产系统</h1>
-      <p>本地 V1 服务已启动。完整初始化流程将在后续工作包接入。</p>
-    </main>
-  );
-}
+import { Wordmark } from "../components/brand/wordmark";
+import { PublicStatus, type PublicStatusData } from "../features/public/public-status";
+import { serverApiRequest } from "../lib/api/server-client";
+
+export default async function HomePage() { const response = await serverApiRequest<PublicStatusData>("/public/status"); const status = response.data ?? { state: response.status >= 500 ? "UNAVAILABLE" : "NORMAL" }; return <div className={`dls-public-home dls-public-home--${status.state.toLowerCase()}`}><header><Wordmark /><nav><a href="/contact/login">联系人登录</a><a href="/login">管理员登录</a></nav></header><PublicStatus status={status} /></div>; }

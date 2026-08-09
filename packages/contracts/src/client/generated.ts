@@ -712,6 +712,23 @@ export type paths = {
         readonly patch?: never;
         readonly trace?: never;
     };
+    readonly "/public/status": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        /** Read the aggregate-only public lifecycle projection */
+        readonly get: operations["PublicController_status"];
+        readonly put?: never;
+        readonly post?: never;
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
     readonly "/setup/owner": {
         readonly parameters: {
             readonly query?: never;
@@ -2007,6 +2024,23 @@ export interface operations {
             };
             /** @description Invalid or unsatisfiable range */
             readonly 416: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    readonly PublicController_status: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly requestBody?: never;
+        readonly responses: {
+            readonly 200: {
                 headers: {
                     readonly [name: string]: unknown;
                 };

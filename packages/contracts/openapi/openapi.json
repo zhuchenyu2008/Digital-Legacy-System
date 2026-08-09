@@ -2395,6 +2395,21 @@
         ]
       }
     },
+    "/public/status": {
+      "get": {
+        "operationId": "PublicController_status",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Read the aggregate-only public lifecycle projection",
+        "tags": [
+          "Public legacy"
+        ]
+      }
+    },
     "/setup/owner": {
       "post": {
         "operationId": "SetupController_create",

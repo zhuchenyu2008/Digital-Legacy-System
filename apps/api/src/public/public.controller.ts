@@ -37,6 +37,12 @@ export function parseSingleByteRange(
 export class PublicController {
   public constructor(@Inject(PUBLIC_RUNTIME) private readonly runtime: PublicRuntime) {}
 
+  @Get("status")
+  @ApiOperation({ summary: "Read the aggregate-only public lifecycle projection" })
+  public status() {
+    return this.runtime.status();
+  }
+
   @Get("legacy")
   @ApiOperation({ summary: "Read the committed public digital legacy" })
   @ApiResponse({ status: 200, description: "Committed publication metadata and sanitized will" })
