@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { formatBeijingDateTime, nextCountdownAnnouncement } from "./beijing.js";
+import { formatBeijingDateTime, nextCountdownAnnouncement } from "./beijing";
 
 describe("Beijing time presentation", () => {
   test("formats absolute instants in Asia/Shanghai instead of the host timezone", () => {

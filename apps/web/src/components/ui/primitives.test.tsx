@@ -1,10 +1,10 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, test } from "vitest";
-import { designTokens, minimumContrastRatio } from "../../styles/design-tokens.js";
-import { Button } from "./button.js";
-import { Dialog } from "./dialog.js";
-import { Field } from "./field.js";
-import { Progress } from "./progress.js";
+import { designTokens, minimumContrastRatio } from "../../styles/design-tokens";
+import { Button } from "./button";
+import { Dialog } from "./dialog";
+import { Field } from "./field";
+import { Progress } from "./progress";
 
 describe("visual contract and UI primitives", () => {
   test("keeps documented text pairings at WCAG AA contrast", () => {

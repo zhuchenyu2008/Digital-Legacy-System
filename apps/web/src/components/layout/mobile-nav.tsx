@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Icon } from "../icons/icon.js";
+import { Icon } from "../icons/icon";
 
 const items = [
   { href: "/admin", label: "首页", icon: "home" },

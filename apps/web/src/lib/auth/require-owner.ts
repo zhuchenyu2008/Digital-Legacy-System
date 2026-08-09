@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { serverApiRequest } from "../api/server-client.js";
+import { serverApiRequest } from "../api/server-client";
 
 export type OwnerSession = Readonly<{ actorId?: string; csrfToken?: string; role?: string }>;
 

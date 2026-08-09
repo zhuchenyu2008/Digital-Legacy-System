@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { serverApiRequest } from "../api/server-client.js";
+import { serverApiRequest } from "../api/server-client";
 
 export async function requireContact(): Promise<void> {
   const response = await serverApiRequest("/contact/workflows/current");

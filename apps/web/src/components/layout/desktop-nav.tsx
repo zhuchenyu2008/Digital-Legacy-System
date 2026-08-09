@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { Wordmark } from "../brand/wordmark.js";
-import { Icon } from "../icons/icon.js";
-import { StatusBadge } from "../ui/status-badge.js";
+import { Wordmark } from "../brand/wordmark";
+import { Icon } from "../icons/icon";
+import { StatusBadge } from "../ui/status-badge";
 
 const ownerItems = [
   { href: "/admin", label: "首页" },

@@ -1,4 +1,4 @@
-import { countdownParts, formatBeijingDateTime } from "../../lib/time/beijing.js";
+import { countdownParts, formatBeijingDateTime } from "../../lib/time/beijing";
 
 export function Deadline({ deadline, now = Date.now() }: Readonly<{ deadline: string; now?: number }>) {
   const remaining = Math.max(0, Math.floor((new Date(deadline).getTime() - now) / 1000));
