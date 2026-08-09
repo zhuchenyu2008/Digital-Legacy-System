@@ -204,6 +204,13 @@ async function cleanup(state: Fixture): Promise<void> {
       "DELETE FROM app.domain_outbox WHERE aggregate_id = ANY($1::uuid[])",
       [workflowIds],
     );
+    await concurrencyPool.query(
+      `DELETE FROM app.checkin_schedules
+       WHERE last_check_in_id IN (
+         SELECT id FROM app.check_ins WHERE workflow_id = ANY($1::uuid[])
+       )`,
+      [workflowIds],
+    );
     await concurrencyPool.query("DELETE FROM app.check_ins WHERE workflow_id = ANY($1::uuid[])", [
       workflowIds,
     ]);
