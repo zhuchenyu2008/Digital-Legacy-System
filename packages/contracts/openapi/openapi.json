@@ -752,6 +752,30 @@
         ],
         "type": "object"
       },
+      "EmailTemplatePreviewDto": {
+        "properties": {
+          "data": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "mode": {
+            "enum": [
+              "synthetic",
+              "data"
+            ],
+            "type": "string"
+          },
+          "override": {
+            "$ref": "#/components/schemas/TemplateOverrideDto"
+          }
+        },
+        "required": [
+          "mode"
+        ],
+        "type": "object"
+      },
       "OwnerCheckInDto": {
         "properties": {
           "password": {
@@ -1079,6 +1103,30 @@
         },
         "required": [
           "token"
+        ],
+        "type": "object"
+      },
+      "TemplateOverrideDto": {
+        "properties": {
+          "bodyTemplate": {
+            "type": "string"
+          },
+          "subjectTemplate": {
+            "type": "string"
+          },
+          "textTemplate": {
+            "type": "string"
+          },
+          "version": {
+            "minimum": 1,
+            "type": "number"
+          }
+        },
+        "required": [
+          "version",
+          "subjectTemplate",
+          "bodyTemplate",
+          "textTemplate"
         ],
         "type": "object"
       },
@@ -1876,6 +1924,40 @@
         "summary": "Create a one-time emergency contact invitation",
         "tags": [
           "Contact invitations"
+        ]
+      }
+    },
+    "/owner/email-templates/{templateCode}/preview": {
+      "post": {
+        "operationId": "EmailTemplatesController_preview",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "templateCode",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmailTemplatePreviewDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Render an owner-authorized no-store preview without sending mail",
+        "tags": [
+          "Owner email templates"
         ]
       }
     },

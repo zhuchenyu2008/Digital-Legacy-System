@@ -490,6 +490,23 @@ export type paths = {
         readonly patch?: never;
         readonly trace?: never;
     };
+    readonly "/owner/email-templates/{templateCode}/preview": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get?: never;
+        readonly put?: never;
+        /** Render an owner-authorized no-store preview without sending mail */
+        readonly post: operations["EmailTemplatesController_preview"];
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
     readonly "/owner/packages": {
         readonly parameters: {
             readonly query?: never;
@@ -1035,6 +1052,14 @@ export type components = {
             readonly protocolVersion: 1;
             readonly shareIndex: number;
         };
+        readonly EmailTemplatePreviewDto: {
+            readonly data?: {
+                readonly [key: string]: string;
+            };
+            /** @enum {string} */
+            readonly mode: "synthetic" | "data";
+            readonly override?: components["schemas"]["TemplateOverrideDto"];
+        };
         readonly OwnerCheckInDto: {
             readonly password: string;
         };
@@ -1135,6 +1160,12 @@ export type components = {
         };
         readonly StartRecoveryDto: {
             readonly token: string;
+        };
+        readonly TemplateOverrideDto: {
+            readonly bodyTemplate: string;
+            readonly subjectTemplate: string;
+            readonly textTemplate: string;
+            readonly version: number;
         };
         readonly UpdateOwnerSettingsDto: {
             readonly missedDaysThreshold?: number;
@@ -1751,6 +1782,29 @@ export interface operations {
         readonly responses: {
             /** @description Invitation queued */
             readonly 202: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    readonly EmailTemplatesController_preview: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path: {
+                readonly templateCode: string;
+            };
+            readonly cookie?: never;
+        };
+        readonly requestBody: {
+            readonly content: {
+                readonly "application/json": components["schemas"]["EmailTemplatePreviewDto"];
+            };
+        };
+        readonly responses: {
+            readonly 201: {
                 headers: {
                     readonly [name: string]: unknown;
                 };

@@ -12,6 +12,13 @@ export type RenderedEmailTemplate = Readonly<{
   templateVersion: number;
 }>;
 
+export type TemplateOverride = Readonly<{
+  version: number;
+  subjectTemplate: string;
+  bodyTemplate: string;
+  textTemplate: string;
+}>;
+
 const templateCache = new Map<string, Promise<string>>();
 
 function asset(path: string): Promise<string> {
@@ -56,6 +63,7 @@ function sanitizeContext(
     if (typeof value !== "string" || value.length === 0 || value.length > 2_000) {
       throw new Error(`${field} must be a non-empty string`);
     }
+    if (/\r|\n/u.test(value)) throw new Error(`${field} must not contain line breaks`);
     if (
       Array.from(value).some((character) => {
         const code = character.codePointAt(0) ?? 0;
@@ -82,6 +90,79 @@ function sanitizeContext(
   return Object.freeze(context);
 }
 
+function templateFields(source: string, label: string): readonly string[] {
+  if (/\{\{\{|\{\{&/u.test(source)) {
+    throw new Error(`${label} must not use triple-stash or raw output`);
+  }
+  const fields = [...source.matchAll(/\{\{\s*([a-z][a-z0-9_]*)\s*\}\}/giu)].map(
+    (match) => match[1] ?? "",
+  );
+  const remainder = source.replace(/\{\{\s*[a-z][a-z0-9_]*\s*\}\}/giu, "");
+  if (/\{\{|\}\}/u.test(remainder)) {
+    throw new Error(`${label} contains an unsupported expression`);
+  }
+  return [...new Set(fields)];
+}
+
+function validateFields(
+  source: string,
+  label: string,
+  allowed: readonly string[],
+  requireAll: boolean,
+): void {
+  const fields = templateFields(source, label);
+  const unknown = fields.filter((field) => !allowed.includes(field));
+  if (unknown.length > 0) throw new Error(`unknown template fields: ${unknown.join(", ")}`);
+  if (requireAll) {
+    const missing = allowed.filter((field) => !fields.includes(field));
+    if (missing.length > 0) throw new Error(`missing template fields: ${missing.join(", ")}`);
+  }
+}
+
+function assertSafeBodySource(source: string, urlFields: readonly string[]): void {
+  if (
+    /<(?:script|form|img|iframe|object|embed|link|style|meta)\b|\bon[a-z]+\s*=|\bstyle\s*=|\bsrc\s*=/iu.test(
+      source,
+    )
+  ) {
+    throw new Error("email override contains forbidden active content");
+  }
+  for (const match of source.matchAll(/\bhref\s*=\s*["']([^"']*)["']/giu)) {
+    const href = match[1] ?? "";
+    const field = /^\{\{\s*([a-z][a-z0-9_]*)\s*\}\}$/iu.exec(href)?.[1];
+    if (field === undefined || !urlFields.includes(field)) {
+      throw new Error("email override links must use a declared URL field");
+    }
+  }
+}
+
+export function validateTemplateOverride(
+  code: TemplateCode,
+  override: TemplateOverride,
+): TemplateOverride {
+  if (!Number.isSafeInteger(override.version) || override.version < 1) {
+    throw new Error("template override version must be a positive integer");
+  }
+  for (const [field, value] of Object.entries(override)) {
+    if (field === "version") continue;
+    if (typeof value !== "string" || value.length === 0 || value.length > 100_000) {
+      throw new Error(`${field} must be a non-empty template string`);
+    }
+  }
+  const contract = TEMPLATE_CONTRACTS[code];
+  validateFields(override.subjectTemplate, "subject template", contract.required, false);
+  validateFields(override.bodyTemplate, "body template", contract.required, true);
+  validateFields(override.textTemplate, "text template", contract.required, true);
+  if (
+    /<[a-z][^>]*>/iu.test(override.subjectTemplate) ||
+    /<[a-z][^>]*>/iu.test(override.textTemplate)
+  ) {
+    throw new Error("subject and text overrides must be plain text");
+  }
+  assertSafeBodySource(override.bodyTemplate, contract.urlFields);
+  return Object.freeze({ ...override });
+}
+
 function compile(source: string, noEscape = false) {
   return Handlebars.compile(source, {
     strict: true,
@@ -101,15 +182,25 @@ function assertSafeOutput(html: string): void {
 export async function renderTemplate(
   code: TemplateCode,
   input: Readonly<Record<string, unknown>>,
+  override?: TemplateOverride,
 ): Promise<RenderedEmailTemplate> {
   const contract = TEMPLATE_CONTRACTS[code];
   const context = sanitizeContext(code, input);
-  const [bodySource, textSource, layoutSource, css] = await Promise.all([
+  const [defaultBodySource, defaultTextSource, layoutSource, css] = await Promise.all([
     asset(`./templates/${contract.file}.hbs`),
     asset(`./text/${contract.file}.txt.hbs`),
     asset("./layouts/base.hbs"),
     asset("./styles/email.css"),
   ]);
+  const validatedOverride =
+    override === undefined ? undefined : validateTemplateOverride(code, override);
+  const bodySource = validatedOverride?.bodyTemplate ?? defaultBodySource;
+  const textSource = validatedOverride?.textTemplate ?? defaultTextSource;
+  const subjectSource = validatedOverride?.subjectTemplate ?? contract.subject;
+  validateFields(subjectSource, "subject template", contract.required, false);
+  validateFields(bodySource, "body template", contract.required, true);
+  validateFields(textSource, "text template", contract.required, true);
+  assertSafeBodySource(bodySource, contract.urlFields);
   const body = compile(bodySource)(context);
   const html = juice(compile(layoutSource)({ body, css }), {
     applyStyleTags: true,
@@ -117,15 +208,13 @@ export async function renderTemplate(
     preserveMediaQueries: true,
   });
   assertSafeOutput(html);
-  const subject = compile(contract.subject)(context)
-    .replace(/[\r\n]+/gu, " ")
-    .trim();
+  const subject = compile(subjectSource)(context).trim();
   const text = compile(textSource, true)(context).replace(/\r\n/gu, "\n").trim();
   return Object.freeze({
     subject,
     html,
     text,
     templateCode: code,
-    templateVersion: contract.version,
+    templateVersion: validatedOverride?.version ?? contract.version,
   });
 }

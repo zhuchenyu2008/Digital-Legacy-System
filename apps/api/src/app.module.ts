@@ -1,6 +1,7 @@
 import { Module } from "@nestjs/common";
 import { AuditModule } from "./audit/audit.module.js";
 import { ContactModule } from "./contacts/contact.module.js";
+import { EmailTemplatesModule } from "./email-templates/email-templates.module.js";
 import { HealthController } from "./health/health.controller.js";
 import {
   DATABASE_HEALTH_PROBE,
@@ -28,6 +29,7 @@ const startupProbe: HealthProbe = Object.freeze({ check: async () => undefined }
 @Module({
   imports: [
     AuditModule,
+    EmailTemplatesModule,
     SecurityModule,
     SetupModule,
     OwnerModule,

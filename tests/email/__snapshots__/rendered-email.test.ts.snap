@@ -1,0 +1,14 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`rendered email clients > preserves long Chinese names, long URLs, and HTML/text link parity 1`] = `
+{
+  "buttons": [
+    "阅读知情书并注册",
+  ],
+  "hasPlainUrl": true,
+  "hasResponsiveRule": true,
+  "headings": [
+    "紧急联系人邀请",
+  ],
+}
+`;

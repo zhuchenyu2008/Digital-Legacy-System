@@ -1,11 +1,13 @@
-body { margin: 0; padding: 20px; background: #f3f0e9; color: #20201d; font-family: Arial, "Microsoft YaHei", sans-serif; }
-.email-shell { width: 100%; max-width: 600px; margin: 0 auto; background: #ffffff; border: 1px solid #d9d4ca; }
-.brand { padding: 22px 28px; background: #173f35; color: #ffffff; font-size: 19px; font-weight: 700; letter-spacing: .02em; }
-.content { padding: 28px; font-size: 16px; line-height: 1.7; }
-h1 { margin: 0 0 18px; color: #173f35; font-size: 24px; line-height: 1.3; }
+body { width: 100% !important; margin: 0; padding: 0; background: #f2f4f6; color: #0f172a; font-family: Arial, "Microsoft YaHei", sans-serif; }
+.email-frame { width: 100%; background: #f2f4f6; padding: 32px 16px; }
+.email-shell { width: 100%; max-width: 600px; background: #ffffff; border: 1px solid #e2e8f0; border-collapse: separate; }
+.brand { padding: 24px 32px; border-bottom: 1px solid #e2e8f0; background: #ffffff; color: #000000; font-size: 22px; font-weight: 700; letter-spacing: -.02em; }
+.content { padding: 40px 32px; font-size: 16px; line-height: 1.7; }
+h1 { margin: 0 0 20px; color: #0f172a; font-size: 28px; line-height: 1.3; }
+h2 { margin: 28px 0 12px; color: #0f172a; font-size: 20px; line-height: 1.4; }
 p { margin: 0 0 16px; }
-.button { display: inline-block; margin: 6px 0 12px; padding: 12px 20px; background: #b8642b; color: #ffffff !important; text-decoration: none; font-weight: 700; }
-.plain-url { overflow-wrap: anywhere; color: #355d53; font-size: 13px; }
-.notice { padding: 12px 14px; border-left: 4px solid #b8642b; background: #faf4ec; }
-footer { padding: 18px 28px; border-top: 1px solid #e3ded5; color: #66645f; font-size: 12px; line-height: 1.5; }
-@media (max-width: 480px) { body { padding: 0; } .content, .brand, footer { padding-left: 20px; padding-right: 20px; } h1 { font-size: 21px; } }
+.button { display: inline-block; margin: 8px 0 12px; padding: 13px 22px; background: #000000; color: #ffffff !important; text-decoration: none; font-weight: 700; }
+.plain-url { overflow-wrap: anywhere; word-break: break-word; color: #475569; font-family: Consolas, monospace; font-size: 12px; line-height: 1.7; }
+.notice { margin-top: 24px; padding: 16px; border-left: 4px solid #dc2626; background: #fff1ef; color: #7f1d1d; }
+.footer { padding: 20px 32px; border-top: 1px solid #e2e8f0; background: #f7f9fb; color: #475569; font-size: 12px; line-height: 1.6; }
+@media (max-width: 480px) { .email-frame { padding: 0; } .content { padding: 32px 20px; } .brand, .footer { padding-left: 20px; padding-right: 20px; } h1 { font-size: 24px; } }

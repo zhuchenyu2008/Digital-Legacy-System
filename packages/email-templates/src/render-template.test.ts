@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { renderTemplate } from "./render-template.js";
+import { renderTemplate, validateTemplateOverride } from "./render-template.js";
 import { TEMPLATE_CODES, type TemplateCode } from "./template-codes.js";
 import { TEMPLATE_CONTRACTS } from "./template-contracts.js";
 
@@ -103,5 +103,57 @@ describe("semantic email templates", () => {
     ).rejects.toThrow("unknown");
     const { action_url: _missing, ...missing } = contexts.CONTACT_INVITATION;
     await expect(renderTemplate("CONTACT_INVITATION", missing)).rejects.toThrow("action_url");
+    await expect(
+      renderTemplate("CONTACT_INVITATION", {
+        ...contexts.CONTACT_INVITATION,
+        owner_name: "张三\r\nBcc: attacker@example.test",
+      }),
+    ).rejects.toThrow("line breaks");
+    await expect(
+      renderTemplate("CONTACT_INVITATION", {
+        ...contexts.CONTACT_INVITATION,
+        action_url: "ftp://example.test/invitation",
+      }),
+    ).rejects.toThrow("HTTP(S)");
+  });
+
+  it("validates preview overrides against the same placeholder and active-content contract", async () => {
+    const override = {
+      version: 7,
+      subjectTemplate: "【邀请】{{owner_name}} 邀请你",
+      bodyTemplate:
+        '<h1>邀请</h1><p>{{contact_name}}，{{owner_name}} 邀请你。</p><p>{{expires_at}}</p><p><a class="button" href="{{action_url}}">继续</a></p><p class="plain-url">{{action_url}}</p>',
+      textTemplate:
+        "邀请\n{{contact_name}}，{{owner_name}} 邀请你。\n{{expires_at}}\n{{action_url}}",
+    } as const;
+    expect(validateTemplateOverride("CONTACT_INVITATION", override)).toEqual(override);
+    await expect(
+      renderTemplate("CONTACT_INVITATION", contexts.CONTACT_INVITATION, override),
+    ).resolves.toMatchObject({ templateVersion: 7 });
+
+    await expect(
+      Promise.resolve().then(() =>
+        validateTemplateOverride("CONTACT_INVITATION", {
+          ...override,
+          bodyTemplate: "<p>{{{owner_name}}}</p>",
+        }),
+      ),
+    ).rejects.toThrow("triple-stash");
+    await expect(
+      Promise.resolve().then(() =>
+        validateTemplateOverride("CONTACT_INVITATION", {
+          ...override,
+          textTemplate: "{{owner_name}} {{unknown_field}}",
+        }),
+      ),
+    ).rejects.toThrow("unknown template fields");
+    await expect(
+      Promise.resolve().then(() =>
+        validateTemplateOverride("CONTACT_INVITATION", {
+          ...override,
+          textTemplate: "{{owner_name}}",
+        }),
+      ),
+    ).rejects.toThrow("missing template fields");
   });
 });

@@ -6,10 +6,14 @@
   <style>{{{css}}}</style>
 </head>
 <body>
-  <main class="email-shell">
-    <header class="brand">Digital Legacy System</header>
-    <section class="content">{{{body}}}</section>
-    <footer>这是一封由 Digital Legacy System 自动发送的事务邮件，请勿回复。</footer>
-  </main>
+  <table class="email-frame" role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+    <tr><td align="center">
+      <table class="email-shell" role="presentation" width="600" cellspacing="0" cellpadding="0" border="0">
+        <tr><td class="brand">Digital Legacy System</td></tr>
+        <tr><td class="content">{{{body}}}</td></tr>
+        <tr><td class="footer">这是一封由 Digital Legacy System 自动发送的事务邮件，请勿回复。</td></tr>
+      </table>
+    </td></tr>
+  </table>
 </body>
 </html>
