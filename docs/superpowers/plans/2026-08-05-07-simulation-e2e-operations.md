@@ -36,19 +36,19 @@
 - Create: `apps/web/src/features/simulation/simulation-console.tsx`
 - Create: `tests/integration/simulation-isolation.test.ts`
 
-- [ ] **Step 1: Write failing isolation and virtual-clock tests**
+- [x] **Step 1: Write failing isolation and virtual-clock tests**
 
 Assert simulation tables do not exist in the formal database, test IDs cannot be queried by formal repositories, formal scheduler always uses PostgreSQL time, virtual clock cannot move backward, advances are owner-authorized/idempotent/audited, test mail is allowlisted/prefixed, test public objects never resolve on `/legacy`, and production/test-mode config combinations fail closed.
 
-- [ ] **Step 2: Implement a separate test composition root**
+- [x] **Step 2: Implement a separate test composition root**
 
 Create simulation aggregates with synthetic owner/contact/package data inside the test database and storage namespace. `SimulationClock` reads `simulation.clock_state`; only simulation use cases receive it. Advancing time runs due simulation transitions synchronously or through namespaced `simulation.*` jobs and returns a deterministic event summary.
 
-- [ ] **Step 3: Implement the simulation console**
+- [x] **Step 3: Implement the simulation console**
 
 Allow creating/resetting a synthetic scenario, advancing to check-in due, contact decision, recovery threshold, release countdown milestones, SMTP failure/retry, and final publication. Clearly label every surface `测试模式`; never reuse formal action endpoints.
 
-- [ ] **Step 4: Verify and commit**
+- [x] **Step 4: Verify and commit**
 
 ```powershell
 pnpm.cmd exec vitest run tests/integration/simulation-isolation.test.ts

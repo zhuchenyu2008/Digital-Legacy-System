@@ -21,6 +21,7 @@ import { RecoveryModule } from "./recovery/recovery.module.js";
 import { SecurityModule } from "./security/security.module.js";
 import { SetupModule } from "./setup/setup.module.js";
 import { ShareGenerationModule } from "./shares/share-generation.module.js";
+import { SimulationModule } from "./simulation/simulation.module.js";
 import { VaultModule } from "./vault/vault.module.js";
 import { WorkflowsModule } from "./workflows/workflows.module.js";
 
@@ -31,6 +32,7 @@ const startupProbe: HealthProbe = Object.freeze({ check: async () => undefined }
     AuditModule,
     EmailTemplatesModule,
     SecurityModule,
+    SimulationModule,
     SetupModule,
     OwnerModule,
     ContactModule,

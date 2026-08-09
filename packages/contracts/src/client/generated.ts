@@ -627,6 +627,74 @@ export type paths = {
         readonly patch: operations["OwnerController_updateSettings"];
         readonly trace?: never;
     };
+    readonly "/owner/simulations": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get?: never;
+        readonly put?: never;
+        /** Create an isolated synthetic workflow simulation */
+        readonly post: operations["SimulationController_create"];
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/owner/simulations/{simulationId}": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        /** Read one owner-scoped workflow simulation */
+        readonly get: operations["SimulationController_get"];
+        readonly put?: never;
+        readonly post?: never;
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/owner/simulations/{simulationId}/advance": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get?: never;
+        readonly put?: never;
+        /** Advance isolated virtual time to a deterministic milestone */
+        readonly post: operations["SimulationController_advance"];
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/owner/simulations/{simulationId}/reset": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get?: never;
+        readonly put?: never;
+        /** Reset and remove one isolated workflow simulation */
+        readonly post: operations["SimulationController_reset"];
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
     readonly "/owner/system-health": {
         readonly parameters: {
             readonly query?: never;
@@ -870,6 +938,10 @@ export type components = {
             readonly expectedShareGenerationId?: string;
             readonly password: string;
         };
+        readonly AdvanceSimulationDto: {
+            /** @enum {string} */
+            readonly target: "CHECKIN_DUE" | "CONTACT_DECISION" | "RECOVERY_THRESHOLD" | "RELEASE_COUNTDOWN" | "SMTP_RETRY" | "PUBLICATION";
+        };
         readonly AffirmDeathDto: {
             readonly confirmationText: string;
             readonly fragment: components["schemas"]["DeathFragmentIngressDto"];
@@ -1008,6 +1080,15 @@ export type components = {
             readonly expectedCurrentGenerationId?: string;
             /** Format: uuid */
             readonly vaultId: string;
+        };
+        readonly CreateSimulationDto: {
+            readonly contactEmails: readonly string[];
+            /** Format: email */
+            readonly ownerEmail: string;
+            /** Format: uuid */
+            readonly simulationId: string;
+            /** Format: date-time */
+            readonly startAt: string;
         };
         readonly CreateVaultUploadDto: {
             /** @example XCHACHA20_POLY1305_SECRETSTREAM_V1 */
@@ -1999,6 +2080,90 @@ export interface operations {
         };
         readonly responses: {
             readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    readonly SimulationController_create: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly requestBody: {
+            readonly content: {
+                readonly "application/json": components["schemas"]["CreateSimulationDto"];
+            };
+        };
+        readonly responses: {
+            readonly 201: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    readonly SimulationController_get: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path: {
+                readonly simulationId: string;
+            };
+            readonly cookie?: never;
+        };
+        readonly requestBody?: never;
+        readonly responses: {
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    readonly SimulationController_advance: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header: {
+                readonly "idempotency-key": string;
+            };
+            readonly path: {
+                readonly simulationId: string;
+            };
+            readonly cookie?: never;
+        };
+        readonly requestBody: {
+            readonly content: {
+                readonly "application/json": components["schemas"]["AdvanceSimulationDto"];
+            };
+        };
+        readonly responses: {
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    readonly SimulationController_reset: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path: {
+                readonly simulationId: string;
+            };
+            readonly cookie?: never;
+        };
+        readonly requestBody?: never;
+        readonly responses: {
+            readonly 204: {
                 headers: {
                     readonly [name: string]: unknown;
                 };

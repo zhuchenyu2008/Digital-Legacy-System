@@ -71,6 +71,25 @@
         ],
         "type": "object"
       },
+      "AdvanceSimulationDto": {
+        "properties": {
+          "target": {
+            "enum": [
+              "CHECKIN_DUE",
+              "CONTACT_DECISION",
+              "RECOVERY_THRESHOLD",
+              "RELEASE_COUNTDOWN",
+              "SMTP_RETRY",
+              "PUBLICATION"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "target"
+        ],
+        "type": "object"
+      },
       "AffirmDeathDto": {
         "properties": {
           "confirmationText": {
@@ -617,6 +636,36 @@
         "required": [
           "vaultId",
           "contactSetVersion"
+        ],
+        "type": "object"
+      },
+      "CreateSimulationDto": {
+        "properties": {
+          "contactEmails": {
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "type": "array"
+          },
+          "ownerEmail": {
+            "format": "email",
+            "type": "string"
+          },
+          "simulationId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "startAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "simulationId",
+          "ownerEmail",
+          "contactEmails",
+          "startAt"
         ],
         "type": "object"
       },
@@ -2346,6 +2395,124 @@
         "summary": "Update owner settings after password reauthentication",
         "tags": [
           "Owner"
+        ]
+      }
+    },
+    "/owner/simulations": {
+      "post": {
+        "operationId": "SimulationController_create",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSimulationDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Create an isolated synthetic workflow simulation",
+        "tags": [
+          "Owner simulation"
+        ]
+      }
+    },
+    "/owner/simulations/{simulationId}": {
+      "get": {
+        "operationId": "SimulationController_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "simulationId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Read one owner-scoped workflow simulation",
+        "tags": [
+          "Owner simulation"
+        ]
+      }
+    },
+    "/owner/simulations/{simulationId}/advance": {
+      "post": {
+        "operationId": "SimulationController_advance",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "idempotency-key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "simulationId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdvanceSimulationDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Advance isolated virtual time to a deterministic milestone",
+        "tags": [
+          "Owner simulation"
+        ]
+      }
+    },
+    "/owner/simulations/{simulationId}/reset": {
+      "post": {
+        "operationId": "SimulationController_reset",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "simulationId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "summary": "Reset and remove one isolated workflow simulation",
+        "tags": [
+          "Owner simulation"
         ]
       }
     },

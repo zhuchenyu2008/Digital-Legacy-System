@@ -49,6 +49,7 @@ export * from "./shares/create-generation.js";
 export * from "./shares/get-generation-material.js";
 export * from "./shares/share-generation-common.js";
 export * from "./shares/upload-generation.js";
+export * from "./simulation/index.js";
 export * from "./vault/abort-upload.js";
 export * from "./vault/activate-package.js";
 export * from "./vault/complete-upload.js";

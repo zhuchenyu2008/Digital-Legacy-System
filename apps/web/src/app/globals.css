@@ -10,6 +10,52 @@
   font-synthesis: none;
 }
 
+.dls-simulation-console {
+  display: grid;
+  gap: 24px;
+}
+
+.dls-simulation-mode {
+  color: #9f1239;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.dls-simulation-state,
+.dls-simulation-reset {
+  align-items: center;
+  display: flex;
+  gap: 24px;
+  justify-content: space-between;
+}
+
+.dls-simulation-state > div {
+  display: grid;
+  gap: 6px;
+}
+
+.dls-simulation-state strong {
+  font-family: var(--font-mono), monospace;
+}
+
+.dls-simulation-actions {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+@media (max-width: 720px) {
+  .dls-simulation-state,
+  .dls-simulation-reset {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .dls-simulation-actions {
+    grid-template-columns: 1fr;
+  }
+}
+
 * {
   box-sizing: border-box;
 }
