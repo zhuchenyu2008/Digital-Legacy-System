@@ -1,4 +1,3 @@
-import { resolve } from "node:path";
 import {
   getPublication,
   getPublicationAudit,
@@ -9,7 +8,10 @@ import {
 import { createPgPool, PgTransactionManager } from "@dls/persistence";
 import { createStorage } from "@dls/storage";
 import { HttpException, HttpStatus } from "@nestjs/common";
-import { getApiRuntimeConfig } from "../config/api-runtime-config.js";
+import {
+  getPublicRuntimeConfig,
+  type PublicRuntimeConfig,
+} from "../config/public-runtime-config.js";
 
 export const PUBLIC_RUNTIME = Symbol("DLS_PUBLIC_RUNTIME");
 
@@ -19,33 +21,6 @@ export interface PublicRuntime {
   publication(): Promise<PublicPublication | null>;
   audit(): ReturnType<typeof getPublicationAudit>;
   download(range?: Readonly<{ start: number; endInclusive?: number }>): Promise<PublicDownload>;
-}
-
-function positiveEnvironmentInteger(value: string | undefined, fallback: number): number {
-  const parsed = Number(value ?? fallback);
-  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : fallback;
-}
-
-function storageFromEnvironment(environment: Record<string, string | undefined>) {
-  if (environment.STORAGE_DRIVER === "s3") {
-    const region = environment.S3_REGION ?? "us-east-1";
-    return createStorage({
-      driver: "s3",
-      endpoint: environment.S3_ENDPOINT ?? `https://s3.${region}.amazonaws.com`,
-      region,
-      forcePathStyle: environment.S3_FORCE_PATH_STYLE === "true",
-      privateBucket: environment.S3_PRIVATE_BUCKET ?? "dls-private",
-      publicBucket: environment.S3_PUBLIC_BUCKET ?? "dls-public",
-      accessKeyId: environment.S3_ACCESS_KEY_ID ?? "missing",
-      secretAccessKey: environment.S3_SECRET_ACCESS_KEY ?? "missing",
-    });
-  }
-  return createStorage({
-    driver: "filesystem",
-    privateRoot: resolve(environment.STORAGE_PRIVATE_ROOT ?? ".data/objects/private"),
-    stagingRoot: resolve(environment.STORAGE_STAGING_ROOT ?? ".data/objects/staging"),
-    publicRoot: resolve(environment.STORAGE_PUBLIC_ROOT ?? ".data/objects/public"),
-  });
 }
 
 export class PostgresPublicRuntime implements PublicRuntime {
@@ -108,13 +83,12 @@ export class PostgresPublicRuntime implements PublicRuntime {
 }
 
 export function createPublicRuntime(
-  environment: Record<string, string | undefined> = process.env,
+  config: PublicRuntimeConfig = getPublicRuntimeConfig(),
 ): PublicRuntime {
-  const config = getApiRuntimeConfig(environment);
   return new PostgresPublicRuntime(
     new PgTransactionManager(createPgPool({ connectionString: config.databaseUrl })),
-    storageFromEnvironment(environment),
-    positiveEnvironmentInteger(environment.PUBLIC_DOWNLOAD_MAX_CONCURRENCY, 4),
-    positiveEnvironmentInteger(environment.PUBLIC_DOWNLOAD_BYTES_PER_SECOND, 8 * 1024 * 1024),
+    createStorage(config.storage),
+    config.maxConcurrentDownloads,
+    config.bytesPerSecond,
   );
 }

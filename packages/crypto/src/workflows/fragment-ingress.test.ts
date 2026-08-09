@@ -1,3 +1,7 @@
+import { execFileSync } from "node:child_process";
+import { generateKeyPairSync } from "node:crypto";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { describe, expect, it } from "vitest";
 import { generateContactKeyPair } from "../keys/contact-key-pair.js";
 import { decodeBase64Url, encodeBase64Url } from "../protocol/base64url.js";
@@ -20,6 +24,7 @@ const metadata = {
 
 const expected: FragmentIngressExpected = metadata;
 const share = Uint8Array.from({ length: 34 }, (_, index) => (index + 17) & 0xff);
+const workspaceRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../../..");
 
 function tamper(value: string): string {
   const bytes = decodeBase64Url(value);
@@ -28,6 +33,33 @@ function tamper(value: string): string {
 }
 
 describe("workflow fragment ingress v1", () => {
+  it("validates a configured X25519 pair in a cold process", () => {
+    const pair = generateKeyPairSync("x25519");
+    const publicKey = Buffer.from(pair.publicKey.export({ format: "jwk" }).x ?? "", "base64url");
+    const privateKey = Buffer.from(pair.privateKey.export({ format: "jwk" }).d ?? "", "base64url");
+    const moduleUrl = pathToFileURL(
+      resolve(workspaceRoot, "packages/crypto/src/workflows/fragment-ingress.ts"),
+    ).href;
+    const program = `
+      import { assertX25519KeyPair } from ${JSON.stringify(moduleUrl)};
+      await assertX25519KeyPair({
+        publicKey: Buffer.from(${JSON.stringify(publicKey.toString("base64"))}, "base64"),
+        privateKey: Buffer.from(${JSON.stringify(privateKey.toString("base64"))}, "base64")
+      });
+    `;
+
+    expect(() =>
+      execFileSync(
+        process.execPath,
+        ["--import", "tsx", "--input-type=module", "--eval", program],
+        {
+          cwd: workspaceRoot,
+          stdio: ["ignore", "pipe", "pipe"],
+        },
+      ),
+    ).not.toThrow();
+  });
+
   it("round-trips a share while binding every workflow context field", async () => {
     const recipient = await generateContactKeyPair();
     const envelope = await sealFragmentIngressV1({

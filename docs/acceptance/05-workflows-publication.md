@@ -81,6 +81,26 @@ pnpm.cmd exec vitest run tests/integration/key-capabilities.test.ts `
 | `packages/persistence/migrations/013_immutable_publication_surface.up.sql` | `1ebe81aac82ade12c13fe19b8a410a22ad23e33cf741ed1250c40f9eb2019e44` |
 | `docs/operations/stage-key-capabilities.md` | `9fd8bc2bb9ae74cb002d85336de83d8ff489dda17b731d9952e839f646f9667a` |
 
+## 交付收尾验证
+
+北京时间 2026-08-09 11:56，执行：
+
+```powershell
+./ops/scripts/compose-smoke.ps1 -DeleteVolumes
+```
+
+结果通过。验证从空数据卷创建最小权限 PostgreSQL 角色、按序应用 1–13 号迁移、为 API/worker 挂载用途分离密钥、启动全部默认服务，并在 API/worker 重启后确认数据库及 private/staging/public 三类对象卷数据保持不变；随后删除该冒烟项目的容器、网络和数据卷。
+
+本次真实启动验证额外发现并修复两项仅在全新 Windows + Linux 容器边界出现的问题：PostgreSQL 初始化脚本的 CRLF shebang 失效，以及 `libsodium` 冷进程中运行时长度常量尚未就绪导致合法 X25519 密钥被拒绝。对应回归门禁位于 `tests/deployment/compose-config.test.ts` 与 `packages/crypto/src/workflows/fragment-ingress.test.ts`。
+
+北京时间 2026-08-09 12:03 的仓库级最终门禁结果：
+
+- `pnpm.cmd acceptance`：通过；静态检查 359 个文件，单元测试 427 通过/1 跳过，集成测试 48/48，密码学测试 39/39，存储测试 17 通过/1 个可选 S3 测试跳过，部署测试 9/9，构建与 OpenAPI/客户端漂移检查通过；
+- `pnpm.cmd exec vitest run tests/concurrency`：7 个文件，10/10 通过；
+- `pnpm.cmd exec vitest run tests/faults`：1 个文件，20/20 通过。
+
+计划 6 的浏览器 E2E 与计划 7 的对抗性安全测试目录尚未实施；根脚本已严格限定各自目录，并只在目录为空时显式允许零测试，避免 Playwright 误扫描 Vitest 文件。该行为不计入计划 5 的测试通过数量。
+
 ## 环境说明与剩余生产门禁
 
 - 本次本机执行使用 Node `v24.14.0` 和 pnpm `11.16.0`（子命令中的 Corepack pnpm 为 `11.20.0`）；仓库锁定 Node `24.18.0`，因此命令输出包含 engine 警告，但上述门禁均以退出码 0 完成。正式发布前仍应在锁定的 Node `24.18.0` 镜像中复跑总验收。

@@ -1,80 +1,23 @@
 # Development secret generation
 
-Local Docker secret files belong in `ops/secrets/generated/`. That directory is ignored by Git. Generate every value independently and never reuse a database or application secret.
-
-The default filesystem profile requires these files:
-
-- `postgres-superuser-password`
-- `api-db-password`
-- `worker-db-password`
-- `migrator-db-password`
-- `backup-db-password`
-- `health-db-password`
-- `session-secret`
-- `token-pepper`
-
-The optional `s3` profile additionally requires `minio-access-key` and `minio-secret-key`.
-
-## PowerShell
-
-```powershell
-$secretDirectory = "ops/secrets/generated"
-New-Item -ItemType Directory -Force $secretDirectory | Out-Null
-
-function New-RandomBytes([int]$Length) {
-  $bytes = [byte[]]::new($Length)
-  [Security.Cryptography.RandomNumberGenerator]::Fill($bytes)
-  return $bytes
-}
-
-foreach ($name in @(
-  "postgres-superuser-password",
-  "api-db-password",
-  "worker-db-password",
-  "migrator-db-password",
-  "backup-db-password",
-  "health-db-password"
-)) {
-  [Convert]::ToHexString((New-RandomBytes 32)).ToLowerInvariant() |
-    Set-Content -NoNewline (Join-Path $secretDirectory $name)
-}
-
-foreach ($name in @("session-secret", "token-pepper")) {
-  [Convert]::ToBase64String((New-RandomBytes 32)) |
-    Set-Content -NoNewline (Join-Path $secretDirectory $name)
-}
-
-[Convert]::ToHexString((New-RandomBytes 16)).ToLowerInvariant() |
-  Set-Content -NoNewline (Join-Path $secretDirectory "minio-access-key")
-[Convert]::ToBase64String((New-RandomBytes 32)) |
-  Set-Content -NoNewline (Join-Path $secretDirectory "minio-secret-key")
-```
-
-## Linux
+Local Docker secret files belong in `ops/secrets/generated/`. That directory is ignored by Git. Generate the complete set on Windows, Linux, or macOS with:
 
 ```sh
-umask 077
-mkdir -p ops/secrets/generated
-
-for name in \
-  postgres-superuser-password \
-  api-db-password \
-  worker-db-password \
-  migrator-db-password \
-  backup-db-password \
-  health-db-password
-do
-  openssl rand -hex 32 > "ops/secrets/generated/$name"
-done
-
-openssl rand -base64 32 > ops/secrets/generated/session-secret
-openssl rand -base64 32 > ops/secrets/generated/token-pepper
-openssl rand -hex 16 > ops/secrets/generated/minio-access-key
-openssl rand -base64 32 > ops/secrets/generated/minio-secret-key
+node ops/scripts/generate-development-secrets.mjs
 ```
 
-Hex encoding keeps database passwords safe to embed in the local PostgreSQL connection URI. Session and token values remain base64 because runtime configuration decodes and validates them as binary secrets.
+Set `DLS_SECRETS_DIR` to write to a different directory. The generator creates only missing files, uses restrictive permissions where the operating system supports them, and refuses to complete a half-present X25519 pair. It never overwrites existing values or prints secret material.
 
-For direct host development, copy only `session-secret` and `token-pepper` into `SESSION_SECRET` and `TOKEN_PEPPER`. Docker Compose consumes all files directly. Never commit generated values, paste them into logs, or reuse development secrets in production.
+The generated set contains:
 
-Production deployments must mount independently generated, access-controlled secret files rather than relying on `.env` values.
+- six independently generated PostgreSQL role passwords;
+- `session-secret` and `token-pepper`;
+- release X25519 ingress public/private keys and `release-stage-kek`;
+- recovery X25519 ingress public/private keys and `recovery-stage-kek`;
+- optional S3 development credentials.
+
+Compose mounts capabilities by ownership: API receives the release public key plus recovery public/private/stage keys; worker receives only the release public/private/stage keys. Do not put all key variables in a shared `.env`, because both processes fail closed when forbidden capabilities are present. Version numbers are configured separately through `DLS_RELEASE_INGRESS_KEY_VERSION`, `DLS_RECOVERY_INGRESS_KEY_VERSION`, `DLS_RELEASE_STAGE_KEY_VERSION`, and `DLS_RECOVERY_STAGE_KEY_VERSION` (default `1`).
+
+For direct host development, export only the variables listed for that process in [stage-key-capabilities.md](../../docs/operations/stage-key-capabilities.md). Docker Compose reads the files directly. Never commit generated values, paste them into logs, or reuse development secrets in production.
+
+Production deployments must use independently generated, access-controlled secret mounts and the documented rotation procedure rather than development files or `.env` values.

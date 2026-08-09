@@ -85,6 +85,36 @@ services:
     security_opt:
       - no-new-privileges:true
 
+  migrator:
+    profiles: ["ops"]
+    build:
+      context: .
+      target: test
+      args: *build-args
+    read_only: true
+    user: "1000:1000"
+    entrypoint: ["/bin/sh", "-ec"]
+    command:
+      - |
+        export DATABASE_URL="postgresql://dls_migrator:$$(cat /run/secrets/migrator_db_password)@postgres:5432/dls"
+        exec node --input-type=module --eval '
+          import { runMigrationCli } from "./packages/persistence/dist/migrations/cli.js";
+          const databaseUrl = process.env.DATABASE_URL;
+          if (!databaseUrl) throw new Error("DATABASE_URL is required");
+          await runMigrationCli({ argv: ["up"], databaseUrl });
+        '
+    secrets:
+      - migrator_db_password
+    tmpfs:
+      - /tmp:size=256m,mode=1777
+    depends_on:
+      postgres:
+        condition: service_healthy
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+
   api:
     <<: *node-service
     build:
@@ -94,11 +124,18 @@ services:
     environment:
       <<: *application-environment
       API_PORT: "3001"
+      RELEASE_INGRESS_KEY_VERSION: ${DLS_RELEASE_INGRESS_KEY_VERSION:-1}
+      RECOVERY_INGRESS_KEY_VERSION: ${DLS_RECOVERY_INGRESS_KEY_VERSION:-1}
+      RECOVERY_STAGE_KEY_VERSION: ${DLS_RECOVERY_STAGE_KEY_VERSION:-1}
     entrypoint: ["/bin/sh", "-ec"]
     command:
       - |
         export SESSION_SECRET="$$(cat /run/secrets/session_secret)"
         export TOKEN_PEPPER="$$(cat /run/secrets/token_pepper)"
+        export RELEASE_INGRESS_PUBLIC_KEY="$$(cat /run/secrets/release_ingress_public_key)"
+        export RECOVERY_INGRESS_PUBLIC_KEY="$$(cat /run/secrets/recovery_ingress_public_key)"
+        export RECOVERY_INGRESS_PRIVATE_KEY="$$(cat /run/secrets/recovery_ingress_private_key)"
+        export RECOVERY_STAGE_KEK="$$(cat /run/secrets/recovery_stage_kek)"
         export DATABASE_URL="postgresql://dls_api:$$(cat /run/secrets/api_db_password)@postgres:5432/dls"
         if [ "$$STORAGE_DRIVER" = s3 ]; then
           export S3_ACCESS_KEY_ID="$$(cat /run/dls-s3-secrets/minio-access-key)"
@@ -109,6 +146,10 @@ services:
       - session_secret
       - token_pepper
       - api_db_password
+      - release_ingress_public_key
+      - recovery_ingress_public_key
+      - recovery_ingress_private_key
+      - recovery_stage_kek
     volumes:
       - private_objects:/var/lib/dls/objects/private
       - staging_objects:/var/lib/dls/objects/staging
@@ -138,12 +179,18 @@ services:
       context: .
       target: worker
       args: *build-args
-    environment: *application-environment
+    environment:
+      <<: *application-environment
+      RELEASE_INGRESS_KEY_VERSION: ${DLS_RELEASE_INGRESS_KEY_VERSION:-1}
+      RELEASE_STAGE_KEY_VERSION: ${DLS_RELEASE_STAGE_KEY_VERSION:-1}
     entrypoint: ["/bin/sh", "-ec"]
     command:
       - |
         export SESSION_SECRET="$$(cat /run/secrets/session_secret)"
         export TOKEN_PEPPER="$$(cat /run/secrets/token_pepper)"
+        export RELEASE_INGRESS_PUBLIC_KEY="$$(cat /run/secrets/release_ingress_public_key)"
+        export RELEASE_INGRESS_PRIVATE_KEY="$$(cat /run/secrets/release_ingress_private_key)"
+        export RELEASE_STAGE_KEK="$$(cat /run/secrets/release_stage_kek)"
         export DATABASE_URL="postgresql://dls_worker:$$(cat /run/secrets/worker_db_password)@postgres:5432/dls"
         if [ "$$STORAGE_DRIVER" = s3 ]; then
           export S3_ACCESS_KEY_ID="$$(cat /run/dls-s3-secrets/minio-access-key)"
@@ -154,6 +201,9 @@ services:
       - session_secret
       - token_pepper
       - worker_db_password
+      - release_ingress_public_key
+      - release_ingress_private_key
+      - release_stage_kek
     volumes:
       - private_objects:/var/lib/dls/objects/private
       - staging_objects:/var/lib/dls/objects/staging
@@ -384,6 +434,18 @@ secrets:
     file: ${DLS_SECRETS_DIR:-./ops/secrets/generated}/session-secret
   token_pepper:
     file: ${DLS_SECRETS_DIR:-./ops/secrets/generated}/token-pepper
+  release_ingress_public_key:
+    file: ${DLS_SECRETS_DIR:-./ops/secrets/generated}/release-ingress-public-key
+  release_ingress_private_key:
+    file: ${DLS_SECRETS_DIR:-./ops/secrets/generated}/release-ingress-private-key
+  release_stage_kek:
+    file: ${DLS_SECRETS_DIR:-./ops/secrets/generated}/release-stage-kek
+  recovery_ingress_public_key:
+    file: ${DLS_SECRETS_DIR:-./ops/secrets/generated}/recovery-ingress-public-key
+  recovery_ingress_private_key:
+    file: ${DLS_SECRETS_DIR:-./ops/secrets/generated}/recovery-ingress-private-key
+  recovery_stage_kek:
+    file: ${DLS_SECRETS_DIR:-./ops/secrets/generated}/recovery-stage-kek
   minio_access_key:
     file: ${DLS_SECRETS_DIR:-./ops/secrets/generated}/minio-access-key
   minio_secret_key:

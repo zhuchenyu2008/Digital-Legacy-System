@@ -12,24 +12,6 @@ $secretDirectory = Join-Path $repositoryRoot ".compose-smoke-secrets"
 $dockerConfigDirectory = Join-Path $repositoryRoot ".docker-config"
 $composeStarted = $false
 
-function New-RandomSecret {
-  $bytes = [byte[]]::new(32)
-  $generator = [Security.Cryptography.RandomNumberGenerator]::Create()
-  try {
-    $generator.GetBytes($bytes)
-  } finally {
-    $generator.Dispose()
-  }
-  return [Convert]::ToBase64String($bytes)
-}
-
-function Initialize-SecretFile([string]$Name) {
-  $path = Join-Path $secretDirectory $Name
-  if (-not (Test-Path -LiteralPath $path)) {
-    [IO.File]::WriteAllText($path, (New-RandomSecret), [Text.UTF8Encoding]::new($false))
-  }
-}
-
 function Invoke-Compose {
   & docker compose --project-name $projectName @args
   if ($LASTEXITCODE -ne 0) {
@@ -55,18 +37,6 @@ function Wait-Ready([int]$Port) {
 }
 
 New-Item -ItemType Directory -Force -Path $secretDirectory, $dockerConfigDirectory | Out-Null
-foreach ($name in @(
-  "postgres-superuser-password",
-  "api-db-password",
-  "worker-db-password",
-  "migrator-db-password",
-  "backup-db-password",
-  "health-db-password",
-  "session-secret",
-  "token-pepper"
-)) {
-  Initialize-SecretFile $name
-}
 
 $listener = [Net.Sockets.TcpListener]::new([Net.IPAddress]::Loopback, 0)
 $listener.Start()
@@ -81,10 +51,17 @@ $env:DLS_SECRETS_DIR = $secretDirectory
 $env:DLS_HTTP_PORT = $httpPort.ToString()
 
 try {
+  & node (Join-Path $repositoryRoot "ops/scripts/generate-development-secrets.mjs")
+  if ($LASTEXITCODE -ne 0) {
+    throw "Development secret generation failed with exit code $LASTEXITCODE"
+  }
+
   Invoke-Compose config --quiet
-  Invoke-Compose build api worker web
+  Invoke-Compose --profile ops build migrator api worker web
   $composeStarted = $true
-  Invoke-Compose up --detach postgres mailpit api worker web caddy
+  Invoke-Compose up --detach postgres mailpit
+  Invoke-Compose --profile ops run --rm migrator
+  Invoke-Compose up --detach api worker web caddy
   Wait-Ready $httpPort
 
   $services = @(& docker compose --project-name $projectName ps --services)
@@ -110,6 +87,11 @@ try {
   Invoke-Compose exec --no-TTY api grep --quiet --line-regexp public /var/lib/dls/objects/public/compose-smoke-marker
 
   Write-Host "Compose smoke test passed on http://127.0.0.1:$httpPort"
+} catch {
+  if ($composeStarted) {
+    & docker compose --project-name $projectName logs --no-color --tail 200
+  }
+  throw
 } finally {
   if ($composeStarted) {
     if ($DeleteVolumes) {

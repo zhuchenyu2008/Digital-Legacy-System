@@ -32,5 +32,6 @@ create_login_role dls_health /run/secrets/health_db_password
 
 psql --set ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-'SQL'
 GRANT CONNECT ON DATABASE dls TO dls_api, dls_worker, dls_migrator, dls_backup, dls_health;
+GRANT CREATE ON DATABASE dls TO dls_migrator;
 GRANT pg_monitor TO dls_health;
 SQL

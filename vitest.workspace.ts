@@ -24,6 +24,14 @@ export default defineConfig({
       {
         resolve: { alias: workspaceAliases },
         test: {
+          name: "security",
+          environment: "node",
+          include: ["tests/security/**/*.test.ts"],
+        },
+      },
+      {
+        resolve: { alias: workspaceAliases },
+        test: {
           name: "contracts-drift",
           environment: "node",
           include: ["tests/contracts/**/*.test.ts"],

@@ -13,6 +13,7 @@ type ComposeService = {
   read_only?: boolean;
   environment?: Record<string, string | null> | string[];
   image?: string;
+  secrets?: Array<string | { source?: string }>;
 };
 
 type ComposeConfig = {
@@ -66,6 +67,27 @@ describe("Docker Compose topology", () => {
     expect(s3.services["minio-init"]?.profiles).toEqual(["s3"]);
   });
 
+  test("provides a least-privilege migration job without starting it by default", () => {
+    const migrator = composeConfig(["ops"]).services.migrator;
+    expect(migrator?.profiles).toEqual(["ops"]);
+    expect(migrator?.read_only).toBe(true);
+    expect(publishedPorts(migrator ?? {})).toBe(0);
+    expect(
+      migrator?.secrets?.some((secret) =>
+        typeof secret === "string"
+          ? secret === "migrator_db_password"
+          : secret.source === "migrator_db_password",
+      ),
+    ).toBe(true);
+
+    const roleBootstrap = readFileSync(
+      resolve(workspaceRoot, "ops/postgres/init/001-roles.sh"),
+      "utf8",
+    );
+    expect(roleBootstrap).not.toContain("\r");
+    expect(roleBootstrap).toContain("GRANT CREATE ON DATABASE dls TO dls_migrator;");
+  });
+
   test("defines durable database and object volumes", () => {
     expect(Object.keys(composeConfig().volumes ?? {}).sort()).toEqual(
       expect.arrayContaining([
@@ -113,5 +135,37 @@ describe("Docker Compose topology", () => {
         `${name} contains a production secret`,
       ).not.toMatch(/(?:PASSWORD|SECRET|TOKEN|ACCESS_KEY)"?\s*[:=]\s*"?(?!\$\{|\/run\/secrets\/)/i);
     }
+  });
+
+  test("mounts purpose-separated key capabilities into only the owning process", () => {
+    const services = composeConfig().services;
+    const names = (service: ComposeService | undefined) =>
+      new Set(
+        (service?.secrets ?? []).map((secret) =>
+          typeof secret === "string" ? secret : String(secret.source),
+        ),
+      );
+    const api = names(services.api);
+    for (const capability of [
+      "release_ingress_public_key",
+      "recovery_ingress_public_key",
+      "recovery_ingress_private_key",
+      "recovery_stage_kek",
+    ]) {
+      expect(api).toContain(capability);
+    }
+    expect(api).not.toContain("release_ingress_private_key");
+    expect(api).not.toContain("release_stage_kek");
+
+    const worker = names(services.worker);
+    for (const capability of [
+      "release_ingress_public_key",
+      "release_ingress_private_key",
+      "release_stage_kek",
+    ]) {
+      expect(worker).toContain(capability);
+    }
+    expect(worker).not.toContain("recovery_ingress_private_key");
+    expect(worker).not.toContain("recovery_stage_kek");
   });
 });

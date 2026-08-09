@@ -7,6 +7,10 @@ export const FRAGMENT_INGRESS_ALGORITHM = "x25519-xsalsa20poly1305-v1" as const;
 export const FRAGMENT_PURPOSES = ["DEATH", "RECOVERY"] as const;
 export type FragmentPurpose = (typeof FRAGMENT_PURPOSES)[number];
 
+const X25519_KEY_BYTES = 32;
+const BOX_NONCE_BYTES = 24;
+const BOX_MAC_BYTES = 16;
+
 const Base64UrlField = z.string().refine(isCanonicalBase64Url, "must be canonical base64url");
 
 const FragmentContextSchema = z
@@ -38,13 +42,10 @@ export const FragmentIngressV1Schema = FragmentContextSchema.extend({
 })
   .strict()
   .superRefine((value, context) => {
-    if (decodeBase64Url(value.nonce).length !== sodium.crypto_box_NONCEBYTES) {
+    if (decodeBase64Url(value.nonce).length !== BOX_NONCE_BYTES) {
       context.addIssue({ code: "custom", path: ["nonce"], message: "nonce must be 24 bytes" });
     }
-    if (
-      decodeBase64Url(value.ciphertext).length <=
-      sodium.crypto_box_PUBLICKEYBYTES + sodium.crypto_box_MACBYTES
-    ) {
+    if (decodeBase64Url(value.ciphertext).length <= X25519_KEY_BYTES + BOX_MAC_BYTES) {
       context.addIssue({
         code: "custom",
         path: ["ciphertext"],
@@ -63,7 +64,7 @@ const textEncoder = new TextEncoder();
 const textDecoder = new TextDecoder("utf-8", { fatal: true });
 
 function ownKey(value: Uint8Array, name: string): Uint8Array {
-  if (!(value instanceof Uint8Array) || value.length !== sodium.crypto_box_PUBLICKEYBYTES) {
+  if (!(value instanceof Uint8Array) || value.length !== X25519_KEY_BYTES) {
     throw new Error(`${name} must be 32 bytes`);
   }
   return new Uint8Array(value);
@@ -143,7 +144,7 @@ export async function sealFragmentIngressV1(
     const sender = sodium.crypto_box_keypair();
     senderPublicKey = new Uint8Array(sender.publicKey);
     senderPrivateKey = new Uint8Array(sender.privateKey);
-    nonce = new Uint8Array(sodium.randombytes_buf(sodium.crypto_box_NONCEBYTES));
+    nonce = new Uint8Array(sodium.randombytes_buf(BOX_NONCE_BYTES));
     boxed = new Uint8Array(
       sodium.crypto_box_easy(plaintext, nonce, recipientPublicKey, senderPrivateKey),
     );
@@ -184,8 +185,8 @@ export async function openFragmentIngressV1(
   const recipientPrivateKey = ownKey(input.recipientKeyPair.privateKey, "recipient private key");
   const nonce = decodeBase64Url(envelope.nonce);
   const combinedCiphertext = decodeBase64Url(envelope.ciphertext);
-  const senderPublicKey = combinedCiphertext.slice(0, sodium.crypto_box_PUBLICKEYBYTES);
-  const boxed = combinedCiphertext.slice(sodium.crypto_box_PUBLICKEYBYTES);
+  const senderPublicKey = combinedCiphertext.slice(0, X25519_KEY_BYTES);
+  const boxed = combinedCiphertext.slice(X25519_KEY_BYTES);
   let plaintext: Uint8Array | undefined;
   try {
     await sodium.ready;

@@ -1,37 +1,161 @@
 # Digital Legacy System
 
-数字遗产系统的需求、架构、安全、页面和交付设计基线。
+Digital Legacy System（数字遗产系统）是一个面向单一所有者的本地优先数字遗产保管与条件发布系统。所有者定期签到；逾期后由预先登记的紧急联系人参与确认；达到门限并经过 24 小时最终撤销窗口后，系统才会发布遗嘱正文、数字遗产 ZIP 和脱敏审计链。
+
+所有业务时间按北京时间（`Asia/Shanghai`，UTC+08:00）解释，数据库时间统一存储为 UTC。
+
+> 本项目负责加密保管、条件触发、通知、发布和审计，不替代遗嘱签名、见证、公证或法律意见。当前代码属于本地 V1 工程交付，不应未经独立安全审计和运维加固直接用于生产。
 
 ## 当前状态
 
-当前仓库是“设计与开发准备阶段”，不是可运行产品。仓库中的 HTML 和 PNG 是视觉参考，不代表已经实现了认证、加密、上传、调度、发布或审计功能。
+计划 1–5 已完成并有验收记录，覆盖工程基础、领域与持久化、密码学与存储、身份/签到/联系人，以及工作流/通知/不可变发布。
 
-默认业务时区为北京时间 `Asia/Shanghai`。当前产品基线继续保留：单一管理员、无 MFA、不做自动备份、发布后不可撤回。
+已实现的主要能力包括：
 
-## 文档入口
+- 单所有者初始化、密码认证、会话/CSRF 防护和按北京时间自然日签到；
+- 联系人邀请、知情同意、密钥登记、版本化 Shamir/VSS 分片与密文保管；
+- 加密 ZIP 上传、完整性校验、版本激活及文件系统/S3 存储端口；
+- 逾期检测、死亡确认、存活取消、24 小时发布倒计时和所有者密码恢复；
+- API/worker 用途分离的 X25519 入口密钥与暂存 KEK，禁止跨进程挂载；
+- 事务 outbox、幂等 pg-boss 任务、SMTP 重试/备用地址策略和版本化中文邮件；
+- DLSF 流式解密、严格 ZIP/`will.md` 校验、内容寻址公开对象、原子可见性和不可变公开审计；
+- 公开遗嘱、审计和 ZIP 下载接口，支持单段 Range、ETag、不可变缓存及带宽/并发限制。
 
-| 文档 | 用途 |
-|---|---|
-| [产品需求](./docs/01-product-requirements.md) | 目标、范围、状态机、邮件文案、验收场景 |
-| [系统架构](./docs/02-system-architecture.md) | Web/API/Worker、密码学、任务、发布流水线 |
-| [数据库设计](./docs/03-database-design.md) | PostgreSQL 表、约束、事务和迁移要求 |
-| [API 设计](./docs/04-api-design.md) | REST 契约、错误码、OpenAPI 和客户端边界 |
-| [安全与隐私](./docs/05-security-privacy.md) | 威胁模型、密码学、隐私、事件响应和安全门禁 |
-| [页面规格](./docs/06-page-specifications.md) | 页面、邮件、状态、无障碍和错误态 |
-| [工程与运维设计](./docs/07-implementation-and-operations.md) | 环境、部署、Secret、迁移、运维和运行手册 |
-| [测试与验收计划](./docs/08-test-and-acceptance-plan.md) | 测试矩阵、证据、签字和上线门禁执行方式 |
+`apps/web` 当前只提供可部署的 Next.js 服务壳；完整业务页面、交互式初始化和演练 UI 属于后续计划，不在本次计划 1–5 的完成范围内。后端 API 契约见 [`packages/contracts/openapi/openapi.json`](./packages/contracts/openapi/openapi.json)。
 
-## 阅读顺序
+## 技术栈与目录
 
-1. 先阅读产品需求和待确认决策。
-2. 再阅读架构、数据库、API 和安全设计。
-3. 按页面规格实现前端和邮件模板。
-4. 按工程与运维设计建立环境。
-5. 按测试与验收计划执行开发、集成和上线前验证。
+| 位置 | 职责 |
+| --- | --- |
+| `apps/api` | NestJS + Fastify HTTP API、认证、恢复和公开读取 |
+| `apps/worker` | pg-boss 调度、工作流推进、通知投递和最终发布 |
+| `apps/web` | Next.js Web 服务壳 |
+| `packages/application` | 用例、端口、状态推进与事务边界 |
+| `packages/domain` | 领域模型、状态机和业务不变量 |
+| `packages/crypto` | Argon2id、XChaCha20-Poly1305、X25519、DLSF 流格式 |
+| `packages/vss-wasm` | Rust/WASM Shamir + Feldman VSS |
+| `packages/persistence` | PostgreSQL 迁移、仓储、审计、outbox 与 pg-boss 适配 |
+| `packages/storage` | 文件系统和 S3 兼容对象存储 |
+| `packages/contracts` | OpenAPI、DTO、错误码和生成客户端 |
+| `packages/email-templates` | 严格变量校验的版本化中文邮件模板 |
+| `tests` | 集成、并发、故障注入、部署和架构门禁 |
 
-## 设计状态约定
+## 环境要求
 
-- `已确认`：产品基线已经确定，实现不得自行改变语义。
-- `设计基线`：方案已写明，但仍须通过代码评审和测试验证。
-- `待确认`：没有足够产品或运营信息，暂不应被实现为不可逆行为。
-- `未执行`：设计要求已经存在，但仓库还没有实现或测试证据。
+- Node.js `24.18.0`；
+- pnpm `11.20.0`（仓库通过 Corepack 固定）；
+- Docker Desktop 或兼容的 Docker Engine + Compose v2；
+- Windows PowerShell 7，或 Linux/macOS 的 POSIX shell。
+
+安装依赖：
+
+```powershell
+corepack enable
+corepack prepare pnpm@11.20.0 --activate
+pnpm install --frozen-lockfile
+```
+
+## Docker Compose 快速启动
+
+1. 生成仅用于本地开发的完整 secret 文件集：
+
+   ```powershell
+   node ops/scripts/generate-development-secrets.mjs
+   ```
+
+   生成器只创建缺失文件，不覆盖已有值，也不会输出密钥内容。密钥文件默认位于被 Git 忽略的 `ops/secrets/generated/`。
+
+2. 构建应用和一次性迁移镜像：
+
+   ```powershell
+   docker compose --profile ops build migrator api worker web caddy
+   ```
+
+3. 启动 PostgreSQL 与 Mailpit，执行数据库迁移，再启动应用：
+
+   ```powershell
+   docker compose up -d postgres mailpit
+   docker compose --profile ops run --rm migrator
+   docker compose up -d api worker web caddy
+   ```
+
+4. 检查就绪状态：
+
+   ```powershell
+   Invoke-RestMethod http://127.0.0.1:8080/health/ready
+   ```
+
+   Web 服务入口为 `http://127.0.0.1:8080`，HTTP API 经 Caddy 的 `/api/*` 转发。默认只有 Caddy 绑定主机端口；PostgreSQL、Mailpit、API 和 worker 均不直接暴露到主机。
+
+5. 停止服务：
+
+   ```powershell
+   docker compose down
+   ```
+
+   此命令保留数据库和对象卷。只有在确认要清空全部本地数据时才使用 `docker compose down --volumes`。
+
+如需 MinIO，将 `DLS_STORAGE_DRIVER` 设置为 `s3`，并启用 `s3` profile。开发 secret 生成器已经包含 MinIO 凭据。
+
+## 验证
+
+完整验收需要 Docker、PostgreSQL 测试连接和 Playwright 运行环境：
+
+```powershell
+pnpm acceptance
+```
+
+常用的分层门禁：
+
+```powershell
+pnpm check
+pnpm test:unit
+pnpm test:integration
+pnpm test:crypto
+pnpm test:storage
+pnpm test:security
+pnpm test:deployment
+pnpm exec vitest run tests/concurrency
+pnpm exec vitest run tests/faults
+pnpm openapi:check
+pnpm build
+```
+
+当前计划 1–5 中，`test:e2e` 与 `test:security` 是分别为计划 6、计划 7 预留的隔离目录；目录为空时命令会明确报告零测试并退出成功，不代表浏览器 E2E 或对抗性安全覆盖已经完成。
+
+Compose 启动、迁移、重启和持久卷检查可使用：
+
+```powershell
+./ops/scripts/compose-smoke.ps1 -DeleteVolumes
+```
+
+Linux/macOS 对应命令为 `./ops/scripts/compose-smoke.sh --delete-volumes`。
+
+## 配置与密钥
+
+- 普通运行配置参考 [`.env.example`](./.env.example)；
+- 开发 secret 生成和文件清单见 [`ops/secrets/README.md`](./ops/secrets/README.md)；
+- 入口密钥、暂存 KEK、版本和轮换流程见 [`docs/operations/stage-key-capabilities.md`](./docs/operations/stage-key-capabilities.md)；
+- API 和 worker 必须只挂载各自拥有的密钥能力，任一禁止变量都会导致进程 fail closed；
+- 生产环境不得复用开发 secret、共享 `.env` 或将密钥写入镜像、日志、数据库及对象存储。
+
+## 设计与验收文档
+
+| 文档 | 内容 |
+| --- | --- |
+| [`docs/01-product-requirements.md`](./docs/01-product-requirements.md) | 产品范围、状态机和业务规则 |
+| [`docs/02-system-architecture.md`](./docs/02-system-architecture.md) | 系统组件、信任边界和数据流 |
+| [`docs/03-database-design.md`](./docs/03-database-design.md) | PostgreSQL 模型、约束与审计 |
+| [`docs/04-api-design.md`](./docs/04-api-design.md) | REST 契约和错误语义 |
+| [`docs/05-security-privacy.md`](./docs/05-security-privacy.md) | 威胁模型、密码学与隐私边界 |
+| [`docs/07-implementation-and-operations.md`](./docs/07-implementation-and-operations.md) | 工程、部署和运维基线 |
+| [`docs/08-test-and-acceptance-plan.md`](./docs/08-test-and-acceptance-plan.md) | 测试矩阵和上线门禁 |
+| [`docs/acceptance/05-workflows-publication.md`](./docs/acceptance/05-workflows-publication.md) | 计划 5 的实际验收证据 |
+
+## 重要限制
+
+- 系统只支持一个所有者，不支持多租户或组织账号；
+- 当前没有 MFA、自动备份或灾难恢复承诺；
+- 邮件只发送通知和链接，不直接发送遗产 ZIP；
+- `RELEASED` 是不可撤销终态，公开内容不能通过应用修改、隐藏或删除；
+- 自动化测试不能替代 VSS、密钥协议和整体部署的独立安全审计。

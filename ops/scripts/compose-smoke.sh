@@ -16,14 +16,6 @@ secret_directory=$repository_root/.compose-smoke-secrets
 docker_config_directory=$repository_root/.docker-config
 compose_started=false
 
-initialize_secret_file() {
-  secret_path=$secret_directory/$1
-  if [ ! -f "$secret_path" ]; then
-    umask 077
-    openssl rand -base64 32 > "$secret_path"
-  fi
-}
-
 compose() {
   docker compose --project-name "$project_name" "$@"
 }
@@ -47,6 +39,9 @@ cleanup() {
   status=$?
   trap - EXIT INT TERM
   if [ "$compose_started" = true ]; then
+    if [ "$status" -ne 0 ]; then
+      compose logs --no-color --tail 200 || true
+    fi
     if [ "$delete_volumes" = true ]; then
       compose down --remove-orphans --volumes || true
     else
@@ -58,27 +53,18 @@ cleanup() {
 trap cleanup EXIT INT TERM
 
 mkdir -p "$secret_directory" "$docker_config_directory"
-for name in \
-  postgres-superuser-password \
-  api-db-password \
-  worker-db-password \
-  migrator-db-password \
-  backup-db-password \
-  health-db-password \
-  session-secret \
-  token-pepper
-do
-  initialize_secret_file "$name"
-done
 
 export DOCKER_CONFIG=$docker_config_directory
 export DLS_SECRETS_DIR=$secret_directory
 export DLS_HTTP_PORT=${DLS_HTTP_PORT:-18080}
 
+node "$repository_root/ops/scripts/generate-development-secrets.mjs"
 compose config --quiet
-compose build api worker web
+compose --profile ops build migrator api worker web
 compose_started=true
-compose up --detach postgres mailpit api worker web caddy
+compose up --detach postgres mailpit
+compose --profile ops run --rm migrator
+compose up --detach api worker web caddy
 wait_ready
 
 if compose ps --services | grep -E '^(minio|minio-init)$' >/dev/null; then
