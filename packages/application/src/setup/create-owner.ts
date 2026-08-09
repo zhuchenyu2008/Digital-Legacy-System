@@ -1,4 +1,5 @@
 import { randomUUID, timingSafeEqual } from "node:crypto";
+import { computeCheckinDeadline } from "@dls/domain";
 import type { IssuedSession } from "../auth/session.js";
 import type { SessionService } from "../auth/session-service.js";
 import { OWNER_ACTOR_ID } from "../owner/owner-identity.js";
@@ -132,10 +133,6 @@ function beijingDate(instant: string): string {
   return `${values.year}-${values.month}-${values.day}`;
 }
 
-function addDays(instant: string, days: number): string {
-  return new Date(Date.parse(instant) + days * 24 * 60 * 60 * 1000).toISOString();
-}
-
 export async function createOwner(
   command: OwnerSetupCommand,
   dependencies: OwnerSetupDependencies,
@@ -176,7 +173,7 @@ export async function createOwner(
           : decodeBase64Url(envelope.aadHash, "owner envelope AAD hash", 16);
       const checkInId = idFactory();
       const scheduleId = idFactory();
-      const deadlineAt = addDays(now, 3);
+      const deadlineAt = computeCheckinDeadline(now, 3);
       const consentDocumentSha256 = dependencies.consentDocumentSha256 ?? new Uint8Array(32);
 
       await tx.repositories.ownerProfile.insert({

@@ -42,12 +42,13 @@ export type SubmitFragmentCommand = Readonly<{
   nonce: Uint8Array;
   ciphertext: Uint8Array;
   requestId: string;
+  decisionDigest: Uint8Array;
 }>;
 
 export type ProcessSubmittedFragmentCommand = Readonly<{
-  workflowId: string;
-  contactId: string;
   fragmentId: string;
+  workflowId?: string;
+  contactId?: string;
 }>;
 
 export type FragmentLifecycleResult = Readonly<{
@@ -196,6 +197,7 @@ export async function submitFragment(
   const nonce = bytes(command.nonce, "fragment nonce", 24);
   const ciphertext = bytes(command.ciphertext, "fragment ciphertext", undefined, 49);
   const commitmentDigest = bytes(command.commitmentDigest, "commitment digest", 32);
+  const decisionDigest = bytes(command.decisionDigest, "decision digest", 32);
   positiveInteger(command.shareIndex, "share index");
   positiveInteger(command.ingressKeyVersion, "ingress key version");
   if (command.protocolVersion !== 1) {
@@ -204,86 +206,104 @@ export async function submitFragment(
 
   try {
     return await dependencies.transaction.run(
-      async (tx) => {
-        const { keyShare } = await validateSnapshot(tx, command, true);
-        const expectedCommitment = shareCommitment(keyShare, command.purpose);
-        const expectedDigest = digest(expectedCommitment);
-        if (!equalBytes(commitmentDigest, expectedDigest)) {
-          throw new WorkflowFragmentError(
-            "DLS-FRAGMENT-CONTEXT",
-            "commitment digest does not match the snapshot",
-            409,
-          );
-        }
-
-        const fragments = repository(
-          tx.repositories.workflowKeyFragments,
-          "workflow key fragments",
-        );
-        const existing = await findSnapshotRow(
-          fragments,
-          "workflow_id",
-          command.workflowId,
-          (row) => String(row.contact_id) === command.contactId && row.purpose === command.purpose,
-          true,
-        );
-        if (existing !== null) {
-          throw new WorkflowFragmentError(
-            "DLS-FRAGMENT-DUPLICATE",
-            "contact already submitted this workflow fragment",
-            409,
-          );
-        }
-
-        const fragmentId = idFactory();
-        const now = await tx.clock.now();
-        await fragments.insert({
-          id: fragmentId,
-          workflow_id: command.workflowId,
-          contact_id: command.contactId,
-          purpose: command.purpose,
-          generation_id: command.generationId,
-          share_index: command.shareIndex,
-          fragment_ciphertext: ciphertext,
-          fragment_nonce: nonce,
-          fragment_commitment: expectedCommitment,
-          fragment_commitment_digest: commitmentDigest,
-          status: "PENDING",
-          ingress_key_version: command.ingressKeyVersion,
-          stage_key_version: null,
-          protocol_version: 1,
-          created_at: now,
-          updated_at: now,
-        });
-        await tx.audit.append({
-          eventId: crypto.randomUUID(),
-          occurredAt: now,
-          eventType: "WORKFLOW_FRAGMENT_SUBMITTED",
-          actorType: "CONTACT",
-          actorIdDigest: digest(new TextEncoder().encode(command.contactId)),
-          aggregateType: "workflow",
-          aggregateId: command.workflowId,
-          requestId: command.requestId,
-          result: "SUCCESS",
-          metadata: { fragmentId, purpose: command.purpose },
-        });
-        await tx.outbox.enqueue({
-          eventType: "WORKFLOW_FRAGMENT_SUBMITTED",
-          aggregateType: "workflow",
-          aggregateId: command.workflowId,
-          payload: { workflowId: command.workflowId, contactId: command.contactId, fragmentId },
-          idempotencyKey: `workflow-fragment:${fragmentId}`,
-          availableAt: now,
-        });
-        return { fragmentId, status: "PENDING" };
-      },
+      (tx) =>
+        submitFragmentInTransaction(
+          { ...command, nonce, ciphertext, commitmentDigest, decisionDigest },
+          { tx, idFactory },
+        ),
       { isolation: "serializable" },
     );
   } finally {
     nonce.fill(0);
     ciphertext.fill(0);
     commitmentDigest.fill(0);
+    decisionDigest.fill(0);
   }
+}
+
+export async function submitFragmentInTransaction(
+  command: SubmitFragmentCommand,
+  dependencies: Readonly<{
+    tx: Parameters<Parameters<TransactionManager["run"]>[0]>[0];
+    idFactory: () => string;
+  }>,
+): Promise<FragmentLifecycleResult> {
+  const { tx, idFactory } = dependencies;
+  const { keyShare } = await validateSnapshot(tx, command, true);
+  const expectedCommitment = shareCommitment(keyShare, command.purpose);
+  const expectedDigest = digest(expectedCommitment);
+  if (!equalBytes(command.commitmentDigest, expectedDigest)) {
+    throw new WorkflowFragmentError(
+      "DLS-FRAGMENT-CONTEXT",
+      "commitment digest does not match the snapshot",
+      409,
+    );
+  }
+
+  const fragments = repository(tx.repositories.workflowKeyFragments, "workflow key fragments");
+  const existing = await findSnapshotRow(
+    fragments,
+    "workflow_id",
+    command.workflowId,
+    (row) => String(row.contact_id) === command.contactId && row.purpose === command.purpose,
+    true,
+  );
+  if (existing !== null) {
+    throw new WorkflowFragmentError(
+      "DLS-FRAGMENT-DUPLICATE",
+      "contact already submitted this workflow fragment",
+      409,
+    );
+  }
+
+  const fragmentId = idFactory();
+  const now = await tx.clock.now();
+  await fragments.insert({
+    id: fragmentId,
+    workflow_id: command.workflowId,
+    contact_id: command.contactId,
+    purpose: command.purpose,
+    generation_id: command.generationId,
+    share_index: command.shareIndex,
+    fragment_ciphertext: command.ciphertext,
+    fragment_nonce: command.nonce,
+    fragment_commitment: expectedCommitment,
+    fragment_commitment_digest: command.commitmentDigest,
+    decision_digest: command.decisionDigest,
+    status: "PENDING",
+    ingress_key_version: command.ingressKeyVersion,
+    stage_key_version: null,
+    protocol_version: 1,
+    created_at: now,
+    updated_at: now,
+  });
+  await tx.audit.append({
+    eventId: crypto.randomUUID(),
+    occurredAt: now,
+    eventType: "WORKFLOW_FRAGMENT_SUBMITTED",
+    actorType: "CONTACT",
+    actorIdDigest: digest(new TextEncoder().encode(command.contactId)),
+    aggregateType: "workflow",
+    aggregateId: command.workflowId,
+    requestId: command.requestId,
+    result: "SUCCESS",
+    metadata: { fragmentId, purpose: command.purpose },
+  });
+  await tx.outbox.enqueue({
+    eventType: "WORKFLOW_FRAGMENT_SUBMITTED",
+    aggregateType: "workflow_fragment",
+    aggregateId: fragmentId,
+    payload: {
+      aggregateId: fragmentId,
+      aggregateVersion: 0,
+      workflowId: command.workflowId,
+      contactId: command.contactId,
+      fragmentId,
+    },
+    idempotencyKey: `workflow-fragment:${fragmentId}`,
+    availableAt: now,
+  });
+  return { fragmentId, status: "PENDING" };
 }
 
 function lifecycleStatus(value: unknown): FragmentLifecycleResult["status"] {
@@ -325,8 +345,8 @@ export async function processSubmittedFragment(
       const fragment = await fragments.findById(command.fragmentId, { forUpdate: true });
       if (
         fragment === null ||
-        String(fragment.workflow_id) !== command.workflowId ||
-        String(fragment.contact_id) !== command.contactId
+        (command.workflowId !== undefined && String(fragment.workflow_id) !== command.workflowId) ||
+        (command.contactId !== undefined && String(fragment.contact_id) !== command.contactId)
       ) {
         throw new WorkflowFragmentError("DLS-FRAGMENT-CONTEXT", "fragment was not found", 404);
       }
@@ -342,8 +362,8 @@ export async function processSubmittedFragment(
         return rejectFragment(fragments, fragment);
       }
       const snapshotInput = {
-        workflowId: command.workflowId,
-        contactId: command.contactId,
+        workflowId: String(fragment.workflow_id),
+        contactId: String(fragment.contact_id),
         generationId: String(fragment.generation_id),
         shareIndex: positiveInteger(fragment.share_index, "share index"),
         purpose,

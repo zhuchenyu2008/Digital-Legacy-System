@@ -17,6 +17,7 @@ export interface StageKeyProvider {
     version: number,
   ): Promise<VersionedIngressKeyPair>;
   currentStageKey(purpose: WorkflowFragmentPurpose): Promise<VersionedStageKey>;
+  stageKey?(purpose: WorkflowFragmentPurpose, version: number): Promise<VersionedStageKey>;
 }
 
 export type FragmentEnvelopeContext = Readonly<{

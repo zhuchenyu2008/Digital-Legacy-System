@@ -46,10 +46,10 @@ describe("owner login and check-in contract", () => {
         },
       ),
     ]);
-    expect(first.nextDeadlineAt).toBe("2026-08-11T14:00:00Z");
-    expect(second.nextDeadlineAt).toBe("2026-08-11T14:00:00Z");
+    expect(first.nextDeadlineAt).toBe("2026-08-11T16:00:00Z");
+    expect(second.nextDeadlineAt).toBe("2026-08-11T16:00:00Z");
     expect(state.checkIns.filter((row) => row.beijing_date === "2026-08-08")).toHaveLength(1);
-    expect(state.schedule.deadline_at).toBe("2026-08-11T14:00:00Z");
+    expect(state.schedule.deadline_at).toBe("2026-08-11T16:00:00Z");
   });
 
   it("rejects settings mutations with a stale version before touching the schedule", async () => {

@@ -1,4 +1,4 @@
-import { addExactDays, parseInstant } from "@dls/domain";
+import { beijingDateAt, computeCheckinDeadline, parseInstant } from "@dls/domain";
 import type { IssuedSession } from "../auth/session.js";
 import type { SessionService } from "../auth/session-service.js";
 import type { TransactionManager } from "../ports/transaction-manager.js";
@@ -44,17 +44,6 @@ export class OwnerLoginError extends Error {
   }
 }
 
-function beijingDate(instant: string): string {
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Asia/Shanghai",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).formatToParts(new Date(instant));
-  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
-  return `${values.year}-${values.month}-${values.day}`;
-}
-
 function instant(value: unknown, name: string): string {
   if (typeof value !== "string")
     throw new OwnerLoginError("OWNER_CHECKIN_UNAVAILABLE", `${name} is invalid`);
@@ -96,7 +85,7 @@ export async function loginOwner(
       }
 
       const now = await tx.clock.now();
-      const day = beijingDate(now);
+      const day = beijingDateAt(now);
       const existing = await tx.repositories.checkIns.findOneBy?.("beijing_date", day, {
         forUpdate: true,
       });
@@ -108,7 +97,7 @@ export async function loginOwner(
         throw new OwnerLoginError("OWNER_CHECKIN_UNAVAILABLE", "check-in schedule is unavailable");
       }
       const thresholdDays = positiveDays(schedule.threshold_days, 3);
-      const deadlineAt = addExactDays(now, thresholdDays);
+      const deadlineAt = computeCheckinDeadline(now, thresholdDays);
       if (existing === null || existing === undefined) {
         const checkInId = idFactory();
         await tx.repositories.checkIns.insert({
@@ -135,12 +124,15 @@ export async function loginOwner(
           },
         );
         await tx.outbox.enqueue({
-          eventType: "OWNER_CHECKIN_RECONCILE",
-          aggregateType: "owner",
-          aggregateId: ownerId,
-          payload: { checkInId, deadlineAt },
+          eventType: "CHECKIN_EVALUATE_REQUESTED",
+          aggregateType: "checkin_schedule",
+          aggregateId: String(schedule.id),
+          payload: {
+            aggregateId: String(schedule.id),
+            aggregateVersion: Number(schedule.schedule_version ?? 0) + 1,
+          },
           idempotencyKey: `owner-checkin:${command.requestId}`,
-          availableAt: now,
+          availableAt: deadlineAt,
         });
       }
       await tx.audit.append({

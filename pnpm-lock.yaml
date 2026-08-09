@@ -143,6 +143,9 @@ importers:
       '@dls/storage':
         specifier: workspace:*
         version: link:../../packages/storage
+      '@dls/vss-wasm':
+        specifier: workspace:*
+        version: link:../../packages/vss-wasm
       '@nestjs/common':
         specifier: 11.1.28
         version: 11.1.28(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@10.2.2)

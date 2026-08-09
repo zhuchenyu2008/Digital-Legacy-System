@@ -135,6 +135,40 @@ export type paths = {
         readonly patch?: never;
         readonly trace?: never;
     };
+    readonly "/contact/workflows/{workflowId}/confirm-alive": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get?: never;
+        readonly put?: never;
+        /** Cancel a death workflow with an exact alive confirmation */
+        readonly post: operations["ContactActionsController_alive"];
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/contact/workflows/{workflowId}/confirm-death": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get?: never;
+        readonly put?: never;
+        /** Submit a reauthenticated affirmative decision and sealed share */
+        readonly post: operations["ContactActionsController_affirm"];
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
     readonly "/contact/workflows/current": {
         readonly parameters: {
             readonly query?: never;
@@ -564,6 +598,11 @@ export type components = {
             readonly expectedShareGenerationId?: string;
             readonly password: string;
         };
+        readonly AffirmDeathDto: {
+            readonly confirmationText: string;
+            readonly fragment: components["schemas"]["DeathFragmentIngressDto"];
+            readonly password: string;
+        };
         readonly ChangeContactPasswordDto: {
             readonly newPassword: string;
             readonly newPrivateKeyEnvelope: components["schemas"]["ContactPrivateKeyEnvelopeDto"];
@@ -583,6 +622,10 @@ export type components = {
             readonly parts?: readonly components["schemas"]["VaultUploadPartDto"][];
             /** Format: uuid */
             readonly uploadId: string;
+        };
+        readonly ConfirmAliveDto: {
+            readonly confirmationText: string;
+            readonly password: string;
         };
         readonly ContactConsentDto: {
             readonly denialDisclosureAccepted: boolean;
@@ -688,6 +731,20 @@ export type components = {
             readonly streamHeader: string;
             /** Format: uuid */
             readonly vaultId: string;
+        };
+        readonly DeathFragmentIngressDto: {
+            /** Format: byte */
+            readonly ciphertext: string;
+            /** Format: byte */
+            readonly commitmentDigest: string;
+            /** Format: uuid */
+            readonly generationId: string;
+            readonly ingressKeyVersion: number;
+            /** Format: byte */
+            readonly nonce: string;
+            /** @enum {number} */
+            readonly protocolVersion: 1;
+            readonly shareIndex: number;
         };
         readonly OwnerCheckInDto: {
             readonly password: string;
@@ -940,6 +997,54 @@ export interface operations {
         readonly requestBody?: never;
         readonly responses: {
             readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    readonly ContactActionsController_alive: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path: {
+                readonly workflowId: string;
+            };
+            readonly cookie?: never;
+        };
+        readonly requestBody: {
+            readonly content: {
+                readonly "application/json": components["schemas"]["ConfirmAliveDto"];
+            };
+        };
+        readonly responses: {
+            /** @description The workflow was cancelled and check-in was rescheduled */
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    readonly ContactActionsController_affirm: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path: {
+                readonly workflowId: string;
+            };
+            readonly cookie?: never;
+        };
+        readonly requestBody: {
+            readonly content: {
+                readonly "application/json": components["schemas"]["AffirmDeathDto"];
+            };
+        };
+        readonly responses: {
+            /** @description The sealed fragment is pending worker validation */
+            readonly 202: {
                 headers: {
                     readonly [name: string]: unknown;
                 };

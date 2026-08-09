@@ -124,20 +124,53 @@ export async function insertWorkflow(
   state: string,
   requiredCount: number,
 ): Promise<string> {
+  const packageRow = await pool.query(
+    `INSERT INTO app.legacy_packages (
+       version_no, status, object_key, cipher_algorithm, stream_header,
+       ciphertext_size, ciphertext_sha256, dek_envelope, dek_envelope_nonce,
+       dek_envelope_algorithm, dek_envelope_protocol_version, dek_envelope_aad_hash,
+       manifest_ciphertext, manifest_nonce, manifest_algorithm, manifest_aad_hash,
+       activated_at
+     ) VALUES (
+       (SELECT COALESCE(MAX(version_no), 0) + 1 FROM app.legacy_packages),
+       'ACTIVE', $1, 'test', decode('00', 'hex'), 0, digest('ciphertext', 'sha256'),
+       decode('00', 'hex'), decode('00', 'hex'), 'test', 1, digest('dek', 'sha256'),
+       decode('00', 'hex'), decode('00', 'hex'), 'test', digest('manifest', 'sha256'),
+       clock_timestamp()
+     ) RETURNING id, version_no`,
+    [`concurrency/${randomUUID()}`],
+  );
   const workflow = await pool.query(
     `INSERT INTO app.workflows (
        kind, state, contact_count_snapshot, required_count_snapshot, approved_count,
-       share_generation_id, started_at, version
-     ) VALUES ('DEATH_CONFIRMATION', $1::app.workflow_state, $2, $3, 0, $4, clock_timestamp(), 0)
+       share_generation_id, package_id, package_version_snapshot, schedule_version_snapshot,
+       deadline_snapshot_at, owner_display_name_snapshot_ciphertext,
+       owner_display_name_snapshot_nonce, owner_display_name_snapshot_key_version,
+       started_at, version
+     ) VALUES ('DEATH_CONFIRMATION', $1::app.workflow_state, $2, $3, 0, $4, $5, $6, 1,
+       clock_timestamp(), decode('00', 'hex'), decode('00', 'hex'), 1,
+       clock_timestamp(), 0)
      RETURNING id`,
-    [state, contactIds.length, requiredCount, generationId],
+    [
+      state,
+      contactIds.length,
+      requiredCount,
+      generationId,
+      packageRow.rows[0].id,
+      packageRow.rows[0].version_no,
+    ],
   );
   const workflowId = workflow.rows[0].id as string;
   for (const [index, contactId] of contactIds.entries()) {
     await pool.query(
       `INSERT INTO app.workflow_contacts (
-         workflow_id, contact_id, snapshot_position, contact_public_key, contact_set_version
-       ) VALUES ($1, $2, $3, decode('00', 'hex'), 1)`,
+         workflow_id, contact_id, snapshot_position, contact_public_key, contact_set_version,
+         share_index, display_name_snapshot_ciphertext, display_name_snapshot_nonce,
+         display_name_snapshot_key_version, email_snapshot_ciphertext, email_snapshot_nonce,
+         email_snapshot_key_version, email_snapshot_lookup_hmac
+       ) VALUES ($1::uuid, $2::uuid, $3, decode('00', 'hex'), 1, $3, decode('00', 'hex'),
+         decode('00', 'hex'), 1, decode('00', 'hex'), decode('00', 'hex'), 1,
+         digest($2::text, 'sha256'))`,
       [workflowId, contactId, index + 1],
     );
   }
@@ -150,10 +183,20 @@ export async function cleanupWorkflow(
   vaultId: string,
   contactIds: readonly string[],
 ) {
+  const workflow = await pool.query("SELECT package_id FROM app.workflows WHERE id = $1", [
+    workflowId,
+  ]);
   await pool.query("DELETE FROM app.domain_outbox WHERE aggregate_id = $1", [workflowId]);
+  await pool.query("DELETE FROM app.release_secret_sessions WHERE workflow_id = $1", [workflowId]);
+  await pool.query("DELETE FROM app.workflow_key_fragments WHERE workflow_id = $1", [workflowId]);
   await pool.query("DELETE FROM app.workflow_contact_actions WHERE workflow_id = $1", [workflowId]);
   await pool.query("DELETE FROM app.workflow_contacts WHERE workflow_id = $1", [workflowId]);
   await pool.query("DELETE FROM app.workflows WHERE id = $1", [workflowId]);
+  if (workflow.rows[0]?.package_id !== undefined) {
+    await pool.query("DELETE FROM app.legacy_packages WHERE id = $1", [
+      workflow.rows[0].package_id,
+    ]);
+  }
   await pool.query("UPDATE app.vaults SET active_share_generation_id = NULL WHERE id = $1", [
     vaultId,
   ]);

@@ -1,4 +1,4 @@
-import { addExactDays, parseInstant } from "@dls/domain";
+import { beijingDateAt, computeCheckinDeadline, parseInstant } from "@dls/domain";
 import type { TransactionManager } from "../ports/transaction-manager.js";
 import { OwnerLoginError, type OwnerServerPasswordVerifier } from "./login-owner.js";
 import { OWNER_ACTOR_ID } from "./owner-identity.js";
@@ -16,17 +16,6 @@ export type OwnerCheckInResult = Readonly<{
   nextDeadlineAt: string;
   workflowCancellation: Readonly<{ cancelled: boolean; previousState: string | null }>;
 }>;
-
-function beijingDate(instant: string): string {
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Asia/Shanghai",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).formatToParts(new Date(instant));
-  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
-  return `${values.year}-${values.month}-${values.day}`;
-}
 
 function threshold(value: unknown): number {
   if (typeof value !== "number" || !Number.isSafeInteger(value) || value < 1 || value > 365) {
@@ -63,7 +52,7 @@ export async function checkInOwner(
         throw new OwnerLoginError("OWNER_LOGIN_INVALID", "owner credentials are invalid");
       }
       const now = await tx.clock.now();
-      const day = beijingDate(now);
+      const day = beijingDateAt(now);
       const existing = await tx.repositories.checkIns.findOneBy?.("beijing_date", day, {
         forUpdate: true,
       });
@@ -75,7 +64,7 @@ export async function checkInOwner(
         throw new OwnerLoginError("OWNER_CHECKIN_UNAVAILABLE", "check-in schedule is unavailable");
       }
       const days = threshold(schedule.threshold_days);
-      const deadlineAt = addExactDays(now, days);
+      const deadlineAt = computeCheckinDeadline(now, days);
       if (existing === null || existing === undefined) {
         const checkInId = idFactory();
         await tx.repositories.checkIns.insert({

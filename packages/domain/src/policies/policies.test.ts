@@ -84,32 +84,32 @@ describe("threshold policy", () => {
 });
 
 describe("deadline policies", () => {
-  test("computes check-in, grace, and release deadlines as exact durations", () => {
+  test("computes check-in by missed Beijing dates while grace and release remain exact", () => {
     const lastCheckIn = parseInstant("2026-08-06T10:15:30Z");
     const checkinDeadline = computeCheckinDeadline(lastCheckIn, 30);
 
-    expect(checkinDeadline).toBe("2026-09-05T10:15:30Z");
-    expect(computeGraceDeadline(checkinDeadline, 3)).toBe("2026-09-08T10:15:30Z");
-    expect(computeReleaseDeadline(checkinDeadline, 1)).toBe("2026-09-06T10:15:30Z");
+    expect(checkinDeadline).toBe("2026-09-05T16:00:00Z");
+    expect(computeGraceDeadline(checkinDeadline, 3)).toBe("2026-09-08T16:00:00Z");
+    expect(computeReleaseDeadline(checkinDeadline, 1)).toBe("2026-09-06T16:00:00Z");
   });
 
   test.each([
     {
-      name: "US spring-forward transition",
+      name: "instant carrying a US spring-forward offset",
       start: "2026-03-08T01:30:00-08:00",
-      expected: "2026-03-09T09:30:00Z",
+      expected: "2026-03-09T16:00:00Z",
     },
     {
-      name: "US fall-back transition",
+      name: "instant carrying a US fall-back offset",
       start: "2026-11-01T01:30:00-07:00",
-      expected: "2026-11-02T08:30:00Z",
+      expected: "2026-11-02T16:00:00Z",
     },
     {
       name: "ordinary UTC date",
       start: "2026-08-06T22:00:00Z",
-      expected: "2026-08-07T22:00:00Z",
+      expected: "2026-08-08T16:00:00Z",
     },
-  ])("adds one exact day across $name", ({ start, expected }) => {
+  ])("uses the Beijing calendar date across $name", ({ start, expected }) => {
     expect(computeCheckinDeadline(parseInstant(start), 1)).toBe(expected);
   });
 

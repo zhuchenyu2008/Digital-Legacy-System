@@ -162,11 +162,11 @@ describe("owner lifecycle use cases", () => {
     );
 
     expect(first.checkedIn).toBe(true);
-    expect(first.nextDeadlineAt).toBe("2026-08-11T14:00:00Z");
+    expect(first.nextDeadlineAt).toBe("2026-08-11T16:00:00Z");
     expect(first.workflowCancellation.cancelled).toBe(false);
     expect(second.checkedIn).toBe(true);
     expect(state.inserted.filter((table) => table === "checkIns")).toHaveLength(1);
-    expect(state.rows.get("checkinSchedules")?.[0]?.deadline_at).toBe("2026-08-11T14:00:00Z");
+    expect(state.rows.get("checkinSchedules")?.[0]?.deadline_at).toBe("2026-08-11T16:00:00Z");
   });
 
   it("does not mutate check-in state after failed authentication", async () => {
@@ -203,7 +203,7 @@ describe("owner lifecycle use cases", () => {
       },
     );
     expect(result.missedDaysThreshold).toBe(5);
-    expect(state.rows.get("checkinSchedules")?.[0]?.deadline_at).toBe("2026-08-12T14:00:00Z");
+    expect(state.rows.get("checkinSchedules")?.[0]?.deadline_at).toBe("2026-08-12T16:00:00Z");
     expect(state.updates.map((entry) => entry.table)).toEqual([
       "systemSettings",
       "checkinSchedules",

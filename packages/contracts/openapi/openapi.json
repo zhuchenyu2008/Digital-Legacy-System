@@ -71,6 +71,31 @@
         ],
         "type": "object"
       },
+      "AffirmDeathDto": {
+        "properties": {
+          "confirmationText": {
+            "type": "string"
+          },
+          "fragment": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DeathFragmentIngressDto"
+              }
+            ],
+            "writeOnly": true
+          },
+          "password": {
+            "type": "string",
+            "writeOnly": true
+          }
+        },
+        "required": [
+          "password",
+          "confirmationText",
+          "fragment"
+        ],
+        "type": "object"
+      },
       "ChangeContactPasswordDto": {
         "properties": {
           "newPassword": {
@@ -165,6 +190,22 @@
           "uploadId",
           "ciphertextSize",
           "ciphertextSha256"
+        ],
+        "type": "object"
+      },
+      "ConfirmAliveDto": {
+        "properties": {
+          "confirmationText": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string",
+            "writeOnly": true
+          }
+        },
+        "required": [
+          "password",
+          "confirmationText"
         ],
         "type": "object"
       },
@@ -531,6 +572,53 @@
           "manifestAlgorithm",
           "manifestAadHash",
           "clientCryptoVersion"
+        ],
+        "type": "object"
+      },
+      "DeathFragmentIngressDto": {
+        "properties": {
+          "ciphertext": {
+            "format": "byte",
+            "type": "string",
+            "writeOnly": true
+          },
+          "commitmentDigest": {
+            "format": "byte",
+            "type": "string",
+            "writeOnly": true
+          },
+          "generationId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "ingressKeyVersion": {
+            "minimum": 1,
+            "type": "number"
+          },
+          "nonce": {
+            "format": "byte",
+            "type": "string",
+            "writeOnly": true
+          },
+          "protocolVersion": {
+            "enum": [
+              1
+            ],
+            "type": "number"
+          },
+          "shareIndex": {
+            "minimum": 1,
+            "type": "number"
+          }
+        },
+        "required": [
+          "generationId",
+          "shareIndex",
+          "commitmentDigest",
+          "ingressKeyVersion",
+          "protocolVersion",
+          "nonce",
+          "ciphertext"
         ],
         "type": "object"
       },
@@ -1033,6 +1121,74 @@
         "summary": "Read the authenticated contact crypto material",
         "tags": [
           "Contact invitations"
+        ]
+      }
+    },
+    "/contact/workflows/{workflowId}/confirm-alive": {
+      "post": {
+        "operationId": "ContactActionsController_alive",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workflowId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfirmAliveDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "The workflow was cancelled and check-in was rescheduled"
+          }
+        },
+        "summary": "Cancel a death workflow with an exact alive confirmation",
+        "tags": [
+          "Contact workflow actions"
+        ]
+      }
+    },
+    "/contact/workflows/{workflowId}/confirm-death": {
+      "post": {
+        "operationId": "ContactActionsController_affirm",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workflowId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AffirmDeathDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "The sealed fragment is pending worker validation"
+          }
+        },
+        "summary": "Submit a reauthenticated affirmative decision and sealed share",
+        "tags": [
+          "Contact workflow actions"
         ]
       }
     },

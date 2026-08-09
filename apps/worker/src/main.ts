@@ -4,16 +4,15 @@ import { createPgPool, JOB_NAMES, PgBossScheduler, PgOutboxDispatcher } from "@d
 import { ConsoleLogger } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
 import { PgBoss } from "pg-boss";
-import { loadWorkerKeyCapabilities } from "./config/key-capabilities.js";
 import { loadWorkerConfig } from "./config/load-config.js";
 import { WorkerHeartbeat } from "./health/worker-heartbeat.js";
 import { CheckinEvaluateHandler } from "./jobs/checkin-evaluate.handler.js";
+import { ProcessReleaseFragmentHandler } from "./jobs/process-release-fragment.handler.js";
 import { registerJobHandlers, type WorkerBoss } from "./jobs/register-handlers.js";
 import { WorkerModule } from "./worker.module.js";
 
 async function bootstrap(): Promise<void> {
   const config = loadWorkerConfig();
-  await loadWorkerKeyCapabilities();
   const app = await NestFactory.createApplicationContext(WorkerModule, {
     logger: new ConsoleLogger({ json: true, prefix: "worker" }),
   });
@@ -21,8 +20,10 @@ async function bootstrap(): Promise<void> {
   const boss = await new PgBoss(config.databaseUrl).start();
   for (const jobName of Object.values(JOB_NAMES)) await boss.createQueue(jobName);
   const checkinEvaluate = app.get(CheckinEvaluateHandler);
+  const processReleaseFragment = app.get(ProcessReleaseFragmentHandler);
   await registerJobHandlers(boss as unknown as WorkerBoss, {
     [JOB_NAMES.CHECKIN_EVALUATE]: (job) => checkinEvaluate.handle(job),
+    [JOB_NAMES.PROCESS_RELEASE_FRAGMENT]: (job) => processReleaseFragment.handle(job),
   });
   const scheduler = new PgBossScheduler(boss);
   const dispatcher = new PgOutboxDispatcher(pool, {

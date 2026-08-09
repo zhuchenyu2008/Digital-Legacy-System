@@ -1,4 +1,4 @@
-import { addExactDays, parseInstant } from "@dls/domain";
+import { computeCheckinDeadline, parseInstant } from "@dls/domain";
 import type { TransactionManager } from "../ports/transaction-manager.js";
 import type { OwnerServerPasswordVerifier } from "./login-owner.js";
 
@@ -109,7 +109,7 @@ export async function updateOwnerSettings(
         throw new OwnerSettingsError("OWNER_SETTINGS_INVALID", "last check-in is unavailable");
       }
       const lastCheckInAt = parseInstant(lastCheckIn.checked_in_at);
-      const deadlineAt = addExactDays(lastCheckInAt, nextThreshold);
+      const deadlineAt = computeCheckinDeadline(lastCheckInAt, nextThreshold);
       const now = await tx.clock.now();
       await tx.repositories.systemSettings.updateVersioned(true, Number(settings.version ?? 0), {
         missed_days_threshold: nextThreshold,

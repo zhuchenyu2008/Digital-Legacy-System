@@ -149,6 +149,7 @@ function command(commitment: Uint8Array) {
     nonce: new Uint8Array(24).fill(11),
     ciphertext: new Uint8Array(96).fill(12),
     requestId: "request-1",
+    decisionDigest: digest(new TextEncoder().encode("exact legal confirmation")),
   };
 }
 

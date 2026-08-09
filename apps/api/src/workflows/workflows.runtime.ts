@@ -1,10 +1,16 @@
 import {
+  type AffirmDeathCommand,
+  type AffirmDeathResult,
+  affirmDeath,
+  type ConfirmAliveResult,
+  confirmAlive,
   getContactWorkflow,
   getOwnerWorkflow,
   type OwnerDisplayNameSnapshot,
   type TransactionManager,
   type WorkflowFragmentPurpose,
 } from "@dls/application";
+import { verifyServerPassword } from "@dls/crypto/node";
 import { createPgPool, PgTransactionManager } from "@dls/persistence";
 import { getApiRuntimeConfig } from "../config/api-runtime-config.js";
 import { type ApiKeyCapabilities, loadApiKeyCapabilities } from "../config/key-capabilities.js";
@@ -15,6 +21,16 @@ export const WORKFLOW_RUNTIME = Symbol("DLS_WORKFLOW_RUNTIME");
 export interface WorkflowRuntime {
   ownerCurrent(): ReturnType<typeof getOwnerWorkflow>;
   contactCurrent(contactId: string): ReturnType<typeof getContactWorkflow>;
+  affirmDeath(command: AffirmDeathCommand): Promise<AffirmDeathResult>;
+  confirmAlive(
+    command: Readonly<{
+      workflowId: string;
+      contactId: string;
+      password: string;
+      confirmationText: string;
+      requestId: string;
+    }>,
+  ): Promise<ConfirmAliveResult>;
 }
 
 export class PostgresWorkflowRuntime implements WorkflowRuntime {
@@ -42,6 +58,32 @@ export class PostgresWorkflowRuntime implements WorkflowRuntime {
               publicKey: capabilities.recoveryIngress.publicKey,
             };
       },
+    });
+  }
+
+  public affirmDeath(command: AffirmDeathCommand) {
+    return affirmDeath(command, {
+      transaction: this.transaction,
+      passwordVerifier: (password, hash) =>
+        verifyServerPassword(password, getApiRuntimeConfig().contactPasswordPepper, hash),
+      ownerDisplayName: (snapshot) => this.ownerDisplayName(snapshot),
+    });
+  }
+
+  public confirmAlive(
+    command: Readonly<{
+      workflowId: string;
+      contactId: string;
+      password: string;
+      confirmationText: string;
+      requestId: string;
+    }>,
+  ) {
+    return confirmAlive(command, {
+      transaction: this.transaction,
+      passwordVerifier: (password, hash) =>
+        verifyServerPassword(password, getApiRuntimeConfig().contactPasswordPepper, hash),
+      ownerDisplayName: (snapshot) => this.ownerDisplayName(snapshot),
     });
   }
 

@@ -8,6 +8,10 @@ import {
   CheckinEvaluateHandler,
   createCheckinEvaluateHandler,
 } from "./jobs/checkin-evaluate.handler.js";
+import {
+  createProcessReleaseFragmentHandler,
+  ProcessReleaseFragmentHandler,
+} from "./jobs/process-release-fragment.handler.js";
 
 @Module({
   providers: [
@@ -19,7 +23,8 @@ import {
       useFactory: (port: InMemoryWorkerHeartbeatPort) => new WorkerHeartbeat(port),
     },
     { provide: CheckinEvaluateHandler, useFactory: createCheckinEvaluateHandler },
+    { provide: ProcessReleaseFragmentHandler, useFactory: createProcessReleaseFragmentHandler },
   ],
-  exports: [WorkerHeartbeat, CheckinEvaluateHandler],
+  exports: [WorkerHeartbeat, CheckinEvaluateHandler, ProcessReleaseFragmentHandler],
 })
 export class WorkerModule {}

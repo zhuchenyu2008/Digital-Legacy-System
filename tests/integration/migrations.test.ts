@@ -41,7 +41,9 @@ describe("production migration inventory", () => {
     try {
       const runner = new MigrationRunner(asMigrationClient(client));
       const applied = await runner.up();
-      expect(applied.map((migration) => migration.version)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9]);
+      expect(applied.map((migration) => migration.version)).toEqual([
+        1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
+      ]);
 
       const result = await client.query(
         `SELECT table_schema || '.' || table_name AS qualified_name
@@ -87,11 +89,12 @@ describe("production migration inventory", () => {
           `INSERT INTO fragment_representation_probe (
              id, workflow_id, contact_id, purpose, generation_id, share_index,
              fragment_ciphertext, fragment_nonce, fragment_commitment,
-             fragment_commitment_digest, status, ingress_key_version,
+             fragment_commitment_digest, decision_digest, status, ingress_key_version,
              stage_key_version, protocol_version
            ) VALUES (
              gen_random_uuid(), gen_random_uuid(), gen_random_uuid(), 'DEATH', gen_random_uuid(), 1,
-             $1, $2, decode('01', 'hex'), digest(decode('01', 'hex'), 'sha256'), $3, 1, $4, 1
+             $1, $2, decode('01', 'hex'), digest(decode('01', 'hex'), 'sha256'),
+             digest('decision', 'sha256'), $3, 1, $4, 1
            )`,
           [ciphertext, nonce, status, stage],
         );
@@ -136,10 +139,28 @@ describe("production migration inventory", () => {
       expect(workflowSnapshotColumns.rows).toHaveLength(15);
       expect(workflowSnapshotColumns.rows.every((row) => row.is_nullable === "NO")).toBe(true);
 
+      const decisionColumns = await client.query(
+        `SELECT table_name, column_name, is_nullable
+         FROM information_schema.columns
+         WHERE table_schema = 'app'
+           AND (
+             (table_name = 'workflow_key_fragments' AND column_name = 'decision_digest')
+             OR
+             (table_name = 'release_secret_sessions' AND column_name IN (
+               'stage_key_version', 'status', 'version'
+             ))
+           )
+         ORDER BY table_name, column_name`,
+      );
+      expect(decisionColumns.rows).toHaveLength(4);
+      expect(decisionColumns.rows.every((row) => row.is_nullable === "NO")).toBe(true);
+
       const afterDown = await runner.down(1);
-      expect(afterDown.map((migration) => migration.version)).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
+      expect(afterDown.map((migration) => migration.version)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9]);
       const afterUp = await runner.up();
-      expect(afterUp.map((migration) => migration.version)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9]);
+      expect(afterUp.map((migration) => migration.version)).toEqual([
+        1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
+      ]);
     } finally {
       await client.end();
     }
