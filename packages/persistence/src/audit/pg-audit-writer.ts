@@ -22,6 +22,7 @@ const PUBLIC_METADATA_KEYS = new Set([
   "stage",
   "packageVersion",
   "ipSummary",
+  "zipSha256",
 ]);
 
 export type PublicAuditInput = Readonly<{

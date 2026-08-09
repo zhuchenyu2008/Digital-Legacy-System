@@ -42,7 +42,7 @@ describe("production migration inventory", () => {
       const runner = new MigrationRunner(asMigrationClient(client));
       const applied = await runner.up();
       expect(applied.map((migration) => migration.version)).toEqual([
-        1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12,
+        1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13,
       ]);
 
       const result = await client.query(
@@ -195,13 +195,23 @@ describe("production migration inventory", () => {
         notificationColumns.rows.find((row) => row.column_name === "template_version")?.is_nullable,
       ).toBe("NO");
 
+      const publicationColumns = await client.query(
+        `SELECT column_name, is_nullable
+         FROM information_schema.columns
+         WHERE table_schema = 'app' AND table_name = 'publications'
+           AND column_name = 'owner_display_name'`,
+      );
+      expect(publicationColumns.rows).toEqual([
+        { column_name: "owner_display_name", is_nullable: "NO" },
+      ]);
+
       const afterDown = await runner.down(1);
       expect(afterDown.map((migration) => migration.version)).toEqual([
-        1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
+        1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12,
       ]);
       const afterUp = await runner.up();
       expect(afterUp.map((migration) => migration.version)).toEqual([
-        1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12,
+        1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13,
       ]);
     } finally {
       await client.end();

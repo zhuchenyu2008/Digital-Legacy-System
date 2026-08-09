@@ -17,6 +17,10 @@ import {
   ProcessReleaseFragmentHandler,
 } from "./jobs/process-release-fragment.handler.js";
 import {
+  createPublicationFinalizeHandler,
+  PublicationFinalizeHandler,
+} from "./jobs/publication-finalize.handler.js";
+import {
   createWorkflowAdvanceHandler,
   WorkflowAdvanceHandler,
 } from "./jobs/workflow-advance.handler.js";
@@ -33,6 +37,7 @@ import {
     { provide: CheckinEvaluateHandler, useFactory: createCheckinEvaluateHandler },
     { provide: NotificationDeliverHandler, useFactory: createNotificationDeliverHandler },
     { provide: ProcessReleaseFragmentHandler, useFactory: createProcessReleaseFragmentHandler },
+    { provide: PublicationFinalizeHandler, useFactory: createPublicationFinalizeHandler },
     { provide: WorkflowAdvanceHandler, useFactory: createWorkflowAdvanceHandler },
   ],
   exports: [
@@ -40,6 +45,7 @@ import {
     CheckinEvaluateHandler,
     NotificationDeliverHandler,
     ProcessReleaseFragmentHandler,
+    PublicationFinalizeHandler,
     WorkflowAdvanceHandler,
   ],
 })

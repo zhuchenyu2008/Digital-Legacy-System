@@ -52,6 +52,8 @@ export type Repositories = Readonly<{
   emailVerificationCodes?: VersionedRepository;
   notifications?: VersionedRepository;
   notificationAttempts?: VersionedRepository;
+  publications?: VersionedRepository;
+  publicEvents?: VersionedRepository;
   authSessions?: VersionedRepository;
   packages: VersionedRepository;
   idempotency: IdempotencyRepository;

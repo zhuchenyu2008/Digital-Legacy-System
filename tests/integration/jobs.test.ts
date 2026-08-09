@@ -138,6 +138,29 @@ describe("durable jobs and outbox dispatch", () => {
     ]);
   });
 
+  it("routes publication finalization to the isolated publication worker", async () => {
+    await manager.run((tx) =>
+      tx.outbox.enqueue(outboxEvent("job-publication-finalize", "PUBLICATION_FINALIZE_REQUESTED")),
+    );
+    const published: Array<{ name: string; payload: unknown }> = [];
+    const dispatcher = new PgOutboxDispatcher(pool, {
+      async publish(name, payload) {
+        published.push({ name, payload });
+      },
+    });
+
+    expect(await dispatcher.dispatchBatch()).toBe(1);
+    expect(published).toEqual([
+      {
+        name: JOB_NAMES.PUBLICATION_FINALIZE,
+        payload: {
+          aggregateId: "00000000-0000-0000-0000-000000000021",
+          aggregateVersion: 4,
+        },
+      },
+    ]);
+  });
+
   it("routes durable notification delivery requests to the mail worker", async () => {
     await manager.run((tx) =>
       tx.outbox.enqueue(outboxEvent("job-notification-deliver", "NOTIFICATION_DELIVER_REQUESTED")),

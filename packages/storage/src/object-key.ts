@@ -1,5 +1,6 @@
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/u;
 const OBJECT_KEY_PATTERN = /^([0-9a-f]{2})\/([0-9a-f]{2})\/(.*)$/u;
+const PUBLIC_CONTENT_KEY_PATTERN = /^legacy\/([0-9a-f]{2})\/([0-9a-f]{64})\.zip$/u;
 
 export function buildObjectKey(uuid: string): string {
   assertServerUuid(uuid);
@@ -9,6 +10,13 @@ export function buildObjectKey(uuid: string): string {
 export function assertObjectKey(key: string): string {
   if (typeof key !== "string" || key.length === 0 || key.includes("\\")) {
     throw new Error("Object key must be a non-empty forward-slash path");
+  }
+  const contentMatch = PUBLIC_CONTENT_KEY_PATTERN.exec(key);
+  if (contentMatch !== null) {
+    const prefix = contentMatch[1];
+    const digest = contentMatch[2];
+    if (digest?.startsWith(prefix ?? "invalid-prefix") === true) return key;
+    throw new Error("Content-addressed object key digest prefix does not match");
   }
   const match = OBJECT_KEY_PATTERN.exec(key);
   if (match === null) throw new Error("Object key is not a segmented UUID path");

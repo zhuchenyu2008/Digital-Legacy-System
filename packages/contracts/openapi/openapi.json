@@ -2313,6 +2313,73 @@
         ]
       }
     },
+    "/public/legacy": {
+      "get": {
+        "operationId": "PublicController_publication",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Committed publication metadata and sanitized will"
+          },
+          "404": {
+            "description": "No committed publication"
+          }
+        },
+        "summary": "Read the committed public digital legacy",
+        "tags": [
+          "Public legacy"
+        ]
+      }
+    },
+    "/public/legacy/audit": {
+      "get": {
+        "operationId": "PublicController_audit",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Ordered public audit events"
+          },
+          "404": {
+            "description": "No committed publication"
+          }
+        },
+        "summary": "Read the immutable public publication audit chain",
+        "tags": [
+          "Public legacy"
+        ]
+      }
+    },
+    "/public/legacy/package": {
+      "get": {
+        "operationId": "PublicController_download",
+        "parameters": [
+          {
+            "description": "One bytes=start-end range",
+            "in": "header",
+            "name": "range",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Complete ZIP"
+          },
+          "206": {
+            "description": "Single byte range"
+          },
+          "416": {
+            "description": "Invalid or unsatisfiable range"
+          }
+        },
+        "summary": "Download the committed immutable legacy ZIP",
+        "tags": [
+          "Public legacy"
+        ]
+      }
+    },
     "/setup/owner": {
       "post": {
         "operationId": "SetupController_create",

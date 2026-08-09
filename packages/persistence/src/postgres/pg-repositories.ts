@@ -283,6 +283,15 @@ export function createRepositories(client: PoolClient): Repositories {
       table: "app.notification_attempts",
       primaryKey: "id",
     }),
+    publications: buildTableRepository(client, {
+      table: "app.publications",
+      primaryKey: "id",
+    }),
+    publicEvents: buildTableRepository(client, {
+      table: "audit.public_events",
+      primaryKey: "publication_id",
+      versionColumn: "sequence_no",
+    }),
     authSessions: buildTableRepository(client, {
       table: "app.auth_sessions",
       primaryKey: "id",
