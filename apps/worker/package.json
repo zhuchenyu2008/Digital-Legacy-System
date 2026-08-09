@@ -10,6 +10,7 @@
   "dependencies": {
     "@dls/application": "workspace:*",
     "@dls/contracts": "workspace:*",
+    "@dls/crypto": "workspace:*",
     "@dls/email-templates": "workspace:*",
     "@dls/persistence": "workspace:*",
     "@dls/storage": "workspace:*",

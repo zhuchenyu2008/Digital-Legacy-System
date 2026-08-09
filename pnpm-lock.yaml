@@ -131,6 +131,9 @@ importers:
       '@dls/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
+      '@dls/crypto':
+        specifier: workspace:*
+        version: link:../../packages/crypto
       '@dls/email-templates':
         specifier: workspace:*
         version: link:../../packages/email-templates

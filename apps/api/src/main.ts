@@ -7,10 +7,12 @@ import { ConsoleLogger } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
 import { FastifyAdapter, type NestFastifyApplication } from "@nestjs/platform-fastify";
 import { AppModule } from "./app.module.js";
+import { loadApiKeyCapabilities } from "./config/key-capabilities.js";
 import { loadApiConfig } from "./config/load-config.js";
 
 async function bootstrap(): Promise<void> {
   const config = loadApiConfig();
+  await loadApiKeyCapabilities();
   const adapter = new FastifyAdapter({
     genReqId: (request: IncomingMessage) =>
       request.headers["x-request-id"]?.toString() ?? randomUUID(),

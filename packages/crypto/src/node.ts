@@ -12,3 +12,5 @@ export * from "./shares/share-generation.js";
 export * from "./stream/decrypt-stream.js";
 export * from "./stream/encrypt-stream.js";
 export * from "./stream/file-format.js";
+export * from "./workflows/fragment-ingress.js";
+export * from "./workflows/stage-wrapping.js";

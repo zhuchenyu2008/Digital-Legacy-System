@@ -41,7 +41,7 @@ describe("production migration inventory", () => {
     try {
       const runner = new MigrationRunner(asMigrationClient(client));
       const applied = await runner.up();
-      expect(applied.map((migration) => migration.version)).toEqual([1, 2, 3, 4, 5, 6, 7]);
+      expect(applied.map((migration) => migration.version)).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
 
       const result = await client.query(
         `SELECT table_schema || '.' || table_name AS qualified_name
@@ -54,10 +54,70 @@ describe("production migration inventory", () => {
         expect(tableNames, `missing migrated table ${table}`).toContain(table);
       }
 
+      const fragmentColumns = await client.query(
+        `SELECT column_name, is_nullable
+         FROM information_schema.columns
+         WHERE table_schema = 'app' AND table_name = 'workflow_key_fragments'`,
+      );
+      expect(
+        Object.fromEntries(fragmentColumns.rows.map((row) => [row.column_name, row.is_nullable])),
+      ).toMatchObject({
+        status: "NO",
+        ingress_key_version: "NO",
+        stage_key_version: "YES",
+        protocol_version: "NO",
+        share_index: "NO",
+        fragment_commitment_digest: "NO",
+        fragment_ciphertext: "YES",
+        fragment_nonce: "YES",
+        version: "NO",
+      });
+
+      await client.query(
+        `CREATE TEMP TABLE fragment_representation_probe
+         (LIKE app.workflow_key_fragments INCLUDING ALL)`,
+      );
+      const insertProbe = (
+        status: string,
+        ciphertext: Buffer | null,
+        nonce: Buffer | null,
+        stage: number | null,
+      ) =>
+        client.query(
+          `INSERT INTO fragment_representation_probe (
+             id, workflow_id, contact_id, purpose, generation_id, share_index,
+             fragment_ciphertext, fragment_nonce, fragment_commitment,
+             fragment_commitment_digest, status, ingress_key_version,
+             stage_key_version, protocol_version
+           ) VALUES (
+             gen_random_uuid(), gen_random_uuid(), gen_random_uuid(), 'DEATH', gen_random_uuid(), 1,
+             $1, $2, decode('01', 'hex'), digest(decode('01', 'hex'), 'sha256'), $3, 1, $4, 1
+           )`,
+          [ciphertext, nonce, status, stage],
+        );
+      await expect(
+        insertProbe("PENDING", Buffer.alloc(49), Buffer.alloc(24), null),
+      ).resolves.toBeDefined();
+      await expect(
+        insertProbe("VALIDATED", Buffer.alloc(17), Buffer.alloc(24), 1),
+      ).resolves.toBeDefined();
+      await expect(insertProbe("REJECTED", null, null, null)).resolves.toBeDefined();
+      await expect(insertProbe("DESTROYED", null, null, null)).resolves.toBeDefined();
+      await expect(
+        insertProbe("REJECTED", Buffer.alloc(17), Buffer.alloc(24), null),
+      ).rejects.toMatchObject({
+        code: "23514",
+      });
+      await expect(
+        insertProbe("VALIDATED", Buffer.alloc(17), Buffer.alloc(24), null),
+      ).rejects.toMatchObject({
+        code: "23514",
+      });
+
       const afterDown = await runner.down(1);
-      expect(afterDown.map((migration) => migration.version)).toEqual([1, 2, 3, 4, 5, 6]);
+      expect(afterDown.map((migration) => migration.version)).toEqual([1, 2, 3, 4, 5, 6, 7]);
       const afterUp = await runner.up();
-      expect(afterUp.map((migration) => migration.version)).toEqual([1, 2, 3, 4, 5, 6, 7]);
+      expect(afterUp.map((migration) => migration.version)).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
     } finally {
       await client.end();
     }

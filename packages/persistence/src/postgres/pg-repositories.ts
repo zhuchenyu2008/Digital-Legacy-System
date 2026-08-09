@@ -239,6 +239,14 @@ export function createRepositories(client: PoolClient): Repositories {
     }),
     vaults: buildTableRepository(client, { table: "app.vaults", primaryKey: "id" }),
     workflows: buildTableRepository(client, { table: "app.workflows", primaryKey: "id" }),
+    workflowContacts: buildTableRepository(client, {
+      table: "app.workflow_contacts",
+      primaryKey: "workflow_id",
+    }),
+    workflowKeyFragments: buildTableRepository(client, {
+      table: "app.workflow_key_fragments",
+      primaryKey: "id",
+    }),
     packages: buildTableRepository(client, { table: "app.legacy_packages", primaryKey: "id" }),
     idempotency: new PgIdempotencyRepository(client),
   };
