@@ -1,7 +1,8 @@
 import { createServer } from "node:http";
 
 let confirmAlive = 0;
-let scenario = "contact";
+const scenarioCookie = "dls-test-scenario";
+const allowedScenarios = new Set(["admin", "anonymous", "contact", "death", "legacy", "release"]);
 
 const contacts = [
   { id: "contact-1", displayName: "张伟", email: "zhang.wei@example.com", status: "ACTIVE", consentVersion: "1" },
@@ -42,7 +43,19 @@ async function readJson(request) {
   return text.length === 0 ? {} : JSON.parse(text);
 }
 
-function ownerWorkflow() {
+function requestScenario(request) {
+  const cookieHeader = request.headers.cookie ?? "";
+  const encoded = cookieHeader
+    .split(";")
+    .map((part) => part.trim())
+    .find((part) => part.startsWith(`${scenarioCookie}=`))
+    ?.slice(scenarioCookie.length + 1);
+  if (encoded === undefined) return "contact";
+  const selected = decodeURIComponent(encoded);
+  return allowedScenarios.has(selected) ? selected : "contact";
+}
+
+function ownerWorkflow(scenario) {
   if (scenario !== "release") return null;
   return {
     workflowId: "00000000-0000-0000-0000-000000000601",
@@ -55,7 +68,7 @@ function ownerWorkflow() {
   };
 }
 
-function publicStatus() {
+function publicStatus(scenario) {
   if (scenario === "death") {
     return { state: "DEATH_CONFIRMING", approvedCount: 2, requiredCount: 3, serverNow: "2026-08-09T06:00:00.000Z" };
   }
@@ -67,6 +80,7 @@ function publicStatus() {
 }
 
 function routeFixture(request, url) {
+  const scenario = requestScenario(request);
   if (request.method === "GET" && url.pathname === "/auth/session") {
     if (scenario === "anonymous") return [401, { code: "DLS-AUTH-REQUIRED" }];
     return [200, { data: { authenticated: true, role: "OWNER", actor: { actorId: "00000000-0000-0000-0000-000000000001" } } }];
@@ -78,7 +92,7 @@ function routeFixture(request, url) {
     return [200, { data: { missedDaysThreshold: 3, timezone: "Asia/Shanghai", settingsVersion: 4, activePackageVersion: 3, smtp: { configured: true } } }];
   }
   if (request.method === "GET" && url.pathname === "/owner/workflows/current") {
-    const workflow = ownerWorkflow();
+    const workflow = ownerWorkflow(scenario);
     return workflow === null ? [404, { code: "DLS-NO-ACTIVE-WORKFLOW" }] : [200, { data: workflow }];
   }
   if (request.method === "GET" && url.pathname === "/owner/contacts") return [200, { data: contacts }];
@@ -97,7 +111,7 @@ function routeFixture(request, url) {
   if (request.method === "GET" && url.pathname === "/owner/system-health") {
     return [200, { data: { serverNow: "2026-08-09T06:00:00.000Z", pendingJobs: 0, categories: [{ code: "database", status: "ok" }, { code: "storage", status: "ok", backend: "local-volume" }, { code: "worker", status: "unknown", lastSeenAt: null }, { code: "deadlineScanner", status: "unknown", lastSeenAt: "2026-08-09T05:55:00.000Z" }, { code: "smtp", status: "ok", lastSeenAt: "2026-08-09T05:58:00.000Z" }] } }];
   }
-  if (request.method === "GET" && url.pathname === "/public/status") return [200, { data: publicStatus() }];
+  if (request.method === "GET" && url.pathname === "/public/status") return [200, { data: publicStatus(scenario) }];
   if (request.method === "GET" && url.pathname === "/public/legacy") {
     return [200, { data: { ownerDisplayName: "陈明", publishedAt: "2026-08-09T04:00:00.000Z", willHtml: "<h2>致我最亲爱的人</h2><p>如果你正在阅读这些文字，愿你记得我们共同度过的平静时光。</p><p>请照顾彼此，也请带着善意继续生活。</p>", packageBytes: 12582912, packageSha256: "ef".repeat(32), auditRootHash: "12".repeat(32) } }];
   }
@@ -114,8 +128,13 @@ const server = createServer(async (request, response) => {
   if (request.method === "GET" && url.pathname === "/health") return json(response, 200, { ok: true });
   if (request.method === "POST" && url.pathname === "/__test/scenario") {
     const body = await readJson(request);
-    scenario = String(body.scenario ?? "contact");
-    return json(response, 200, { scenario });
+    const selected = String(body.scenario ?? "contact");
+    if (!allowedScenarios.has(selected)) {
+      return json(response, 400, { code: "DLS-TEST-SCENARIO", message: "unknown scenario" });
+    }
+    return json(response, 200, { scenario: selected }, {
+      "set-cookie": `${scenarioCookie}=${encodeURIComponent(selected)}; Path=/; HttpOnly; SameSite=Strict`,
+    });
   }
   if (request.method === "GET" && url.pathname === "/__test/counts") return json(response, 200, { confirmAlive });
   if (request.method === "POST" && url.pathname === "/contact/workflows/workflow-1/confirm-alive") {

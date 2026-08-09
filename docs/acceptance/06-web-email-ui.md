@@ -3,9 +3,9 @@
 ## 验收范围
 
 - 计划：`docs/superpowers/plans/2026-08-05-06-web-email-ui.md`
-- 分支：`codex/plan6-web-email-ui`
-- 验收前代码 HEAD：`8ff2506`
-- 验收时间：2026-08-09 21:08（星期日，北京时间，`Asia/Shanghai`, UTC+08:00）
+- 分支：`main`
+- 计划 6 功能基线 HEAD：`12fa673`
+- 最终复验时间：2026-08-09 22:24（星期日，北京时间，`Asia/Shanghai`, UTC+08:00）
 - 浏览器：Playwright `1.62.1`，Chromium / Desktop Chrome 配置
 
 本记录覆盖所有 owner、contact、public 页面，11 类事务邮件、16 份指定前端样例、15 个补充页面的移动/桌面基线、响应式、无障碍、浏览器秘密处理、CSP、真实 PostgreSQL 集成和全仓构建。
@@ -56,24 +56,27 @@
 - owner/contact Strict CSRF Cookie 可在刷新后恢复并附加请求；令牌不写入 localStorage、sessionStorage、URL 或日志。
 - CSP 禁止第三方脚本；公开遗书响应包含 anti-indexing header。
 - 公开遗书只渲染存储层 allowlist 清洗后写入不可变列的 HTML；下载摘要与公开审计根保持可独立核对。
+- Playwright 场景桩使用每个浏览器上下文独立的 HttpOnly、SameSite=Strict 测试 Cookie；并发视觉和无障碍测试不会相互覆盖认证或工作流状态。
 
 ## 命令证据
 
-以下命令均在上述工作树执行。除明确记录的跳过项外，最终退出码均为 `0`。
+以下命令均在清理后的 `main` 主工作树执行。除明确记录的跳过项外，最终退出码均为 `0`。
 
 | 北京时间 | 命令 | 最终结果 |
 | --- | --- | --- |
-| 2026-08-09 21:10 | `corepack pnpm run check` | Biome 检查 507 个文件，无错误或警告 |
-| 2026-08-09 21:10 | `corepack pnpm run test:unit` | 74 个文件；475 通过，1 跳过 |
-| 2026-08-09 20:51 | `corepack pnpm run test:email` | 13/13 通过 |
-| 2026-08-09 21:02 | `corepack pnpm run test:integration` | 18 个文件；48/48 通过，使用本地 PostgreSQL `127.0.0.1:55432/dls` |
-| 2026-08-09 20:51 | `corepack pnpm run test:crypto` | 6 个文件；39/39 通过 |
-| 2026-08-09 20:51 | `corepack pnpm run test:storage` | 5 个文件；17 通过，1 个需要 live S3/MinIO 的测试跳过 |
-| 2026-08-09 20:51 | `corepack pnpm run test:security` | security Vitest 项目无匹配文件，按脚本约定以 `--passWithNoTests` 退出 0；浏览器安全测试见 UI 门禁 |
-| 2026-08-09 20:51 | `corepack pnpm run test:deployment` | 2 个文件；9/9 通过 |
-| 2026-08-09 20:45 | `corepack pnpm run openapi:check` | API 文档和生成客户端无漂移；审计查询参数明确为可选，limit 为 1–100 |
-| 2026-08-09 21:04 | `corepack pnpm run build` | 12 个可构建 workspace 全部通过；Next.js 24 个路由、API、Worker 均成功 |
-| 2026-08-09 21:05–21:08 | `node tests/e2e/run.mjs tests/visual tests/accessibility tests/security/browser-secrets.spec.ts tests/security/csp.spec.ts` | 98/98 通过：47 个视觉/字体图标/补充基线 + 51 个无障碍/浏览器安全门禁 |
+| 2026-08-09 21:43 | `corepack pnpm install --offline --frozen-lockfile` | 从本地内容寻址缓存干净安装 353 个包；459 项锁文件供应链策略检查通过 |
+| 2026-08-09 22:22 | `corepack pnpm run check` | Biome 检查 509 个文件，无错误或警告 |
+| 2026-08-09 22:22 | `corepack pnpm run test:unit` | 74 个文件；475 通过，1 跳过 |
+| 2026-08-09 22:22 | `corepack pnpm run test:email` | 13/13 通过 |
+| 2026-08-09 22:22 | `corepack pnpm run test:integration` | 18 个文件；48/48 通过，使用本地 PostgreSQL `127.0.0.1:55432/dls` |
+| 2026-08-09 22:23 | `corepack pnpm run test:crypto` | 6 个文件；39/39 通过 |
+| 2026-08-09 22:23 | `corepack pnpm run test:storage` | 5 个文件；17 通过，1 个需要 live S3/MinIO 的测试跳过 |
+| 2026-08-09 22:23 | `corepack pnpm run build` | 在浏览器测试前构建 12 个 workspace；Next.js 24 个路由、API、Worker 均成功 |
+| 2026-08-09 22:23 | `corepack pnpm run test:e2e` | 2/2 通过：联系人高风险交互 + 双浏览器上下文场景隔离回归 |
+| 2026-08-09 22:23 | `corepack pnpm run test:security` | security Vitest 项目无匹配文件，按脚本约定以 `--passWithNoTests` 退出 0；浏览器安全测试见 UI 门禁 |
+| 2026-08-09 22:23 | `corepack pnpm run test:deployment` | 3 个文件；10/10 通过，包含干净验收构建顺序门禁 |
+| 2026-08-09 22:23 | `corepack pnpm run openapi:check` | API 文档和生成客户端无漂移；审计查询参数明确为可选，limit 为 1–100 |
+| 2026-08-09 22:19–22:22 | `corepack pnpm run test:ui-gates` | 98/98 通过：47 个视觉/字体图标/补充基线 + 51 个无障碍/浏览器安全门禁 |
 
 ## 工具链与已知边界
 

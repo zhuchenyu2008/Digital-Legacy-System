@@ -24,7 +24,7 @@
     "build": "corepack pnpm --recursive --if-present run build",
     "openapi:generate": "corepack pnpm --filter @dls/api openapi:generate && corepack pnpm --filter @dls/contracts openapi:generate",
     "openapi:check": "corepack pnpm --filter @dls/api openapi:check && corepack pnpm --filter @dls/contracts openapi:check",
-    "acceptance": "corepack pnpm run check && corepack pnpm run test:unit && corepack pnpm run test:email && corepack pnpm run test:integration && corepack pnpm run test:crypto && corepack pnpm run test:storage && corepack pnpm run test:e2e && corepack pnpm run test:security && corepack pnpm run test:deployment && corepack pnpm run build && corepack pnpm run openapi:check"
+    "acceptance": "corepack pnpm run check && corepack pnpm run test:unit && corepack pnpm run test:email && corepack pnpm run test:integration && corepack pnpm run test:crypto && corepack pnpm run test:storage && corepack pnpm run build && corepack pnpm run test:e2e && corepack pnpm run test:security && corepack pnpm run test:deployment && corepack pnpm run openapi:check"
   },
   "devDependencies": {
     "@aws-sdk/client-s3": "3.1103.0",
