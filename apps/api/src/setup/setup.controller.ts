@@ -9,9 +9,11 @@ import {
   Inject,
   Post,
   Req,
+  Res,
 } from "@nestjs/common";
 import { ApiBody, ApiOperation, ApiResponse, ApiTags } from "@nestjs/swagger";
-import type { FastifyRequest } from "fastify";
+import type { FastifyReply, FastifyRequest } from "fastify";
+import { setSessionCookies } from "../security/session-cookies.js";
 import { CreateOwnerDto, parseCreateOwner } from "./setup.dto.js";
 import { SETUP_RUNTIME, type SetupRuntime } from "./setup.runtime.js";
 
@@ -32,9 +34,16 @@ export class SetupController {
   @ApiOperation({ summary: "Create the singleton owner exactly once" })
   @ApiBody({ type: CreateOwnerDto })
   @ApiResponse({ status: 201, description: "Owner created and signed in" })
-  public async create(@Body() body: CreateOwnerDto, @Req() request: FastifyRequest) {
+  public async create(
+    @Body() body: CreateOwnerDto,
+    @Req() request: FastifyRequest,
+    @Res({ passthrough: true }) response: FastifyReply,
+  ) {
     try {
       const result = await this.runtime.createOwner(parseCreateOwner(body, request.id));
+      if (result.session !== undefined) {
+        setSessionCookies(response, "OWNER", result.session.token, result.session.csrfToken);
+      }
       return {
         data: {
           ownerId: result.ownerId,

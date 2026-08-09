@@ -1,3 +1,8 @@
+import initializeWasm, {
+  combinePedersen as combinePedersenWasm,
+  splitPedersen as splitPedersenWasm,
+  verifyPedersenShare as verifyPedersenShareWasm,
+} from "../dist/browser/dls_vss.js";
 import type { VssSplit } from "./index.js";
 
 type BrowserWasmModule = Readonly<{
@@ -19,18 +24,13 @@ type BrowserWasmModule = Readonly<{
 let wasm: BrowserWasmModule | undefined;
 
 export async function initializeBrowser(): Promise<void> {
-  let module: BrowserWasmModule;
-  try {
-    module = (await import(
-      new URL("./browser/dls_vss.js", import.meta.url).href
-    )) as BrowserWasmModule;
-  } catch {
-    module = (await import(
-      new URL("../dist/browser/dls_vss.js", import.meta.url).href
-    )) as BrowserWasmModule;
-  }
-  await module.default();
-  wasm = module;
+  await initializeWasm();
+  wasm = {
+    default: initializeWasm,
+    splitPedersen: splitPedersenWasm,
+    verifyPedersenShare: verifyPedersenShareWasm,
+    combinePedersen: combinePedersenWasm,
+  };
 }
 
 function ready(): BrowserWasmModule {

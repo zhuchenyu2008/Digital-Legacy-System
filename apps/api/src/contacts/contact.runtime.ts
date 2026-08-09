@@ -25,7 +25,15 @@ import { AesFieldProtector } from "../setup/setup.runtime.js";
 export const CONTACT_RUNTIME = Symbol("DLS_CONTACT_RUNTIME");
 
 export interface ContactRuntime {
-  list(): Promise<readonly Readonly<{ id: string; displayName: string; email: string; status: string; consentVersion?: string }>[] >;
+  list(): Promise<
+    readonly Readonly<{
+      id: string;
+      displayName: string;
+      email: string;
+      status: string;
+      consentVersion?: string;
+    }>[]
+  >;
   invite(command: InviteContactCommand): Promise<InviteContactResult>;
   resend(
     command: Readonly<{ ownerId: string; contactId: string; requestId: string }>,
@@ -95,14 +103,45 @@ export class PostgresContactRuntime implements ContactRuntime {
   public list() {
     return this.#transaction.run(async (tx) => {
       const contacts = (await tx.repositories.contacts.findMany?.()) ?? [];
-      const output: Array<Readonly<{ id: string; displayName: string; email: string; status: string; consentVersion?: string }>> = [];
+      const output: Array<
+        Readonly<{
+          id: string;
+          displayName: string;
+          email: string;
+          status: string;
+          consentVersion?: string;
+        }>
+      > = [];
       for (const contact of contacts) {
         if (contact.status === "REMOVED") continue;
-        const displayName = await this.#protector.unprotect({ ciphertext: Uint8Array.from(contact.display_name_ciphertext as ArrayLike<number>), nonce: Uint8Array.from(contact.display_name_nonce as ArrayLike<number>), keyVersion: Number(contact.display_name_key_version) }, "contact-display-name");
-        const email = await this.#protector.unprotect({ ciphertext: Uint8Array.from(contact.email_ciphertext as ArrayLike<number>), nonce: Uint8Array.from(contact.email_nonce as ArrayLike<number>), keyVersion: Number(contact.email_key_version) }, "contact-email");
-        const consents = (await tx.repositories.contactConsents?.findMany?.("contact_id", contact.id)) ?? [];
+        const displayName = await this.#protector.unprotect(
+          {
+            ciphertext: Uint8Array.from(contact.display_name_ciphertext as ArrayLike<number>),
+            nonce: Uint8Array.from(contact.display_name_nonce as ArrayLike<number>),
+            keyVersion: Number(contact.display_name_key_version),
+          },
+          "contact-display-name",
+        );
+        const email = await this.#protector.unprotect(
+          {
+            ciphertext: Uint8Array.from(contact.email_ciphertext as ArrayLike<number>),
+            nonce: Uint8Array.from(contact.email_nonce as ArrayLike<number>),
+            keyVersion: Number(contact.email_key_version),
+          },
+          "contact-email",
+        );
+        const consents =
+          (await tx.repositories.contactConsents?.findMany?.("contact_id", contact.id)) ?? [];
         const consent = consents.at(-1);
-        output.push({ id: String(contact.id), displayName, email, status: String(contact.status), ...(typeof consent?.consent_version === "string" ? { consentVersion: consent.consent_version } : {}) });
+        output.push({
+          id: String(contact.id),
+          displayName,
+          email,
+          status: String(contact.status),
+          ...(typeof consent?.consent_version === "string"
+            ? { consentVersion: consent.consent_version }
+            : {}),
+        });
       }
       return Object.freeze(output);
     });

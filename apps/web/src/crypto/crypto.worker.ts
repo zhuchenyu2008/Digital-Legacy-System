@@ -15,6 +15,7 @@ import {
   wrapKeyV1,
 } from "@dls/crypto/browser";
 import { createContactFragment } from "./contact-fragment";
+import { buildShareGenerationUpload } from "./share-generation";
 import type { CryptoOperation } from "./worker-client";
 
 type RequestMessage = Readonly<{ id: string; operation: CryptoOperation; payload: unknown }>;
@@ -289,6 +290,9 @@ async function execute(operation: CryptoOperation, raw: unknown): Promise<unknow
   }
   if (operation === "createContactFragment") {
     return createContactFragment(payload as never);
+  }
+  if (operation === "createShareGeneration") {
+    return buildShareGenerationUpload(payload as never);
   }
   if (operation === "openRecoveryVault") {
     const vaultKey = await openRecoveryVaultKeyV1({

@@ -117,6 +117,13 @@ describe("semantic email templates", () => {
     ).rejects.toThrow("HTTP(S)");
   });
 
+  it("renders the supplied shield-lock brand mark for the final countdown email", async () => {
+    const rendered = await renderTemplate("DEATH_STAGE2_REMINDER", contexts.DEATH_STAGE2_REMINDER);
+    expect(rendered.html).toContain('class="email-brand-icon"');
+    expect(rendered.html).toContain('class="email-brand-icon-lock"');
+    expect(rendered.html).not.toContain(">◈</span>Digital Legacy");
+  });
+
   it("validates preview overrides against the same placeholder and active-content contract", async () => {
     const override = {
       version: 7,

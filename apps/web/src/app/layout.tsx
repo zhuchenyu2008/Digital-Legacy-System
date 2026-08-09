@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
+import { MaterialSymbolsRuntime } from "../components/fonts/material-symbols";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -14,9 +15,15 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
       <head>
         <link href="https://fonts.googleapis.com" rel="preconnect" />
         <link crossOrigin="anonymous" href="https://fonts.gstatic.com" rel="preconnect" />
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,400,0,0&display=swap" rel="stylesheet" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,400,0,0&display=swap"
+          rel="stylesheet"
+        />
       </head>
-      <body>{children}</body>
+      <body>
+        <MaterialSymbolsRuntime />
+        {children}
+      </body>
     </html>
   );
 }

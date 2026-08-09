@@ -109,6 +109,9 @@ importers:
       '@dls/crypto':
         specifier: workspace:*
         version: link:../../packages/crypto
+      '@dls/vss-wasm':
+        specifier: workspace:*
+        version: link:../../packages/vss-wasm
       next:
         specifier: 16.3.0
         version: 16.3.0(@playwright/test@1.62.1)(@types/node@24.13.3)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)

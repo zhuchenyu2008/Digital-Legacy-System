@@ -20,6 +20,12 @@ export class OwnerWorkflowDto {
   @SwaggerProperty({ type: String })
   state!: string;
 
+  @SwaggerProperty({ type: String, format: "date-time" })
+  serverNow!: string;
+
+  @SwaggerProperty({ type: String, format: "date-time", nullable: true })
+  releaseAt!: string | null;
+
   @SwaggerProperty({ type: Number, minimum: 1 })
   contactCount!: number;
 

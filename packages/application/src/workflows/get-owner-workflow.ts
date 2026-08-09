@@ -21,6 +21,7 @@ function actionFor(
 
 export async function getOwnerWorkflow(transaction: TransactionManager) {
   return transaction.run(async (tx) => {
+    const serverNow = await tx.clock.now();
     const workflows = (await tx.repositories.workflows.findMany?.()) ?? [];
     const workflow = activeWorkflow(workflows);
     if (workflow === undefined) return null;
@@ -36,6 +37,7 @@ export async function getOwnerWorkflow(transaction: TransactionManager) {
       )) ?? [];
     return {
       workflowId: String(workflow.id),
+      serverNow,
       kind: String(workflow.kind),
       state: String(workflow.state),
       startedAt: String(workflow.started_at),

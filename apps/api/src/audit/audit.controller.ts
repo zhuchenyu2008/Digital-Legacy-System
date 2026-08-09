@@ -10,7 +10,7 @@ import {
   Query,
   UseGuards,
 } from "@nestjs/common";
-import { ApiBody, ApiOperation, ApiParam, ApiTags } from "@nestjs/swagger";
+import { ApiBody, ApiOperation, ApiParam, ApiQuery, ApiTags } from "@nestjs/swagger";
 import { CsrfGuard } from "../security/csrf.guard.js";
 import { OriginGuard } from "../security/origin.guard.js";
 import { OwnerSessionGuard } from "../security/session.guard.js";
@@ -25,6 +25,10 @@ export class AuditController {
 
   @Get("audit-events")
   @ApiOperation({ summary: "Read a redacted page of immutable private audit events" })
+  @ApiQuery({ name: "eventType", required: false, type: String })
+  @ApiQuery({ name: "result", required: false, type: String })
+  @ApiQuery({ name: "cursor", required: false, type: String })
+  @ApiQuery({ name: "limit", required: false, type: Number, minimum: 1, maximum: 100 })
   public list(
     @Query("eventType") eventType?: string,
     @Query("result") result?: string,

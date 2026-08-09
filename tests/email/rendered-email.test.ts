@@ -6,8 +6,10 @@ import {
 } from "../../packages/email-templates/src/index.js";
 
 function normalizedStructure(html: string) {
+  const nativeHeadings = [...html.matchAll(/<h[1-2][^>]*>(.*?)<\/h[1-2]>/giu)];
+  const semanticHeadings = [...html.matchAll(/<[^>]+role="heading"[^>]*>(.*?)<\/[^>]+>/giu)];
   return {
-    headings: [...html.matchAll(/<h[1-2][^>]*>(.*?)<\/h[1-2]>/giu)].map((match) =>
+    headings: [...nativeHeadings, ...semanticHeadings].map((match) =>
       match[1]?.replace(/<[^>]+>/gu, "").trim(),
     ),
     buttons: [...html.matchAll(/<a[^>]*class="[^"]*button[^"]*"[^>]*>(.*?)<\/a>/giu)].map((match) =>
@@ -45,5 +47,23 @@ describe("rendered email clients", () => {
     expect(rendered.text).toContain(longUrl);
     expect(rendered.html.replaceAll("&amp;", "&").replaceAll("&#x3D;", "=")).toContain(longUrl);
     expect(normalizedStructure(rendered.html)).toMatchSnapshot();
+  });
+
+  test("preserves the supplied urgent visual hierarchy for the two referenced emails", async () => {
+    const release = await renderTemplate(
+      "DEATH_STAGE2_REMINDER",
+      SYNTHETIC_TEMPLATE_CONTEXTS.DEATH_STAGE2_REMINDER,
+    );
+    expect(release.html).toContain("email-urgent-header");
+    expect(release.html).toContain("email-countdown");
+    expect(release.html).toContain("URGENT");
+
+    const confirmation = await renderTemplate(
+      "DEATH_CONFIRMATION_REQUEST",
+      SYNTHETIC_TEMPLATE_CONTEXTS.DEATH_CONFIRMATION_REQUEST,
+    );
+    expect(confirmation.html).toContain("email-alert-strip");
+    expect(confirmation.html).toContain("email-confidential");
+    expect(confirmation.html).toContain("STRICTLY CONFIDENTIAL / URGENT");
   });
 });

@@ -1,6 +1,14 @@
-<h1>请确认联络状态</h1>
-<p>{{owner_name}} 已超过预设期限未完成签到，系统现已进入第一次确认流程。</p>
-<p>请根据你实际掌握的情况，在网站中选择“可能或确认已经离世”或“仍然健在”，并输入你的姓名、密码及指定确认文字。</p>
-<p><a class="button" href="{{action_url}}">进入确认页面</a></p>
-<p class="plain-url">完整确认入口：{{action_url}}</p>
-<p class="notice">本流程没有自动到期时间。邮件链接本身不会作出确认。</p>
+<div class="email-confirmation">
+  <div class="email-alert-strip">SYSTEM ALERT: SURVIVAL STATUS CONFIRMATION REQUIRED</div>
+  <div class="email-confirmation-brand">Digital Legacy System</div>
+  <p class="email-confidential">STRICTLY CONFIDENTIAL / URGENT</p>
+  <h1>【重要】请确认 {{owner_name}} 的联络状态</h1>
+  <p class="email-lead">{{owner_name}} 已超过预设期限未完成签到，<strong>系统现已进入第一次确认流程。</strong></p>
+  <p class="email-instruction">请根据你实际掌握的情况，在网站中选择“可能或确认已经离世”或“仍然健在”，并输入你的姓名、密码及指定确认文字。</p>
+  <p class="email-action"><a class="button" href="{{action_url}}">进入确认页面</a></p>
+  <p class="plain-url email-fallback-url">完整确认入口：{{action_url}}</p>
+  <div class="email-template-footer email-confirmation-footer">
+    <p class="email-footer-notice">本流程没有自动到期时间。邮件链接本身不会作出确认。</p>
+    <p class="email-template-copyright">© 2024 Digital Legacy System. All rights reserved. Secure &amp; Immutable.</p>
+  </div>
+</div>

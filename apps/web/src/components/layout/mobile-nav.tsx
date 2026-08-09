@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Icon } from "../icons/icon";
 
 const items = [
@@ -9,5 +12,20 @@ const items = [
 ] as const;
 
 export function MobileNav({ active }: Readonly<{ active?: string | undefined }>) {
-  return <nav aria-label="移动端主导航" className="dls-mobile-nav">{items.map((item) => <Link aria-current={active === item.href ? "page" : undefined} href={item.href} key={item.href}><Icon name={item.icon} /><span>{item.label}</span></Link>)}</nav>;
+  const pathname = usePathname();
+  const current = active ?? pathname;
+  return (
+    <nav aria-label="移动端主导航" className="dls-mobile-nav">
+      {items.map((item) => (
+        <Link
+          aria-current={current === item.href ? "page" : undefined}
+          href={item.href}
+          key={item.href}
+        >
+          <Icon name={item.icon} />
+          <span>{item.label}</span>
+        </Link>
+      ))}
+    </nav>
+  );
 }

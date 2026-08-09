@@ -48,12 +48,12 @@ async function cleanup(pool: Pool): Promise<void> {
   await pool.query("DELETE FROM app.emergency_contacts WHERE id = ANY($1::uuid[])", [
     [...ids.contacts],
   ]);
+  await pool.query("DELETE FROM app.legacy_packages WHERE id = $1", [ids.package]);
   await pool.query("UPDATE app.vaults SET active_share_generation_id = NULL WHERE id = $1", [
     ids.vault,
   ]);
   await pool.query("DELETE FROM app.share_generations WHERE id = $1", [ids.generation]);
   await pool.query("DELETE FROM app.vaults WHERE id = $1", [ids.vault]);
-  await pool.query("DELETE FROM app.legacy_packages WHERE id = $1", [ids.package]);
 }
 
 async function seed(pool: Pool): Promise<void> {
@@ -101,16 +101,19 @@ async function seed(pool: Pool): Promise<void> {
   ]);
   await pool.query(
     `INSERT INTO app.legacy_packages (
-       id, version_no, status, object_key, cipher_algorithm, stream_header,
+       id, vault_id, share_generation_id, version_no, status, object_key,
+       expires_at, client_crypto_version, cipher_algorithm, stream_header,
        ciphertext_size, ciphertext_sha256, dek_envelope, dek_envelope_nonce,
        dek_envelope_algorithm, dek_envelope_protocol_version, dek_envelope_aad_hash,
        manifest_ciphertext, manifest_nonce, manifest_algorithm, manifest_aad_hash,
        activated_at
-     ) VALUES ($1, 92, 'ACTIVE', $2, 'test', decode('01', 'hex'), 1,
+     ) VALUES ($1, $2, $3, 92, 'ACTIVE', $4,
+       clock_timestamp() + interval '15 minutes', 'test-runtime-v1',
+       'test', decode('01', 'hex'), 1,
        digest('ciphertext', 'sha256'), decode('02', 'hex'), decode('03', 'hex'), 'test', 1,
        digest('dek', 'sha256'), decode('04', 'hex'), decode('05', 'hex'), 'test',
        digest('manifest', 'sha256'), clock_timestamp())`,
-    [ids.package, `test/contact-decisions/${ids.package}`],
+    [ids.package, ids.vault, ids.generation, `test/contact-decisions/${ids.package}`],
   );
   for (const [offset, contactId] of ids.contacts.entries()) {
     await pool.query(

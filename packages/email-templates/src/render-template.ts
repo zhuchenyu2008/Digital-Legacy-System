@@ -202,7 +202,7 @@ export async function renderTemplate(
   validateFields(textSource, "text template", contract.required, true);
   assertSafeBodySource(bodySource, contract.urlFields);
   const body = compile(bodySource)(context);
-  const html = juice(compile(layoutSource)({ body, css }), {
+  const html = juice(compile(layoutSource)({ body, css, template_code: code }), {
     applyStyleTags: true,
     removeStyleTags: true,
     preserveMediaQueries: true,

@@ -1099,7 +1099,11 @@ export type components = {
             readonly contactCount: number;
             readonly contacts: readonly components["schemas"]["WorkflowContactDto"][];
             readonly kind: string;
+            /** Format: date-time */
+            readonly releaseAt: string | null;
             readonly requiredCount: number;
+            /** Format: date-time */
+            readonly serverNow: string;
             readonly state: string;
             /** Format: uuid */
             readonly workflowId: string;
@@ -1591,7 +1595,12 @@ export interface operations {
     };
     readonly AuditController_list: {
         readonly parameters: {
-            readonly query?: never;
+            readonly query?: {
+                readonly cursor?: string;
+                readonly eventType?: string;
+                readonly limit?: number;
+                readonly result?: string;
+            };
             readonly header?: never;
             readonly path?: never;
             readonly cookie?: never;
@@ -1815,9 +1824,7 @@ export interface operations {
     readonly VaultController_list: {
         readonly parameters: {
             readonly query?: never;
-            readonly header: {
-                readonly "x-vault-id": string;
-            };
+            readonly header?: never;
             readonly path?: never;
             readonly cookie?: never;
         };

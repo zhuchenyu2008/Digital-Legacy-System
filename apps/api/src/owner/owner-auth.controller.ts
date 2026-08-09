@@ -1,9 +1,4 @@
-import {
-  OwnerLoginError,
-  OwnerPasswordChangeError,
-  SESSION_COOKIE_NAMES,
-  type SessionPrincipal,
-} from "@dls/application";
+import { OwnerLoginError, OwnerPasswordChangeError, type SessionPrincipal } from "@dls/application";
 import {
   Body,
   Controller,
@@ -19,9 +14,9 @@ import {
 } from "@nestjs/common";
 import { ApiBody, ApiOperation, ApiResponse, ApiTags } from "@nestjs/swagger";
 import type { FastifyReply, FastifyRequest } from "fastify";
-import { getApiRuntimeConfig } from "../config/api-runtime-config.js";
 import { CsrfGuard } from "../security/csrf.guard.js";
 import { OwnerSessionGuard, type SecurityRequest } from "../security/session.guard.js";
+import { clearSessionCookies, setSessionCookies } from "../security/session-cookies.js";
 import {
   ChangeOwnerPasswordDto,
   OwnerLoginDto,
@@ -31,21 +26,6 @@ import {
 import { OWNER_RUNTIME, type OwnerRuntime } from "./owner.runtime.js";
 
 type AuthenticatedRequest = FastifyRequest & SecurityRequest & { user?: SessionPrincipal };
-
-function setOwnerCookie(response: FastifyReply, token: string): void {
-  const secure = getApiRuntimeConfig().nodeEnv === "production" ? "; Secure" : "";
-  response.header(
-    "set-cookie",
-    `${SESSION_COOKIE_NAMES.OWNER}=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Strict${secure}`,
-  );
-}
-
-function clearOwnerCookie(response: FastifyReply): void {
-  response.header(
-    "set-cookie",
-    `${SESSION_COOKIE_NAMES.OWNER}=; Max-Age=0; Path=/; HttpOnly; SameSite=Strict`,
-  );
-}
 
 @ApiTags("Owner authentication")
 @Controller("auth")
@@ -72,7 +52,7 @@ export class OwnerAuthController {
           ? {}
           : { userAgent: request.headers["user-agent"] }),
       });
-      setOwnerCookie(response, result.session.token);
+      setSessionCookies(response, "OWNER", result.session.token, result.session.csrfToken);
       return {
         data: {
           role: result.role,
@@ -114,7 +94,7 @@ export class OwnerAuthController {
     @Res({ passthrough: true }) response: FastifyReply,
   ): Promise<void> {
     if (request.sessionToken !== undefined) await this.runtime.logout(request.sessionToken);
-    clearOwnerCookie(response);
+    clearSessionCookies(response, "OWNER");
   }
 
   @Post("owner/password-change")
@@ -135,7 +115,7 @@ export class OwnerAuthController {
         ownerId,
         requestId: request.id,
       });
-      setOwnerCookie(response, result.session.token);
+      setSessionCookies(response, "OWNER", result.session.token, result.session.csrfToken);
       return {
         data: {
           credentialVersion: result.credentialVersion,

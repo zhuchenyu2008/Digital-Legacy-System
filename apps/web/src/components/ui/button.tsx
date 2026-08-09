@@ -7,7 +7,14 @@ export type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> &
     busy?: boolean;
   }>;
 
-export function Button({ busy = false, children, className = "", disabled, tone = "primary", ...props }: ButtonProps) {
+export function Button({
+  busy = false,
+  children,
+  className = "",
+  disabled,
+  tone = "primary",
+  ...props
+}: ButtonProps) {
   return (
     <button
       aria-busy={busy || undefined}

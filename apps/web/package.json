@@ -12,6 +12,7 @@
   "dependencies": {
     "@dls/contracts": "workspace:*",
     "@dls/crypto": "workspace:*",
+    "@dls/vss-wasm": "workspace:*",
     "next": "16.3.0",
     "react": "19.2.8",
     "react-dom": "19.2.8"

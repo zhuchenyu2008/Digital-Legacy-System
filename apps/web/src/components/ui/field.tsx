@@ -15,14 +15,22 @@ export function Field({ error, hint, id, label, className = "", ...props }: Fiel
   return (
     <div className={`dls-field ${className}`.trim()}>
       <label htmlFor={id}>{label}</label>
-      {hint ? <div className="dls-field__hint" id={`${id}-hint`}>{hint}</div> : null}
+      {hint ? (
+        <div className="dls-field__hint" id={`${id}-hint`}>
+          {hint}
+        </div>
+      ) : null}
       <input
         aria-describedby={describedBy || undefined}
         aria-invalid={Boolean(error)}
         id={id}
         {...props}
       />
-      {error ? <div className="dls-field__error" id={`${id}-error`} role="alert">{error}</div> : null}
+      {error ? (
+        <div className="dls-field__error" id={`${id}-error`} role="alert">
+          {error}
+        </div>
+      ) : null}
     </div>
   );
 }

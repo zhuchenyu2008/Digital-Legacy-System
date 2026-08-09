@@ -1,6 +1,15 @@
-<h1>数字遗产即将公开</h1>
-<p>紧急联系人确认已达到门限，系统将在 {{release_at}} 自动公开当前数字遗产。</p>
-<p>发送本邮件时剩余：{{remaining}}。</p>
-<p><a class="button" href="{{action_url}}">进入网站终止流程</a></p>
-<p class="plain-url">完整网站地址：{{action_url}}</p>
-<p class="notice">必须在网站中输入主密码才能终止。打开邮件或链接本身不会终止流程；紧急联系人不能在第二阶段干预。</p>
+<div class="email-stage2">
+  <div class="email-urgent-header">
+    <strong aria-level="1" class="email-stage2-brand" role="heading"><span aria-hidden="true" class="email-brand-icon"><span class="email-brand-icon-lock">&#x26E8;</span></span>Digital Legacy</strong>
+    <span class="email-urgent-badge"><b aria-hidden="true">⚠</b> URGENT</span>
+  </div>
+  <p class="email-lead">紧急联系人确认已达到门限，系统将在 <strong>{{release_at}}</strong> 自动公开当前数字遗产。</p>
+  <div class="email-countdown"><span>当前剩余时间</span><strong>{{remaining}}</strong></div>
+  <p class="email-stage2-explanation">此阶段为最终等待阶段。若所有者未在此期间亲自终止，系统将按计划发布。你可以点击下方链接查看发布进度。</p>
+  <p class="email-action"><a class="button" href="{{action_url}}">查看发布进度 <span aria-hidden="true" class="email-action-arrow">→</span></a></p>
+  <p class="plain-url email-fallback-url">完整网站地址：{{action_url}}</p>
+  <div class="email-template-footer email-stage2-footer">
+    <p class="email-footer-notice"><span aria-hidden="true">ⓘ</span> 此阶段仅所有者可在网站中输入主密码终止；紧急联系人无法手动干预流程。</p>
+    <p class="email-template-copyright">© 2024 Digital Legacy System. All rights reserved. Secure &amp; Immutable.</p>
+  </div>
+</div>

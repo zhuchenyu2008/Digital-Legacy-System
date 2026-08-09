@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { SetupController } from "../../apps/api/src/setup/setup.controller.js";
 
 describe("owner setup HTTP contract", () => {
@@ -34,6 +34,7 @@ describe("owner setup HTTP contract", () => {
       }),
     };
     const controller = new SetupController(runtime);
+    const header = vi.fn();
     const response = await controller.create(
       {
         setupToken: "setup-token",
@@ -59,6 +60,7 @@ describe("owner setup HTTP contract", () => {
         },
       },
       { id: "018f28a8-7f9a-7b32-9e41-4454f1c75691" } as never,
+      { header } as never,
     );
 
     const serialized = JSON.stringify(response);
@@ -66,5 +68,6 @@ describe("owner setup HTTP contract", () => {
     expect(serialized).not.toContain("server-only-token");
     expect(serialized).not.toContain("correct horse battery staple");
     expect(serialized).not.toContain("Y2lwaGVydGV4dA");
+    expect(header).toHaveBeenCalledWith("set-cookie", expect.any(Array));
   });
 });

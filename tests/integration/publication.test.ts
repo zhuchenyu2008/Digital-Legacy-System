@@ -92,12 +92,12 @@ async function cleanup(): Promise<void> {
   await pool.query("DELETE FROM app.emergency_contacts WHERE id = ANY($1::uuid[])", [
     [...ids.contacts],
   ]);
+  await pool.query("DELETE FROM app.legacy_packages WHERE id = $1", [ids.package]);
   await pool.query("UPDATE app.vaults SET active_share_generation_id = NULL WHERE id = $1", [
     ids.vault,
   ]);
   await pool.query("DELETE FROM app.share_generations WHERE id = $1", [ids.generation]);
   await pool.query("DELETE FROM app.vaults WHERE id = $1", [ids.vault]);
-  await pool.query("DELETE FROM app.legacy_packages WHERE id = $1", [ids.package]);
 }
 
 async function seed(storage: ReturnType<typeof createStorage>) {
@@ -172,15 +172,20 @@ async function seed(storage: ReturnType<typeof createStorage>) {
   ]);
   await pool.query(
     `INSERT INTO app.legacy_packages (
-       id, version_no, status, object_key, cipher_algorithm, stream_header,
+       id, vault_id, share_generation_id, version_no, status, object_key,
+       expires_at, client_crypto_version, cipher_algorithm, stream_header,
        ciphertext_size, ciphertext_sha256, dek_envelope, dek_envelope_nonce,
        dek_envelope_algorithm, dek_envelope_protocol_version, dek_envelope_aad_hash,
        manifest_ciphertext, manifest_nonce, manifest_algorithm, manifest_aad_hash, activated_at
-     ) VALUES ($1, $2, 'ACTIVE', $3, 'XCHACHA20_POLY1305_SECRETSTREAM_V1', $4,
-       $5, $6, $7, $8, $9, 1, $10, decode('01', 'hex'), decode('02', 'hex'),
+     ) VALUES ($1, $2, $3, $4, 'ACTIVE', $5,
+       clock_timestamp() + interval '15 minutes', 'test-runtime-v1',
+       'XCHACHA20_POLY1305_SECRETSTREAM_V1', $6,
+       $7, $8, $9, $10, $11, 1, $12, decode('01', 'hex'), decode('02', 'hex'),
        'test', digest('manifest', 'sha256'), clock_timestamp())`,
     [
       ids.package,
+      ids.vault,
+      ids.generation,
       versionNo,
       `${ids.package.slice(0, 2)}/${ids.package.slice(2, 4)}/${ids.package}`,
       ciphertext.subarray(8, 32),

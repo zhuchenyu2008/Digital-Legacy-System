@@ -1,4 +1,4 @@
-body { width: 100% !important; margin: 0; padding: 0; background: #f2f4f6; color: #0f172a; font-family: Arial, "Microsoft YaHei", sans-serif; }
+body { width: 100% !important; margin: 0; padding: 0; background: #f2f4f6; color: #0f172a; font-family: Inter, Arial, "Microsoft YaHei", sans-serif; -webkit-font-smoothing: antialiased; }
 .email-frame { width: 100%; background: #f2f4f6; padding: 32px 16px; }
 .email-shell { width: 100%; max-width: 600px; background: #ffffff; border: 1px solid #e2e8f0; border-collapse: separate; }
 .brand { padding: 24px 32px; border-bottom: 1px solid #e2e8f0; background: #ffffff; color: #000000; font-size: 22px; font-weight: 700; letter-spacing: -.02em; }
@@ -10,4 +10,44 @@ p { margin: 0 0 16px; }
 .plain-url { overflow-wrap: anywhere; word-break: break-word; color: #475569; font-family: Consolas, monospace; font-size: 12px; line-height: 1.7; }
 .notice { margin-top: 24px; padding: 16px; border-left: 4px solid #dc2626; background: #fff1ef; color: #7f1d1d; }
 .footer { padding: 20px 32px; border-top: 1px solid #e2e8f0; background: #f7f9fb; color: #475569; font-size: 12px; line-height: 1.6; }
-@media (max-width: 480px) { .email-frame { padding: 0; } .content { padding: 32px 20px; } .brand, .footer { padding-left: 20px; padding-right: 20px; } h1 { font-size: 24px; } }
+.email-shell { overflow: hidden; border-radius: 8px; box-shadow: 0 1px 3px rgba(15, 23, 42, .08); }
+.email-shell--DEATH_STAGE2_REMINDER .brand,
+.email-shell--DEATH_CONFIRMATION_REQUEST .brand,
+.email-shell--DEATH_STAGE2_REMINDER .footer,
+.email-shell--DEATH_CONFIRMATION_REQUEST .footer { display: none; padding: 0; border: 0; font-size: 0; line-height: 0; }
+.email-urgent-header { display: flex; min-height: 82px; align-items: center; justify-content: space-between; margin: -40px -32px 0; border-bottom: 1px solid #e2e8f0; padding: 0 32px; color: #000; }
+.email-stage2-brand { display: inline-flex; align-items: center; gap: 14px; font-size: 24px; font-weight: 700; letter-spacing: -.025em; }
+.email-brand-icon { display: inline-block; color: #000; font-family: "Segoe UI Symbol", "Arial Unicode MS", sans-serif; font-size: 26px; line-height: 1; }
+.email-brand-icon-lock { display: inline-block; line-height: 1; }
+.email-urgent-badge { display: inline-block; border-radius: 999px; background: #ffdad6; padding: 7px 13px; color: #93000a; font-family: "JetBrains Mono", Consolas, monospace; font-size: 13px; font-weight: 700; letter-spacing: .06em; }
+.email-urgent-badge b { margin-right: 4px; font-family: Arial, sans-serif; font-weight: 400; }
+.email-lead { font-size: 18px; line-height: 1.65; }
+.email-lead strong { color: #dc2626; }
+.email-stage2 .email-lead { margin: 34px 0 0; font-weight: 500; }
+.email-countdown { margin: 24px 0; border: 1px solid #e2e8f0; border-radius: 8px; background: #ece8e9; padding: 20px 24px; text-align: center; }
+.email-countdown span, .email-countdown strong { display: block; }
+.email-countdown span { margin-bottom: 8px; color: #475569; font-family: "JetBrains Mono", Consolas, monospace; font-size: 13px; }
+.email-countdown strong { color: #c51f24; font-size: 48px; line-height: 1.15; letter-spacing: -.02em; }
+.email-stage2-explanation { margin: 0; color: #334155; }
+.email-action { margin: 32px 0 0; text-align: center; }
+.email-stage2 .email-action { margin-top: 28px; }
+.email-stage2 .button { min-width: 178px; border-radius: 4px; padding: 14px 22px; font-family: "JetBrains Mono", Consolas, monospace; text-align: center; }
+.email-action-arrow { display: inline-block; margin-left: 9px; font-size: 22px; line-height: 12px; }
+.email-fallback-url { display: none; max-height: 0; margin: 0; overflow: hidden; }
+.email-template-footer { margin-right: -32px; margin-left: -32px; border-top: 1px solid #e2e8f0; background: #f2f4f6; color: #475569; text-align: center; }
+.email-stage2-footer { margin-top: 24px; margin-bottom: -40px; padding: 22px 32px 18px; }
+.email-footer-notice { margin: 0; font-size: 15px; line-height: 1.7; }
+.email-stage2-footer .email-footer-notice span { margin-right: 6px; color: #dc2626; }
+.email-template-copyright { margin: 22px 0 0; border-top: 1px solid #e2e8f0; padding-top: 20px; color: #748094; font-family: "JetBrains Mono", Consolas, monospace; font-size: 12px; line-height: 1.5; }
+.email-alert-strip { box-sizing: border-box; height: 56px; margin: -40px -32px 0; padding: 0 24px; background: #e52529; color: #fff; font-size: 16px; font-weight: 700; line-height: 56px; text-align: center; }
+.email-confirmation-brand { margin: 0 -32px 48px; border-bottom: 1px solid #e2e8f0; padding: 28px 32px; color: #000; font-size: 24px; font-weight: 700; text-align: center; }
+.email-confidential { display: inline-block; margin: 0 0 16px; border-radius: 2px; background: #ffdad6; padding: 6px 12px; color: #93000a; font-family: "JetBrains Mono", Consolas, monospace; font-size: 13px; font-weight: 700; letter-spacing: .04em; }
+.email-confirmation h1 { margin-bottom: 26px; font-size: 31px; line-height: 1.3; }
+.email-confirmation .email-lead { margin-bottom: 26px; }
+.email-instruction { margin: 0 0 32px; border: 1px solid #e2e8f0; border-radius: 2px; background: #f7f9fb; padding: 24px; color: #475569; }
+.email-confirmation .email-action { margin-top: 0; }
+.email-confirmation .button { min-width: 160px; border-radius: 2px; padding: 15px 20px; text-align: center; }
+.email-confirmation-footer { margin-top: 36px; margin-bottom: -40px; padding: 31px 40px 30px; }
+.email-confirmation-footer .email-template-copyright { margin-top: 28px; padding-top: 26px; }
+.email-shell--DEATH_CONFIRMATION_REQUEST { border-color: #dc2626; }
+@media (max-width: 480px) { .email-frame { padding: 0; } .content { padding: 32px 20px; } .brand, .footer { padding-left: 20px; padding-right: 20px; } h1 { font-size: 24px; } .email-urgent-header, .email-alert-strip { margin-top: -32px; margin-right: -20px; margin-left: -20px; } .email-template-footer { margin-right: -20px; margin-left: -20px; margin-bottom: -32px; } .email-confirmation-brand { margin-right: -20px; margin-left: -20px; } }

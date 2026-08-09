@@ -15,7 +15,6 @@ import {
 } from "@nestjs/common";
 import { ApiBody, ApiOperation, ApiParam, ApiResponse, ApiTags } from "@nestjs/swagger";
 import type { FastifyReply, FastifyRequest } from "fastify";
-import { getApiRuntimeConfig } from "../config/api-runtime-config.js";
 import { CsrfGuard } from "../security/csrf.guard.js";
 import { OriginGuard } from "../security/origin.guard.js";
 import {
@@ -23,6 +22,7 @@ import {
   OwnerSessionGuard,
   type SecurityRequest,
 } from "../security/session.guard.js";
+import { setSessionCookies } from "../security/session-cookies.js";
 import {
   AcceptContactInvitationDto,
   CreateContactInvitationDto,
@@ -38,14 +38,6 @@ import {
 import { CONTACT_RUNTIME, type ContactRuntime } from "./contact.runtime.js";
 
 type OwnerRequest = FastifyRequest & SecurityRequest & { user?: SessionPrincipal };
-
-function setContactCookie(response: FastifyReply, token: string): void {
-  const secure = getApiRuntimeConfig().nodeEnv === "production" ? "; Secure" : "";
-  response.header(
-    "set-cookie",
-    `__Host-dls-contact=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Strict${secure}`,
-  );
-}
 
 @ApiTags("Contact invitations")
 @Controller()
@@ -207,7 +199,7 @@ export class ContactInvitationsController {
           ? {}
           : { userAgent: request.headers["user-agent"] }),
       });
-      setContactCookie(response, result.session.token);
+      setSessionCookies(response, "CONTACT", result.session.token, result.session.csrfToken);
       return {
         data: {
           contactId: result.contactId,

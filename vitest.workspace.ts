@@ -2,10 +2,14 @@ import { defineConfig } from "vitest/config";
 import { workspaceAliases } from "./vitest.aliases.js";
 
 export default defineConfig({
+  esbuild: { jsx: "automatic" },
+  oxc: false,
   resolve: { alias: workspaceAliases },
   test: {
     projects: [
       {
+        esbuild: { jsx: "automatic" },
+        oxc: false,
         resolve: { alias: workspaceAliases },
         test: {
           name: "tooling",
@@ -32,6 +36,14 @@ export default defineConfig({
       {
         resolve: { alias: workspaceAliases },
         test: {
+          name: "email-rendering",
+          environment: "node",
+          include: ["tests/email/**/*.test.ts"],
+        },
+      },
+      {
+        resolve: { alias: workspaceAliases },
+        test: {
           name: "contracts-drift",
           environment: "node",
           include: ["tests/contracts/**/*.test.ts"],
@@ -47,6 +59,8 @@ export default defineConfig({
         },
       },
       {
+        esbuild: { jsx: "automatic" },
+        oxc: false,
         resolve: { alias: workspaceAliases },
         test: {
           name: "unit",

@@ -12,7 +12,7 @@ import {
 } from "@nestjs/common";
 import { ApiBody, ApiOperation, ApiResponse, ApiTags } from "@nestjs/swagger";
 import type { FastifyReply, FastifyRequest } from "fastify";
-import { getApiRuntimeConfig } from "../config/api-runtime-config.js";
+import { setSessionCookies } from "../security/session-cookies.js";
 import {
   ChangeContactPasswordDto,
   ContactLoginDto,
@@ -20,14 +20,6 @@ import {
   parseContactLogin,
 } from "./contact.dto.js";
 import { CONTACT_RUNTIME, type ContactRuntime } from "./contact.runtime.js";
-
-function setContactCookie(response: FastifyReply, token: string): void {
-  const secure = getApiRuntimeConfig().nodeEnv === "production" ? "; Secure" : "";
-  response.header(
-    "set-cookie",
-    `__Host-dls-contact=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Strict${secure}`,
-  );
-}
 
 @ApiTags("Contact authentication")
 @Controller("auth/contact")
@@ -53,7 +45,7 @@ export class ContactAuthController {
           ? {}
           : { userAgent: request.headers["user-agent"] }),
       });
-      setContactCookie(response, result.session.token);
+      setSessionCookies(response, "CONTACT", result.session.token, result.session.csrfToken);
       return {
         data: {
           role: result.role,
@@ -99,7 +91,7 @@ export class ContactPasswordController {
           ? {}
           : { currentSessionToken: request.sessionToken }),
       });
-      setContactCookie(response, result.session.token);
+      setSessionCookies(response, "CONTACT", result.session.token, result.session.csrfToken);
       return {
         data: {
           contactId: result.contactId,

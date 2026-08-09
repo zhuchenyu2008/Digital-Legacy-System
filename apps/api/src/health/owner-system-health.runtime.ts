@@ -1,5 +1,6 @@
 import { access } from "node:fs/promises";
 import { createPgPool } from "@dls/persistence";
+import type { StorageFactoryConfig } from "@dls/storage";
 import type { Pool } from "pg";
 import { getApiRuntimeConfig } from "../config/api-runtime-config.js";
 import { getPublicRuntimeConfig } from "../config/public-runtime-config.js";
@@ -25,11 +26,9 @@ export interface OwnerSystemHealthRuntime {
 }
 
 type Queryable = Pick<Pool, "query">;
-type Environment = Record<string, string | undefined>;
 type StorageCheck = () => Promise<boolean>;
 
-async function defaultStorageCheck(environment: Environment): Promise<boolean> {
-  const storage = getPublicRuntimeConfig(environment).storage;
+async function defaultStorageCheck(storage: StorageFactoryConfig): Promise<boolean> {
   if (storage.driver === "s3") return false;
   try {
     await Promise.all([
@@ -51,21 +50,21 @@ function timestamp(value: unknown): string | null {
 
 export class PostgresOwnerSystemHealthRuntime implements OwnerSystemHealthRuntime {
   readonly #pool: Queryable;
-  readonly #environment: Environment;
+  readonly #storage: StorageFactoryConfig;
   readonly #storageCheck: StorageCheck;
 
   public constructor(
     pool: Queryable,
-    environment: Environment = process.env,
-    storageCheck: StorageCheck = () => defaultStorageCheck(environment),
+    storage: StorageFactoryConfig,
+    storageCheck: StorageCheck = () => defaultStorageCheck(storage),
   ) {
     this.#pool = pool;
-    this.#environment = environment;
+    this.#storage = storage;
     this.#storageCheck = storageCheck;
   }
 
   public async read(): Promise<OwnerSystemHealth> {
-    const backend = this.#environment.STORAGE_DRIVER === "s3" ? "s3-compatible" : "local-volume";
+    const backend = this.#storage.driver === "s3" ? "s3-compatible" : "local-volume";
     let serverNow = new Date().toISOString();
     try {
       const clock = await this.#pool.query("SELECT clock_timestamp()::text AS server_now");
@@ -138,7 +137,9 @@ export class PostgresOwnerSystemHealthRuntime implements OwnerSystemHealthRuntim
 }
 
 export function createOwnerSystemHealthRuntime(): OwnerSystemHealthRuntime {
+  const config = getPublicRuntimeConfig();
   return new PostgresOwnerSystemHealthRuntime(
     createPgPool({ connectionString: getApiRuntimeConfig().databaseUrl }),
+    config.storage,
   );
 }

@@ -18,7 +18,12 @@ describe("owner system health runtime", () => {
     });
     const runtime = new PostgresOwnerSystemHealthRuntime(
       { query } as never,
-      { STORAGE_DRIVER: "filesystem" },
+      {
+        driver: "filesystem",
+        privateRoot: ".data/private",
+        stagingRoot: ".data/staging",
+        publicRoot: ".data/public",
+      },
       vi.fn().mockResolvedValue(true),
     );
 
@@ -40,7 +45,16 @@ describe("owner system health runtime", () => {
   test("returns safe degraded categories when the database probe fails", async () => {
     const runtime = new PostgresOwnerSystemHealthRuntime(
       { query: vi.fn().mockRejectedValue(new Error("raw provider failure")) } as never,
-      { STORAGE_DRIVER: "s3" },
+      {
+        driver: "s3",
+        endpoint: "https://s3.example.test",
+        region: "test",
+        forcePathStyle: false,
+        privateBucket: "private",
+        publicBucket: "public",
+        accessKeyId: "not-exposed",
+        secretAccessKey: "not-exposed",
+      },
       vi.fn().mockResolvedValue(false),
     );
 

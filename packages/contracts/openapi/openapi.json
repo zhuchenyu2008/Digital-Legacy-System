@@ -888,9 +888,18 @@
           "kind": {
             "type": "string"
           },
+          "releaseAt": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
           "requiredCount": {
             "minimum": 1,
             "type": "number"
+          },
+          "serverNow": {
+            "format": "date-time",
+            "type": "string"
           },
           "state": {
             "type": "string"
@@ -904,6 +913,8 @@
           "workflowId",
           "kind",
           "state",
+          "serverNow",
+          "releaseAt",
           "contactCount",
           "requiredCount",
           "approvedCount",
@@ -1690,7 +1701,42 @@
     "/owner/audit-events": {
       "get": {
         "operationId": "AuditController_list",
-        "parameters": [],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "eventType",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "maximum": 100,
+              "minimum": 1,
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "result",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": ""
@@ -1964,16 +2010,7 @@
     "/owner/packages": {
       "get": {
         "operationId": "VaultController_list",
-        "parameters": [
-          {
-            "in": "header",
-            "name": "x-vault-id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
+        "parameters": [],
         "responses": {
           "200": {
             "description": "Package versions"

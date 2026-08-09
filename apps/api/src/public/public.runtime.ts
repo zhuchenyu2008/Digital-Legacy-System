@@ -18,7 +18,15 @@ export const PUBLIC_RUNTIME = Symbol("DLS_PUBLIC_RUNTIME");
 export type PublicDownload = Awaited<ReturnType<typeof openPublicDownload>>;
 
 export interface PublicRuntime {
-  status(): Promise<Readonly<{ state: string; approvedCount?: number; requiredCount?: number; releaseAt?: string | null; serverNow: string }>>;
+  status(): Promise<
+    Readonly<{
+      state: string;
+      approvedCount?: number;
+      requiredCount?: number;
+      releaseAt?: string | null;
+      serverNow: string;
+    }>
+  >;
   publication(): Promise<PublicPublication | null>;
   audit(): ReturnType<typeof getPublicationAudit>;
   download(range?: Readonly<{ start: number; endInclusive?: number }>): Promise<PublicDownload>;
@@ -42,14 +50,36 @@ export class PostgresPublicRuntime implements PublicRuntime {
     return this.transaction.run(async (tx) => {
       const serverNow = await tx.clock.now();
       const publication = await tx.repositories.publications?.findFirst?.();
-      if (publication !== null && publication !== undefined) return { state: "RELEASED", serverNow };
+      if (publication !== null && publication !== undefined)
+        return { state: "RELEASED", serverNow };
       const workflows = (await tx.repositories.workflows.findMany?.()) ?? [];
-      const active = [...workflows].reverse().find((row) => !["CANCELLED", "EXPIRED", "RELEASED"].includes(String(row.state)));
+      const active = [...workflows]
+        .reverse()
+        .find((row) => !["CANCELLED", "EXPIRED", "RELEASED"].includes(String(row.state)));
       if (!active) return { state: "NORMAL", serverNow };
       const state = String(active.state);
-      if (["AWAITING_CONFIRMATIONS", "DEATH_CONFIRMING"].includes(state)) return { state: "DEATH_CONFIRMING", approvedCount: Number(active.approved_count ?? 0), requiredCount: Number(active.required_count_snapshot ?? 0), serverNow };
-      if (["AWAITING_APPROVALS", "PASSWORD_RECOVERY", "REWRAP_PENDING"].includes(state)) return { state: "PASSWORD_RECOVERY", approvedCount: Number(active.approved_count ?? 0), requiredCount: Number(active.required_count_snapshot ?? 0), serverNow };
-      if (state === "RELEASE_PENDING") return { state: "RELEASE_PENDING", approvedCount: Number(active.approved_count ?? 0), requiredCount: Number(active.required_count_snapshot ?? 0), releaseAt: active.release_at == null ? null : String(active.release_at), serverNow };
+      if (["AWAITING_CONFIRMATIONS", "DEATH_CONFIRMING"].includes(state))
+        return {
+          state: "DEATH_CONFIRMING",
+          approvedCount: Number(active.approved_count ?? 0),
+          requiredCount: Number(active.required_count_snapshot ?? 0),
+          serverNow,
+        };
+      if (["AWAITING_APPROVALS", "PASSWORD_RECOVERY", "REWRAP_PENDING"].includes(state))
+        return {
+          state: "PASSWORD_RECOVERY",
+          approvedCount: Number(active.approved_count ?? 0),
+          requiredCount: Number(active.required_count_snapshot ?? 0),
+          serverNow,
+        };
+      if (state === "RELEASE_PENDING")
+        return {
+          state: "RELEASE_PENDING",
+          approvedCount: Number(active.approved_count ?? 0),
+          requiredCount: Number(active.required_count_snapshot ?? 0),
+          releaseAt: active.release_at == null ? null : String(active.release_at),
+          serverNow,
+        };
       if (state === "PUBLISHING") return { state: "PUBLISHING", serverNow };
       return { state: "NORMAL", serverNow };
     });

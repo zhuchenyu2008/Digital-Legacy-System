@@ -12,6 +12,7 @@ import {
   Put,
   Req,
   UnauthorizedException,
+  UseGuards,
 } from "@nestjs/common";
 import {
   ApiBearerAuth,
@@ -23,6 +24,9 @@ import {
   ApiTags,
 } from "@nestjs/swagger";
 import type { FastifyRequest } from "fastify";
+import { CsrfGuard } from "../security/csrf.guard.js";
+import { OriginGuard } from "../security/origin.guard.js";
+import { OwnerSessionGuard, type SecurityRequest } from "../security/session.guard.js";
 import {
   ActivateVaultPackageDto,
   CompleteVaultUploadDto,
@@ -36,9 +40,10 @@ import {
 } from "./vault.dto.js";
 import { VAULT_RUNTIME, type VaultRequestContext, type VaultRuntime } from "./vault.runtime.js";
 
-type AuthenticatedRequest = FastifyRequest & {
-  user?: Readonly<{ id?: string }>;
-};
+type AuthenticatedRequest = FastifyRequest &
+  SecurityRequest & {
+    user?: Readonly<{ actorId?: string }>;
+  };
 
 function publicPackage(record: VaultPackageRecord) {
   return {
@@ -59,10 +64,12 @@ function publicPackage(record: VaultPackageRecord) {
 @ApiTags("Vault")
 @ApiBearerAuth()
 @Controller("owner")
+@UseGuards(OwnerSessionGuard)
 export class VaultController {
   public constructor(@Inject(VAULT_RUNTIME) private readonly runtime: VaultRuntime) {}
 
   @Post("packages/uploads")
+  @UseGuards(OriginGuard, CsrfGuard)
   @ApiOperation({ summary: "Create an encrypted vault package upload session" })
   @ApiBody({ type: CreateVaultUploadDto })
   @ApiHeader({ name: "x-csrf-token", required: true })
@@ -87,6 +94,7 @@ export class VaultController {
   }
 
   @Put("packages/:packageId/content")
+  @UseGuards(OriginGuard, CsrfGuard)
   @ApiOperation({ summary: "Stream encrypted ciphertext into staging storage" })
   @ApiParam({ name: "packageId", type: String, format: "uuid" })
   @ApiHeader({ name: "x-csrf-token", required: true })
@@ -120,6 +128,7 @@ export class VaultController {
   }
 
   @Post("packages/:packageId/complete")
+  @UseGuards(OriginGuard, CsrfGuard)
   @ApiOperation({ summary: "Verify the staged ciphertext and mark the package READY" })
   @ApiParam({ name: "packageId", type: String, format: "uuid" })
   @ApiBody({ type: CompleteVaultUploadDto })
@@ -150,6 +159,7 @@ export class VaultController {
   }
 
   @Post("packages/:packageId/activate")
+  @UseGuards(OriginGuard, CsrfGuard)
   @ApiOperation({ summary: "Atomically activate a verified encrypted package" })
   @ApiParam({ name: "packageId", type: String, format: "uuid" })
   @ApiBody({ type: ActivateVaultPackageDto })
@@ -174,21 +184,14 @@ export class VaultController {
 
   @Get("packages")
   @ApiOperation({ summary: "List encrypted vault package versions" })
-  @ApiHeader({ name: "x-vault-id", required: true })
   @ApiResponse({ status: 200, description: "Package versions" })
-  public async list(
-    @Headers("x-vault-id") vaultId: string | undefined,
-    @Req() request: AuthenticatedRequest,
-  ) {
+  public async list(@Req() request: AuthenticatedRequest) {
     const context = this.context(request, false);
-    return this.run(async () =>
-      (await this.runtime.listPackages(readHeader(vaultId, "x-vault-id"), context)).map(
-        publicPackage,
-      ),
-    );
+    return this.run(async () => (await this.runtime.listPackages(context)).map(publicPackage));
   }
 
   @Post("packages/:packageId/abort")
+  @UseGuards(OriginGuard, CsrfGuard)
   @ApiOperation({ summary: "Abort an upload and remove its staging object" })
   @ApiParam({ name: "packageId", type: String, format: "uuid" })
   @ApiHeader({ name: "x-csrf-token", required: true })
@@ -216,7 +219,7 @@ export class VaultController {
     mutation: boolean,
     headers = request.headers,
   ): VaultRequestContext {
-    const ownerId = request.user?.id;
+    const ownerId = request.user?.actorId;
     if (ownerId === undefined || ownerId.length === 0)
       throw new UnauthorizedException("owner authentication is required");
     const mutationHeaders = mutation

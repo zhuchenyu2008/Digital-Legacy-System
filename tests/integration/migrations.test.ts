@@ -42,7 +42,7 @@ describe("production migration inventory", () => {
       const runner = new MigrationRunner(asMigrationClient(client));
       const applied = await runner.up();
       expect(applied.map((migration) => migration.version)).toEqual([
-        1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13,
+        1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
       ]);
 
       const result = await client.query(
@@ -205,13 +205,29 @@ describe("production migration inventory", () => {
         { column_name: "owner_display_name", is_nullable: "NO" },
       ]);
 
+      const vaultRuntimeColumns = await client.query(
+        `SELECT column_name, is_nullable
+         FROM information_schema.columns
+         WHERE table_schema = 'app' AND table_name = 'legacy_packages'
+           AND column_name IN (
+             'vault_id', 'share_generation_id', 'expires_at', 'client_crypto_version',
+             'failure_reason', 'storage_metadata'
+           )`,
+      );
+      expect(vaultRuntimeColumns.rows).toHaveLength(6);
+      expect(
+        vaultRuntimeColumns.rows
+          .filter((row) => !["failure_reason", "storage_metadata"].includes(row.column_name))
+          .every((row) => row.is_nullable === "NO"),
+      ).toBe(true);
+
       const afterDown = await runner.down(1);
       expect(afterDown.map((migration) => migration.version)).toEqual([
-        1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12,
+        1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14,
       ]);
       const afterUp = await runner.up();
       expect(afterUp.map((migration) => migration.version)).toEqual([
-        1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13,
+        1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
       ]);
     } finally {
       await client.end();
