@@ -4,6 +4,7 @@ export const cryptoOperations = [
   "createContactKeys",
   "rewrapOwnerVault",
   "rewrapContactPrivateKey",
+  "createContactFragment",
   "createShareGeneration",
   "openRecoveryVault",
 ] as const;
@@ -16,11 +17,16 @@ type WorkerResponse = Readonly<{ id: string; result?: unknown; error?: string }>
 
 export class CryptoWorkerClient {
   public constructor(
-    private readonly createWorker: () => CryptoWorkerLike = () => new Worker(new URL("./crypto.worker.ts", import.meta.url), { type: "module" }),
+    private readonly createWorker: () => CryptoWorkerLike = () =>
+      new Worker(new URL("./crypto.worker.ts", import.meta.url), { type: "module" }),
     private readonly createId: () => string = () => crypto.randomUUID(),
   ) {}
 
-  public run<T>(operation: CryptoOperation, payload: unknown, sensitive: readonly Uint8Array[] = []): Promise<T> {
+  public run<T>(
+    operation: CryptoOperation,
+    payload: unknown,
+    sensitive: readonly Uint8Array[] = [],
+  ): Promise<T> {
     const worker = this.createWorker();
     const id = this.createId();
     const transferableCopies = sensitive.map((value) => value.slice());
@@ -39,7 +45,10 @@ export class CryptoWorkerClient {
         finish();
         reject(new Error(event.message || "密码学工作线程执行失败"));
       };
-      worker.postMessage({ id, operation, payload }, transferableCopies.map((value) => value.buffer));
+      worker.postMessage(
+        { id, operation, payload },
+        transferableCopies.map((value) => value.buffer),
+      );
     });
   }
 }

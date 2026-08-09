@@ -41,6 +41,7 @@ function fixture() {
     { id: "contact-2", status: "ACTIVE", version: 0 },
     { id: "contact-3", status: "ACTIVE", version: 0 },
   ]);
+  rows.set("vaults", [{ id: "vault-1", status: "ACTIVE", version: 0 }]);
   rows.set("oneTimeTokens", []);
   rows.set("ownerCredentials", [{ singleton_id: true, password_phc: "owner-hash", version: 0 }]);
   rows.set("systemSettings", [{ singleton_id: true, contact_set_version: 0, version: 0 }]);
@@ -172,6 +173,7 @@ describe("contact security", () => {
     const result = await getContactCryptoMaterial("contact-1", state.transaction);
     expect(result).not.toHaveProperty("password_phc");
     expect(result.publicKey).toHaveLength(43);
+    expect(result.vaultId).toBe("vault-1");
     expect(result.privateKeyEnvelope).toHaveProperty("ciphertext");
   });
 });

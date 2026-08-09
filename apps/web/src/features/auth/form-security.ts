@@ -29,3 +29,7 @@ export function requestIdFrom(error: unknown): string | undefined {
     ? String((error as { requestId?: unknown }).requestId ?? "") || undefined
     : undefined;
 }
+
+export function navigateAfterLogin(push: (href: string) => void, href: string): void {
+  push(href);
+}

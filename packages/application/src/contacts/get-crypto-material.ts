@@ -18,8 +18,17 @@ export async function getContactCryptoMaterial(contactId: string, transaction: T
         404,
       );
     }
+    const vaults = (await tx.repositories.vaults.findMany?.()) ?? [];
+    if (vaults.length !== 1) {
+      throw new ContactUseCaseError(
+        "CONTACT_KEY_INVALID",
+        "contact vault context is unavailable",
+        409,
+      );
+    }
     return {
       contactId,
+      vaultId: String(vaults[0]?.id),
       publicKey: Buffer.from(contact.x25519_public_key).toString("base64url"),
       privateKeyEnvelope: {
         ciphertext: Buffer.from(contact.private_key_ciphertext).toString("base64url"),
