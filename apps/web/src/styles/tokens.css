@@ -1,0 +1,35 @@
+:root {
+  --dls-surface: #f7f9fb;
+  --dls-surface-lowest: #ffffff;
+  --dls-surface-low: #f2f4f6;
+  --dls-surface-container: #eceef0;
+  --dls-surface-high: #e6e8ea;
+  --dls-on-surface: #191c1e;
+  --dls-on-surface-variant: #45464d;
+  --dls-primary: #000000;
+  --dls-on-primary: #ffffff;
+  --dls-secondary: #006c49;
+  --dls-error: #ba1a1a;
+  --dls-outline: #76777d;
+  --dls-outline-variant: #c6c6cd;
+  --dls-status-setup: #64748b;
+  --dls-status-armed: #10b981;
+  --dls-status-recovery: #f59e0b;
+  --dls-status-alert: #ea580c;
+  --dls-status-critical: #dc2626;
+  --dls-border-subtle: #e2e8f0;
+  --dls-text-primary: #0f172a;
+  --dls-text-secondary: #475569;
+  --dls-font-sans: Inter, "Noto Sans SC", "Microsoft YaHei", system-ui, sans-serif;
+  --dls-font-mono: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+  --dls-radius-sm: 2px;
+  --dls-radius: 4px;
+  --dls-radius-md: 6px;
+  --dls-radius-lg: 8px;
+  --dls-shadow-subtle: 0 1px 2px rgb(15 23 42 / 0.05);
+  --dls-container: 1024px;
+  --dls-gutter-mobile: 16px;
+  --dls-gutter-desktop: 40px;
+  --dls-header-height: 64px;
+  --dls-mobile-nav-height: 72px;
+}
