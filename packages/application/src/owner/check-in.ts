@@ -98,12 +98,15 @@ export async function checkInOwner(
           },
         );
         await tx.outbox.enqueue({
-          eventType: "OWNER_CHECKIN_RECONCILE",
-          aggregateType: "owner",
-          aggregateId: command.ownerId || OWNER_ACTOR_ID,
-          payload: { checkInId, deadlineAt },
+          eventType: "CHECKIN_EVALUATE_REQUESTED",
+          aggregateType: "checkin_schedule",
+          aggregateId: String(schedule.id),
+          payload: {
+            aggregateId: String(schedule.id),
+            aggregateVersion: Number(schedule.schedule_version ?? 0) + 1,
+          },
           idempotencyKey: `owner-checkin:${command.requestId}`,
-          availableAt: now,
+          availableAt: deadlineAt,
         });
       }
       await tx.audit.append({

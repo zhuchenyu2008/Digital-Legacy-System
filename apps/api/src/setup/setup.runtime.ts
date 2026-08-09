@@ -1,4 +1,4 @@
-import { createCipheriv, createHash, createHmac, randomBytes } from "node:crypto";
+import { createCipheriv, createDecipheriv, createHash, createHmac, randomBytes } from "node:crypto";
 import type {
   FieldProtector,
   OwnerSetupCommand,
@@ -40,6 +40,23 @@ export class AesFieldProtector implements FieldProtector {
 
   public async lookup(value: string): Promise<Uint8Array> {
     return createHmac("sha256", this.#key).update(value, "utf8").digest();
+  }
+
+  public async unprotect(
+    value: Readonly<{ ciphertext: Uint8Array; nonce: Uint8Array; keyVersion: number }>,
+    purpose: string,
+  ): Promise<string> {
+    if (value.keyVersion !== 1 || value.nonce.length !== 12 || value.ciphertext.length <= 16) {
+      throw new Error("Protected field envelope is invalid");
+    }
+    const ciphertext = Buffer.from(value.ciphertext);
+    const decipher = createDecipheriv("aes-256-gcm", this.#key, value.nonce);
+    decipher.setAAD(Buffer.from(purpose, "utf8"));
+    decipher.setAuthTag(ciphertext.subarray(ciphertext.length - 16));
+    return Buffer.concat([
+      decipher.update(ciphertext.subarray(0, ciphertext.length - 16)),
+      decipher.final(),
+    ]).toString("utf8");
   }
 }
 

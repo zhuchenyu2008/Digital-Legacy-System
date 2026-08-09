@@ -4,6 +4,10 @@ import {
   WORKER_HEARTBEAT_PORT,
   WorkerHeartbeat,
 } from "./health/worker-heartbeat.js";
+import {
+  CheckinEvaluateHandler,
+  createCheckinEvaluateHandler,
+} from "./jobs/checkin-evaluate.handler.js";
 
 @Module({
   providers: [
@@ -14,7 +18,8 @@ import {
       inject: [WORKER_HEARTBEAT_PORT],
       useFactory: (port: InMemoryWorkerHeartbeatPort) => new WorkerHeartbeat(port),
     },
+    { provide: CheckinEvaluateHandler, useFactory: createCheckinEvaluateHandler },
   ],
-  exports: [WorkerHeartbeat],
+  exports: [WorkerHeartbeat, CheckinEvaluateHandler],
 })
 export class WorkerModule {}

@@ -17,9 +17,9 @@ const pool = createPgPool({
 });
 const manager = new PgTransactionManager(pool);
 
-function outboxEvent(idempotencyKey: string) {
+function outboxEvent(idempotencyKey: string, eventType = "TEST_JOB") {
   return {
-    eventType: "TEST_JOB",
+    eventType,
     aggregateType: "workflow",
     aggregateId: "00000000-0000-0000-0000-000000000021",
     payload: { aggregateId: "00000000-0000-0000-0000-000000000021", aggregateVersion: 4 },
@@ -76,6 +76,26 @@ describe("durable jobs and outbox dispatch", () => {
       ["job-test-retry"],
     );
     expect(row.rows[0]?.published_at).toBeNull();
+  });
+
+  it("routes due check-in evaluation outbox rows to the dedicated worker handler", async () => {
+    await manager.run((tx) =>
+      tx.outbox.enqueue(outboxEvent("job-checkin-evaluate", "CHECKIN_EVALUATE_REQUESTED")),
+    );
+    const published: Array<{ name: string; payload: unknown }> = [];
+    const dispatcher = new PgOutboxDispatcher(pool, {
+      async publish(name, payload) {
+        published.push({ name, payload });
+      },
+    });
+
+    expect(await dispatcher.dispatchBatch()).toBe(1);
+    expect(published).toEqual([
+      {
+        name: JOB_NAMES.CHECKIN_EVALUATE,
+        payload: { aggregateId: "00000000-0000-0000-0000-000000000021", aggregateVersion: 4 },
+      },
+    ]);
   });
 
   it("recovers the pending row after a dispatcher restart", async () => {

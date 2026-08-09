@@ -40,4 +40,8 @@ export * from "./vault/complete-upload.js";
 export * from "./vault/create-upload-session.js";
 export * from "./vault/ports.js";
 export * from "./vault/stream-upload.js";
+export * from "./workflows/evaluate-checkin.js";
+export * from "./workflows/get-contact-workflow.js";
+export * from "./workflows/get-owner-workflow.js";
+export * from "./workflows/start-death-workflow.js";
 export * from "./workflows/submit-fragment.js";

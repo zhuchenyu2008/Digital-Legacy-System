@@ -29,9 +29,17 @@ function quoteIdentifier(value: string): string {
 }
 
 function normalizeRow(row: Record<string, unknown>, versionColumn = "version"): RepositoryRow {
+  const normalized = Object.fromEntries(
+    Object.entries(row).map(([column, value]) => [
+      column,
+      value instanceof Date ? value.toISOString() : value,
+    ]),
+  );
   return {
-    ...row,
-    ...(row[versionColumn] === undefined ? {} : { version: Number(row[versionColumn]) }),
+    ...normalized,
+    ...(normalized[versionColumn] === undefined
+      ? {}
+      : { version: Number(normalized[versionColumn]) }),
   } as RepositoryRow;
 }
 
@@ -242,6 +250,10 @@ export function createRepositories(client: PoolClient): Repositories {
     workflowContacts: buildTableRepository(client, {
       table: "app.workflow_contacts",
       primaryKey: "workflow_id",
+    }),
+    workflowContactActions: buildTableRepository(client, {
+      table: "app.workflow_contact_actions",
+      primaryKey: "id",
     }),
     workflowKeyFragments: buildTableRepository(client, {
       table: "app.workflow_key_fragments",

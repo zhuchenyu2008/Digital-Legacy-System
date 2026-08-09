@@ -41,7 +41,7 @@ describe("production migration inventory", () => {
     try {
       const runner = new MigrationRunner(asMigrationClient(client));
       const applied = await runner.up();
-      expect(applied.map((migration) => migration.version)).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
+      expect(applied.map((migration) => migration.version)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9]);
 
       const result = await client.query(
         `SELECT table_schema || '.' || table_name AS qualified_name
@@ -114,10 +114,32 @@ describe("production migration inventory", () => {
         code: "23514",
       });
 
+      const workflowSnapshotColumns = await client.query(
+        `SELECT table_name, column_name, is_nullable
+         FROM information_schema.columns
+         WHERE table_schema = 'app'
+           AND (
+             (table_name = 'workflows' AND column_name IN (
+               'package_version_snapshot', 'schedule_version_snapshot', 'deadline_snapshot_at',
+               'owner_display_name_snapshot_ciphertext', 'owner_display_name_snapshot_nonce',
+               'owner_display_name_snapshot_key_version'
+             ))
+             OR
+             (table_name = 'workflow_contacts' AND column_name IN (
+               'share_index', 'display_name_snapshot_ciphertext', 'display_name_snapshot_nonce',
+               'display_name_snapshot_key_version', 'email_snapshot_ciphertext',
+               'email_snapshot_nonce', 'email_snapshot_key_version', 'email_snapshot_lookup_hmac'
+             ))
+             OR (table_name = 'checkin_schedules' AND column_name = 'version')
+           )`,
+      );
+      expect(workflowSnapshotColumns.rows).toHaveLength(15);
+      expect(workflowSnapshotColumns.rows.every((row) => row.is_nullable === "NO")).toBe(true);
+
       const afterDown = await runner.down(1);
-      expect(afterDown.map((migration) => migration.version)).toEqual([1, 2, 3, 4, 5, 6, 7]);
+      expect(afterDown.map((migration) => migration.version)).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
       const afterUp = await runner.up();
-      expect(afterUp.map((migration) => migration.version)).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
+      expect(afterUp.map((migration) => migration.version)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9]);
     } finally {
       await client.end();
     }

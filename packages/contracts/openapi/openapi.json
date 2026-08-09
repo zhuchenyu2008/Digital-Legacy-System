@@ -200,6 +200,31 @@
         ],
         "type": "object"
       },
+      "ContactIngressDto": {
+        "properties": {
+          "publicKey": {
+            "format": "byte",
+            "type": "string"
+          },
+          "purpose": {
+            "enum": [
+              "DEATH",
+              "RECOVERY"
+            ],
+            "type": "string"
+          },
+          "version": {
+            "minimum": 1,
+            "type": "number"
+          }
+        },
+        "required": [
+          "purpose",
+          "version",
+          "publicKey"
+        ],
+        "type": "object"
+      },
       "ContactLoginDto": {
         "properties": {
           "displayName": {
@@ -262,6 +287,92 @@
           "kdfSalt",
           "kdfParams",
           "privateKeyProof"
+        ],
+        "type": "object"
+      },
+      "ContactShareDto": {
+        "properties": {
+          "ciphertext": {
+            "format": "byte",
+            "type": "string",
+            "writeOnly": true
+          },
+          "commitment": {
+            "format": "byte",
+            "type": "string"
+          },
+          "generationId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "protocolVersion": {
+            "minimum": 1,
+            "type": "number"
+          },
+          "shareIndex": {
+            "minimum": 1,
+            "type": "number"
+          }
+        },
+        "required": [
+          "generationId",
+          "shareIndex",
+          "protocolVersion",
+          "ciphertext",
+          "commitment"
+        ],
+        "type": "object"
+      },
+      "ContactWorkflowDto": {
+        "properties": {
+          "approvedCount": {
+            "minimum": 0,
+            "type": "number"
+          },
+          "decisionAlreadyMade": {
+            "type": "boolean"
+          },
+          "ingress": {
+            "$ref": "#/components/schemas/ContactIngressDto"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "legalNextActions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "ownerDisplayName": {
+            "type": "string"
+          },
+          "requiredCount": {
+            "minimum": 1,
+            "type": "number"
+          },
+          "share": {
+            "$ref": "#/components/schemas/ContactShareDto"
+          },
+          "state": {
+            "type": "string"
+          },
+          "workflowId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "workflowId",
+          "kind",
+          "state",
+          "ownerDisplayName",
+          "approvedCount",
+          "requiredCount",
+          "decisionAlreadyMade",
+          "legalNextActions",
+          "share",
+          "ingress"
         ],
         "type": "object"
       },
@@ -516,6 +627,48 @@
         ],
         "type": "object"
       },
+      "OwnerWorkflowDto": {
+        "properties": {
+          "approvedCount": {
+            "minimum": 0,
+            "type": "number"
+          },
+          "contactCount": {
+            "minimum": 1,
+            "type": "number"
+          },
+          "contacts": {
+            "items": {
+              "$ref": "#/components/schemas/WorkflowContactDto"
+            },
+            "type": "array"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "requiredCount": {
+            "minimum": 1,
+            "type": "number"
+          },
+          "state": {
+            "type": "string"
+          },
+          "workflowId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "workflowId",
+          "kind",
+          "state",
+          "contactCount",
+          "requiredCount",
+          "approvedCount",
+          "contacts"
+        ],
+        "type": "object"
+      },
       "RemoveContactDto": {
         "properties": {
           "password": {
@@ -676,6 +829,23 @@
         "required": [
           "partNumber",
           "etag"
+        ],
+        "type": "object"
+      },
+      "WorkflowContactDto": {
+        "properties": {
+          "contactId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "shareIndex": {
+            "minimum": 1,
+            "type": "number"
+          }
+        },
+        "required": [
+          "contactId",
+          "shareIndex"
         ],
         "type": "object"
       }
@@ -863,6 +1033,28 @@
         "summary": "Read the authenticated contact crypto material",
         "tags": [
           "Contact invitations"
+        ]
+      }
+    },
+    "/contact/workflows/current": {
+      "get": {
+        "operationId": "WorkflowsController_contactCurrent",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContactWorkflowDto"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "summary": "Read only the authenticated contact's workflow participation",
+        "tags": [
+          "Workflows"
         ]
       }
     },
@@ -1547,6 +1739,28 @@
         "summary": "Validate and store the encrypted shares for a draft",
         "tags": [
           "Share generations"
+        ]
+      }
+    },
+    "/owner/workflows/current": {
+      "get": {
+        "operationId": "WorkflowsController_ownerCurrent",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OwnerWorkflowDto"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "summary": "Read the current workflow with its private owner snapshot",
+        "tags": [
+          "Workflows"
         ]
       }
     },

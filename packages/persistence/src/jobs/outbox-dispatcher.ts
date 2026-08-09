@@ -7,19 +7,26 @@ export interface JobPublisher {
   publish(name: string, payload: JobPayload): Promise<void>;
 }
 
-function extractJobPayload(value: unknown): JobPayload {
-  if (!value || typeof value !== "object") throw new Error("Outbox payload is not an object");
-  const payload = value as Record<string, unknown>;
-  if (
-    typeof payload.aggregateId !== "string" ||
-    !Number.isSafeInteger(payload.aggregateVersion) ||
-    Number(payload.aggregateVersion) < 0
-  ) {
-    throw new Error("Outbox payload must contain aggregateId and aggregateVersion");
+const EVENT_JOB_ROUTES: Readonly<Record<string, string>> = Object.freeze({
+  CHECKIN_EVALUATE_REQUESTED: JOB_NAMES.CHECKIN_EVALUATE,
+});
+
+function extractJobPayload(value: unknown, fallbackAggregateId: string): JobPayload {
+  if (!value || typeof value !== "object") {
+    return { aggregateId: fallbackAggregateId, aggregateVersion: 0 };
   }
+  const payload = value as Record<string, unknown>;
+  if (payload.aggregateId === undefined && payload.aggregateVersion === undefined) {
+    return { aggregateId: fallbackAggregateId, aggregateVersion: 0 };
+  }
+  if (typeof payload.aggregateId !== "string" || !Number.isSafeInteger(payload.aggregateVersion)) {
+    throw new Error("Outbox job identity is invalid");
+  }
+  const aggregateVersion = Number(payload.aggregateVersion);
+  if (aggregateVersion < 0) throw new Error("Outbox job version is invalid");
   return {
     aggregateId: payload.aggregateId,
-    aggregateVersion: Number(payload.aggregateVersion),
+    aggregateVersion,
   };
 }
 
@@ -40,7 +47,7 @@ export class PgOutboxDispatcher {
     try {
       await client.query("BEGIN");
       const result = await client.query(
-        `SELECT id, payload
+        `SELECT id, event_type, aggregate_id, payload
          FROM app.domain_outbox
          WHERE published_at IS NULL AND available_at <= clock_timestamp()
          ORDER BY created_at, id
@@ -49,8 +56,11 @@ export class PgOutboxDispatcher {
       );
       let dispatched = 0;
       for (const row of result.rows) {
-        const payload = extractJobPayload(row.payload);
-        await this.#publisher.publish(JOB_NAMES.OUTBOX_DISPATCH, payload);
+        const payload = extractJobPayload(row.payload, String(row.aggregate_id));
+        await this.#publisher.publish(
+          EVENT_JOB_ROUTES[String(row.event_type)] ?? JOB_NAMES.OUTBOX_DISPATCH,
+          payload,
+        );
         await client.query(
           `UPDATE app.domain_outbox
            SET published_at = clock_timestamp()

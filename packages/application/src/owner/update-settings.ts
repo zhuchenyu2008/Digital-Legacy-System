@@ -137,12 +137,15 @@ export async function updateOwnerSettings(
         metadata: { missedDaysThreshold: nextThreshold },
       });
       await tx.outbox.enqueue({
-        eventType: "OWNER_CHECKIN_RECONCILE",
-        aggregateType: "owner",
-        aggregateId: command.ownerId,
-        payload: { deadlineAt },
+        eventType: "CHECKIN_EVALUATE_REQUESTED",
+        aggregateType: "checkin_schedule",
+        aggregateId: String(schedule.id),
+        payload: {
+          aggregateId: String(schedule.id),
+          aggregateVersion: Number(schedule.schedule_version ?? 0) + 1,
+        },
         idempotencyKey: `owner-settings:${command.requestId}`,
-        availableAt: now,
+        availableAt: deadlineAt,
       });
       return {
         missedDaysThreshold: nextThreshold,

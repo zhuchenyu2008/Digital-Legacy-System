@@ -176,6 +176,7 @@ export async function createOwner(
           : decodeBase64Url(envelope.aadHash, "owner envelope AAD hash", 16);
       const checkInId = idFactory();
       const scheduleId = idFactory();
+      const deadlineAt = addDays(now, 3);
       const consentDocumentSha256 = dependencies.consentDocumentSha256 ?? new Uint8Array(32);
 
       await tx.repositories.ownerProfile.insert({
@@ -244,7 +245,7 @@ export async function createOwner(
         schedule_version: 1,
         last_check_in_id: checkInId,
         threshold_days: 3,
-        deadline_at: addDays(now, 3),
+        deadline_at: deadlineAt,
         status: "ACTIVE",
       });
       await tx.audit.append({
@@ -265,6 +266,14 @@ export async function createOwner(
         payload: { vaultId },
         idempotencyKey: `owner-setup:${ownerId}`,
         availableAt: now,
+      });
+      await tx.outbox.enqueue({
+        eventType: "CHECKIN_EVALUATE_REQUESTED",
+        aggregateType: "checkin_schedule",
+        aggregateId: scheduleId,
+        payload: { aggregateId: scheduleId, aggregateVersion: 1 },
+        idempotencyKey: `checkin-evaluate:${scheduleId}:1`,
+        availableAt: deadlineAt,
       });
       const session =
         dependencies.sessionService === undefined

@@ -135,6 +135,23 @@ export type paths = {
         readonly patch?: never;
         readonly trace?: never;
     };
+    readonly "/contact/workflows/current": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        /** Read only the authenticated contact's workflow participation */
+        readonly get: operations["WorkflowsController_contactCurrent"];
+        readonly put?: never;
+        readonly post?: never;
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
     readonly "/contacts/password-change/complete": {
         readonly parameters: {
             readonly query?: never;
@@ -474,6 +491,23 @@ export type paths = {
         readonly patch?: never;
         readonly trace?: never;
     };
+    readonly "/owner/workflows/current": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        /** Read the current workflow with its private owner snapshot */
+        readonly get: operations["WorkflowsController_ownerCurrent"];
+        readonly put?: never;
+        readonly post?: never;
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
     readonly "/setup/owner": {
         readonly parameters: {
             readonly query?: never;
@@ -558,6 +592,13 @@ export type components = {
             readonly termsAccepted: boolean;
             readonly version: string;
         };
+        readonly ContactIngressDto: {
+            /** Format: byte */
+            readonly publicKey: string;
+            /** @enum {string} */
+            readonly purpose: "DEATH" | "RECOVERY";
+            readonly version: number;
+        };
         readonly ContactLoginDto: {
             readonly displayName: string;
             readonly entryToken?: string;
@@ -575,6 +616,29 @@ export type components = {
             readonly privateKeyProof: string;
             /** Format: byte */
             readonly publicKey: string;
+        };
+        readonly ContactShareDto: {
+            /** Format: byte */
+            readonly ciphertext: string;
+            /** Format: byte */
+            readonly commitment: string;
+            /** Format: uuid */
+            readonly generationId: string;
+            readonly protocolVersion: number;
+            readonly shareIndex: number;
+        };
+        readonly ContactWorkflowDto: {
+            readonly approvedCount: number;
+            readonly decisionAlreadyMade: boolean;
+            readonly ingress: components["schemas"]["ContactIngressDto"];
+            readonly kind: string;
+            readonly legalNextActions: readonly string[];
+            readonly ownerDisplayName: string;
+            readonly requiredCount: number;
+            readonly share: components["schemas"]["ContactShareDto"];
+            readonly state: string;
+            /** Format: uuid */
+            readonly workflowId: string;
         };
         readonly CreateContactInvitationDto: {
             readonly displayName: string;
@@ -659,6 +723,16 @@ export type components = {
             readonly ownerEnvelopeProof: string;
             readonly vkCommitment: string;
         };
+        readonly OwnerWorkflowDto: {
+            readonly approvedCount: number;
+            readonly contactCount: number;
+            readonly contacts: readonly components["schemas"]["WorkflowContactDto"][];
+            readonly kind: string;
+            readonly requiredCount: number;
+            readonly state: string;
+            /** Format: uuid */
+            readonly workflowId: string;
+        };
         readonly RemoveContactDto: {
             readonly password: string;
         };
@@ -700,6 +774,11 @@ export type components = {
         readonly VaultUploadPartDto: {
             readonly etag: string;
             readonly partNumber: number;
+        };
+        readonly WorkflowContactDto: {
+            /** Format: uuid */
+            readonly contactId: string;
+            readonly shareIndex: number;
         };
     };
     responses: never;
@@ -865,6 +944,25 @@ export interface operations {
                     readonly [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    readonly WorkflowsController_contactCurrent: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly requestBody?: never;
+        readonly responses: {
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ContactWorkflowDto"];
+                };
             };
         };
     };
@@ -1319,6 +1417,25 @@ export interface operations {
                     readonly [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    readonly WorkflowsController_ownerCurrent: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly requestBody?: never;
+        readonly responses: {
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["OwnerWorkflowDto"];
+                };
             };
         };
     };

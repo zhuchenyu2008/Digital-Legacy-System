@@ -13,6 +13,7 @@ import { SecurityModule } from "./security/security.module.js";
 import { SetupModule } from "./setup/setup.module.js";
 import { ShareGenerationModule } from "./shares/share-generation.module.js";
 import { VaultModule } from "./vault/vault.module.js";
+import { WorkflowsModule } from "./workflows/workflows.module.js";
 
 const startupProbe: HealthProbe = Object.freeze({ check: async () => undefined });
 
@@ -24,6 +25,7 @@ const startupProbe: HealthProbe = Object.freeze({ check: async () => undefined }
     ContactModule,
     VaultModule,
     ShareGenerationModule,
+    WorkflowsModule,
   ],
   controllers: [HealthController],
   providers: [
