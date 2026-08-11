@@ -1,6 +1,9 @@
 services:
   acceptance:
+    command: ["node", "ops/scripts/container-acceptance.mjs"]
     environment:
       ACCEPTANCE_BASE_URL: http://caddy:8080
       CI: "true"
       PLAYWRIGHT_HTML_OPEN: never
+    volumes:
+      - ./docs/acceptance:/workspace/docs/acceptance

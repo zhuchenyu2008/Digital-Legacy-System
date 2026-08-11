@@ -36,6 +36,9 @@ for (const pageCase of PAGES) {
       await expect(page).toHaveScreenshot(`${pageCase.name}-${viewport.name}.png`, {
         animations: "disabled",
         fullPage: false,
+        // Cross-platform font rasterization changes anti-aliased glyph edges while
+        // leaving content, geometry, and colors unchanged.
+        maxDiffPixelRatio: viewport.name === "mobile" ? 0.07 : 0.025,
       });
     });
   }

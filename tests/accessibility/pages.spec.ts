@@ -106,16 +106,25 @@ test("key pages reflow without horizontal scrolling at a 200 percent zoom equiva
       const offenders = [...document.querySelectorAll("*")]
         .map((element) => {
           const rect = element.getBoundingClientRect();
+          const style = getComputedStyle(element);
           return {
             element: `${element.tagName.toLowerCase()}${element.id ? `#${element.id}` : ""}${
               element.classList.length > 0 ? `.${[...element.classList].join(".")}` : ""
             }`,
+            clientWidth: element.clientWidth,
             left: Math.round(rect.left),
+            overflowX: style.overflowX,
             right: Math.round(rect.right),
+            scrollWidth: element.scrollWidth,
             width: Math.round(rect.width),
           };
         })
-        .filter((element) => element.left < -1 || element.right > clientWidth + 1)
+        .filter(
+          (element) =>
+            element.left < -1 ||
+            element.right > clientWidth + 1 ||
+            (element.scrollWidth > element.clientWidth + 1 && element.overflowX === "visible"),
+        )
         .slice(0, 12);
       return { offenders, overflow };
     });

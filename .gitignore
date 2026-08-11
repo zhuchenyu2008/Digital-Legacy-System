@@ -14,16 +14,19 @@ coverage/
 .docker-config/
 .compose-smoke-secrets/
 .e2e-runtime/
+.acceptance-artifacts/
 .pnpm-store/
 ops/secrets/generated/
 
 .env
 .env.*
 !.env.example
+!.env.production.example
 
 playwright-report/
 test-results/
 blob-report/
+/output/playwright/
 
 *.log
 *.tsbuildinfo

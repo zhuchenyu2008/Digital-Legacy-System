@@ -9,22 +9,32 @@
   },
   "scripts": {
     "check": "biome check .",
+    "typecheck": "corepack pnpm --filter @dls/web typegen && tsc -b",
     "test:unit": "vitest run --config vitest.workspace.ts --project unit",
     "test:email": "vitest run --config vitest.workspace.ts --project email-rendering",
     "test:integration": "vitest run --config vitest.workspace.ts --project integration",
+    "test:migrations": "node node_modules/vitest/vitest.mjs run --config vitest.workspace.ts --project integration tests/integration/migrations.test.ts",
+    "test:concurrency": "node node_modules/vitest/vitest.mjs run --config vitest.config.ts tests/concurrency",
+    "test:publication-crash-matrix": "node node_modules/vitest/vitest.mjs run --config vitest.faults.config.ts tests/faults/publication-crash-matrix.test.ts",
     "test:crypto": "vitest run --config vitest.workspace.ts --project crypto",
     "test:storage": "vitest run --config vitest.workspace.ts --project storage",
-    "test:e2e": "node tests/e2e/run.mjs",
+    "test:storage:filesystem": "node node_modules/vitest/vitest.mjs run --config vitest.workspace.ts --project storage packages/storage/src/object-key.test.ts packages/storage/src/archive/zip-inspector.test.ts packages/storage/src/filesystem/filesystem-storage.test.ts packages/storage/src/storage-factory.test.ts",
+    "test:e2e": "node tests/e2e/run.mjs tests/e2e/contact-workflow.spec.ts tests/e2e/scenario-isolation.spec.ts",
+    "test:full-stack-e2e": "node node_modules/@playwright/test/cli.js test --config tests/e2e/playwright.config.ts",
     "test:visual": "node tests/e2e/run.mjs tests/visual",
     "test:a11y": "node tests/e2e/run.mjs tests/accessibility",
     "test:browser-security": "node tests/e2e/run.mjs tests/security/browser-secrets.spec.ts tests/security/csp.spec.ts",
     "test:ui-gates": "node tests/e2e/run.mjs tests/visual tests/accessibility tests/security/browser-secrets.spec.ts tests/security/csp.spec.ts",
     "test:security": "vitest run --config vitest.workspace.ts --project security --passWithNoTests",
     "test:deployment": "vitest run --config vitest.workspace.ts --project deployment",
+    "test:production-compose": "node node_modules/vitest/vitest.mjs run --config vitest.workspace.ts --project deployment tests/deployment/production-compose.test.ts",
     "build": "corepack pnpm --recursive --if-present run build",
     "openapi:generate": "corepack pnpm --filter @dls/api openapi:generate && corepack pnpm --filter @dls/contracts openapi:generate",
     "openapi:check": "corepack pnpm --filter @dls/api openapi:check && corepack pnpm --filter @dls/contracts openapi:check",
-    "acceptance": "corepack pnpm run check && corepack pnpm run test:unit && corepack pnpm run test:email && corepack pnpm run test:integration && corepack pnpm run test:crypto && corepack pnpm run test:storage && corepack pnpm run build && corepack pnpm run test:e2e && corepack pnpm run test:security && corepack pnpm run test:deployment && corepack pnpm run openapi:check"
+    "acceptance": "node ops/scripts/run-acceptance.mjs"
+  },
+  "dependencies": {
+    "@dls/storage": "workspace:*"
   },
   "devDependencies": {
     "@aws-sdk/client-s3": "3.1103.0",
