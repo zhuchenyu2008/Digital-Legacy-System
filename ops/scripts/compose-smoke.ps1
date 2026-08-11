@@ -7,12 +7,21 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
 $repositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
-$projectName = "dls-local-v1-smoke"
-$secretDirectory = Join-Path $repositoryRoot ".compose-smoke-secrets"
-$dockerConfigDirectory = Join-Path $repositoryRoot ".docker-config"
+$runId = ([guid]::NewGuid().ToString("N")).Substring(0, 12)
+$projectName = "dls-local-v1-smoke-$runId"
+$runtimeDirectory = Join-Path $repositoryRoot ".acceptance-artifacts/compose-smoke-$runId"
+$secretDirectory = Join-Path $runtimeDirectory "secrets"
+$dockerConfigDirectory = Join-Path $runtimeDirectory "docker-config"
 $composeStarted = $false
 
+function Assert-DisposableProject([string]$Project) {
+  if ($Project -notmatch '^dls-local-v1-smoke-[0-9a-f]{12}$') {
+    throw "refusing to operate on a non-disposable Compose smoke project"
+  }
+}
+
 function Invoke-Compose {
+  Assert-DisposableProject $projectName
   & docker compose --project-name $projectName @args
   if ($LASTEXITCODE -ne 0) {
     throw "docker compose failed with exit code $LASTEXITCODE"
@@ -64,10 +73,7 @@ try {
   Invoke-Compose up --detach api worker web caddy
   Wait-Ready $httpPort
 
-  $services = @(& docker compose --project-name $projectName ps --services)
-  if ($LASTEXITCODE -ne 0) {
-    throw "Unable to list running Compose services"
-  }
+  $services = @(Invoke-Compose ps --services)
   if ($services -contains "minio" -or $services -contains "minio-init") {
     throw "Default Compose profile unexpectedly started MinIO"
   }
@@ -78,8 +84,8 @@ try {
   Invoke-Compose restart api worker
   Wait-Ready $httpPort
 
-  $databaseMarker = & docker compose --project-name $projectName exec --no-TTY postgres psql --username postgres --dbname dls --tuples-only --no-align --command "SELECT count(*) FROM compose_smoke_marker WHERE id = 1;"
-  if ($LASTEXITCODE -ne 0 -or $databaseMarker.Trim() -ne "1") {
+  $databaseMarker = Invoke-Compose exec --no-TTY postgres psql --username postgres --dbname dls --tuples-only --no-align --command "SELECT count(*) FROM compose_smoke_marker WHERE id = 1;"
+  if ($databaseMarker.Trim() -ne "1") {
     throw "PostgreSQL marker did not survive the service restart"
   }
   Invoke-Compose exec --no-TTY api grep --quiet --line-regexp private /var/lib/dls/objects/private/compose-smoke-marker
@@ -89,11 +95,12 @@ try {
   Write-Host "Compose smoke test passed on http://127.0.0.1:$httpPort"
 } catch {
   if ($composeStarted) {
-    & docker compose --project-name $projectName logs --no-color --tail 200
+    Invoke-Compose logs --no-color --tail 200
   }
   throw
 } finally {
   if ($composeStarted) {
+    Assert-DisposableProject $projectName
     if ($DeleteVolumes) {
       & docker compose --project-name $projectName down --remove-orphans --volumes
     } else {
@@ -104,4 +111,5 @@ try {
   $env:DOCKER_CONFIG = $previousDockerConfig
   $env:DLS_SECRETS_DIR = $previousSecretsDirectory
   $env:DLS_HTTP_PORT = $previousHttpPort
+  if (Test-Path -LiteralPath $runtimeDirectory) { Remove-Item -LiteralPath $runtimeDirectory -Recurse -Force }
 }

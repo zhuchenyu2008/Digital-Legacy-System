@@ -11,12 +11,22 @@ fi
 
 script_directory=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 repository_root=$(CDPATH= cd -- "$script_directory/../.." && pwd)
-project_name=dls-local-v1-smoke
-secret_directory=$repository_root/.compose-smoke-secrets
-docker_config_directory=$repository_root/.docker-config
+RUN_ID=$(node --input-type=module -e 'process.stdout.write(crypto.randomUUID().replaceAll("-", "").slice(0, 12))')
+project_name="dls-local-v1-smoke-${RUN_ID}"
+runtime_directory="$repository_root/.acceptance-artifacts/compose-smoke-${RUN_ID}"
+secret_directory="$runtime_directory/secrets"
+docker_config_directory="$runtime_directory/docker-config"
 compose_started=false
 
+assert_project() {
+  printf '%s' "$1" | grep -Eq '^dls-local-v1-smoke-[0-9a-f]{12}$' || {
+    printf 'Refusing to operate on a non-disposable Compose smoke project.\n' >&2
+    exit 1
+  }
+}
+
 compose() {
+  assert_project "$project_name"
   docker compose --project-name "$project_name" "$@"
 }
 
@@ -39,6 +49,7 @@ cleanup() {
   status=$?
   trap - EXIT INT TERM
   if [ "$compose_started" = true ]; then
+    assert_project "$project_name"
     if [ "$status" -ne 0 ]; then
       compose logs --no-color --tail 200 || true
     fi
@@ -48,6 +59,7 @@ cleanup() {
       compose down --remove-orphans || true
     fi
   fi
+  rm -rf "$runtime_directory"
   exit "$status"
 }
 trap cleanup EXIT INT TERM

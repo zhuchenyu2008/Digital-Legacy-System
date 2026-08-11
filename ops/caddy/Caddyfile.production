@@ -1,0 +1,42 @@
+{
+  email {$DLS_TLS_EMAIL}
+  admin off
+}
+
+http://{$DLS_DOMAIN} {
+  redir https://{$DLS_DOMAIN}{uri} permanent
+}
+
+http://127.0.0.1:8081 {
+  respond /healthz 200
+}
+
+https://{$DLS_DOMAIN} {
+  encode zstd gzip
+  tls {$DLS_TLS_EMAIL}
+
+  header {
+    -Server
+    Strict-Transport-Security "max-age=31536000; includeSubDomains"
+    X-Content-Type-Options nosniff
+    Referrer-Policy no-referrer
+    Permissions-Policy "camera=(), geolocation=(), microphone=()"
+  }
+
+  handle /health/live {
+    reverse_proxy api:3001
+  }
+  handle /health/ready {
+    reverse_proxy api:3001
+  }
+  handle_path /api/* {
+    reverse_proxy api:3001
+  }
+  handle_path /public/* {
+    root * /srv/public
+    file_server
+  }
+  handle {
+    reverse_proxy web:3000
+  }
+}

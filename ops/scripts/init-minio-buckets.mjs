@@ -11,6 +11,7 @@ const required = [
   "S3_ENDPOINT",
   "S3_REGION",
   "S3_PRIVATE_BUCKET",
+  "S3_STAGING_BUCKET",
   "S3_PUBLIC_BUCKET",
 ];
 
@@ -26,7 +27,11 @@ const client = new S3Client({
   forcePathStyle: true,
 });
 
-for (const bucket of [process.env.S3_PRIVATE_BUCKET, process.env.S3_PUBLIC_BUCKET]) {
+for (const bucket of [
+  process.env.S3_PRIVATE_BUCKET,
+  process.env.S3_STAGING_BUCKET,
+  process.env.S3_PUBLIC_BUCKET,
+]) {
   try {
     await client.send(new HeadBucketCommand({ Bucket: bucket }));
   } catch (error) {

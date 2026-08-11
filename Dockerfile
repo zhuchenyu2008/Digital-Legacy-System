@@ -14,6 +14,11 @@ COPY packages/vss-wasm ./packages/vss-wasm
 
 RUN cargo test --locked
 
+FROM rust-test AS rust-audit
+
+RUN cargo install cargo-audit --version 0.22.2 --locked \
+  && cargo audit
+
 FROM rust-test AS rust-wasm
 
 RUN rustup target add wasm32-unknown-unknown \
@@ -81,6 +86,9 @@ COPY --from=build --chown=node:node /workspace/packages/persistence/dist ./packa
 COPY --from=build --chown=node:node /workspace/packages/storage/dist ./packages/storage/dist
 COPY --from=build --chown=node:node /workspace/packages/test-fixtures/dist ./packages/test-fixtures/dist
 COPY --from=build --chown=node:node /workspace/packages/vss-wasm/dist ./packages/vss-wasm/dist
+COPY --from=build --chown=node:node /workspace/ops/scripts/migration-status.mjs ./ops/scripts/migration-status.mjs
+COPY --from=build --chown=node:node /workspace/ops/scripts/runtime-reconcile.mjs ./ops/scripts/runtime-reconcile.mjs
+COPY --from=build --chown=node:node /workspace/ops/scripts/verify-audit.mjs ./ops/scripts/verify-audit.mjs
 
 USER node
 
@@ -105,7 +113,9 @@ CMD ["pnpm", "acceptance"]
 FROM ${CADDY_IMAGE} AS caddy
 
 USER root
-RUN cp /usr/bin/caddy /usr/local/bin/caddy-unprivileged \
+RUN mkdir -p /data /config \
+  && chown -R 1000:1000 /data /config \
+  && cp /usr/bin/caddy /usr/local/bin/caddy-unprivileged \
   && chmod 0755 /usr/local/bin/caddy-unprivileged \
   && chown 1000:1000 /usr/local/bin/caddy-unprivileged
 

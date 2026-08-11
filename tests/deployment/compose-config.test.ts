@@ -69,7 +69,7 @@ describe("Docker Compose topology", () => {
 
   test("provides a least-privilege migration job without starting it by default", () => {
     const migrator = composeConfig(["ops"]).services.migrator;
-    expect(migrator?.profiles).toEqual(["ops"]);
+    expect(migrator?.profiles).toEqual(expect.arrayContaining(["ops", "test"]));
     expect(migrator?.read_only).toBe(true);
     expect(publishedPorts(migrator ?? {})).toBe(0);
     expect(
