@@ -20,8 +20,31 @@ export function validateMailpitApiUrl(value: string): URL {
 
 function hrefs(html: string): readonly string[] {
   return [...html.matchAll(/\bhref\s*=\s*["']([^"']+)["']/giu)].flatMap((match) =>
-    match[1] === undefined ? [] : [match[1]],
+    match[1] === undefined ? [] : [decodeHtmlAttribute(match[1])],
   );
+}
+
+function decodeHtmlAttribute(value: string): string {
+  return value.replace(/&#(?:x[\da-f]+|\d+);|&(amp|quot|apos|lt|gt);/giu, (entity) => {
+    const normalized = entity.toLowerCase();
+    if (normalized.startsWith("&#x")) {
+      const codePoint = Number.parseInt(normalized.slice(3, -1), 16);
+      return codePoint <= 0x10ffff ? String.fromCodePoint(codePoint) : entity;
+    }
+    if (normalized.startsWith("&#")) {
+      const codePoint = Number.parseInt(normalized.slice(2, -1), 10);
+      return codePoint <= 0x10ffff ? String.fromCodePoint(codePoint) : entity;
+    }
+    return (
+      {
+        "&amp;": "&",
+        "&apos;": "'",
+        "&gt;": ">",
+        "&lt;": "<",
+        "&quot;": '"',
+      }[normalized] ?? entity
+    );
+  });
 }
 
 export function extractFragmentLink(html: string, applicationBaseUrl: string): URL {
@@ -68,11 +91,16 @@ export class MailpitClient {
   }
 
   public async waitFor(
-    input: Readonly<{ recipient: string; subject: RegExp }>,
+    input: Readonly<{
+      recipient: string;
+      subject: RegExp;
+      excludeMessageIds?: ReadonlySet<string>;
+    }>,
   ): Promise<MailpitMessage> {
     const deadline = Date.now() + 15_000;
     do {
       for (const message of await this.messages()) {
+        if (input.excludeMessageIds?.has(message.ID) === true) continue;
         if (
           message.To.some((recipient) => recipient.Address === input.recipient) &&
           input.subject.test(message.Subject)

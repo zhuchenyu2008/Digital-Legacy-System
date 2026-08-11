@@ -11,6 +11,11 @@ function attributes(secure: boolean): string {
   return `Path=/; SameSite=Strict${secure ? "; Secure" : ""}`;
 }
 
+export function sessionCookieName(actorType: SessionActorType, secure: boolean): string {
+  if (secure) return SESSION_COOKIE_NAMES[actorType];
+  return actorType === "OWNER" ? "dls-owner" : "dls-contact";
+}
+
 export function sessionCookieHeaders(
   actorType: SessionActorType,
   token: string,
@@ -19,7 +24,7 @@ export function sessionCookieHeaders(
 ): readonly string[] {
   const common = attributes(secure);
   return Object.freeze([
-    `${SESSION_COOKIE_NAMES[actorType]}=${encodeURIComponent(token)}; ${common}; HttpOnly`,
+    `${sessionCookieName(actorType, secure)}=${encodeURIComponent(token)}; ${common}; HttpOnly`,
     `${CSRF_COOKIE_NAMES[actorType]}=${encodeURIComponent(csrfToken)}; ${common}`,
   ]);
 }
@@ -30,7 +35,7 @@ export function clearedSessionCookieHeaders(
 ): readonly string[] {
   const common = attributes(secure);
   return Object.freeze([
-    `${SESSION_COOKIE_NAMES[actorType]}=; Max-Age=0; ${common}; HttpOnly`,
+    `${sessionCookieName(actorType, secure)}=; Max-Age=0; ${common}; HttpOnly`,
     `${CSRF_COOKIE_NAMES[actorType]}=; Max-Age=0; ${common}`,
   ]);
 }

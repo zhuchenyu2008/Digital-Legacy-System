@@ -88,6 +88,8 @@ export class OwnerRecoveryController {
       const result = await this.runtime.material(parseCreateRecoveryMaterial(body));
       return {
         data: {
+          workflowId: result.workflowId,
+          vaultId: result.vaultId,
           resetSessionToken: result.resetSessionToken,
           encryptedVaultKey: encodeBase64Url(result.encryptedVaultKey),
           sealedVaultKeyDigest: encodeBase64Url(result.sealedVaultKeyDigest),

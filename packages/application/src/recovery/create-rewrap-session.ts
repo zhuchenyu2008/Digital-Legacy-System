@@ -12,6 +12,8 @@ import {
 } from "./recovery-common.js";
 
 export type CreateRewrapSessionResult = Readonly<{
+  workflowId: string;
+  vaultId: string;
   resetSessionToken: string;
   encryptedVaultKey: Uint8Array;
   sealedVaultKeyDigest: Uint8Array;
@@ -68,6 +70,17 @@ export async function createRewrapSession(
     ) {
       return { error: challengeError() } as const;
     }
+    const generation = await recoveryRepository(
+      tx.repositories.shareGenerations,
+      "share generations",
+    ).findById(String(workflow.share_generation_id), { forUpdate: true });
+    if (generation === null || typeof generation.vault_id !== "string") {
+      return { error: challengeError() } as const;
+    }
+    const vault = await tx.repositories.vaults.findById(String(generation.vault_id), {
+      forUpdate: true,
+    });
+    if (vault === null) return { error: challengeError() } as const;
     const codes = recoveryRepository(
       tx.repositories.emailVerificationCodes,
       "email verification codes",
@@ -161,7 +174,14 @@ export async function createRewrapSession(
         metadata: { expiresAt },
       });
       return {
-        value: { resetSessionToken, encryptedVaultKey, sealedVaultKeyDigest, expiresAt },
+        value: {
+          workflowId,
+          vaultId: String(vault.id),
+          resetSessionToken,
+          encryptedVaultKey,
+          sealedVaultKeyDigest,
+          expiresAt,
+        },
       } as const;
     } finally {
       vaultKey.fill(0);

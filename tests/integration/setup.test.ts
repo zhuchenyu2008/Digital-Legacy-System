@@ -38,6 +38,7 @@ describe("owner setup HTTP contract", () => {
     const response = await controller.create(
       {
         setupToken: "setup-token",
+        vaultId: "22222222-2222-4222-8222-222222222222",
         displayName: "张三",
         primaryEmail: "owner@example.com",
         password: "correct horse battery staple",

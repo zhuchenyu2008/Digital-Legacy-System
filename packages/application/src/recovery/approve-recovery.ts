@@ -116,12 +116,19 @@ export async function approveRecovery(
     tokenFactory?: () => Uint8Array;
     codeFactory?: () => string;
     onPrimaryResetChallenge?: (
-      challenge: Readonly<{ token: string; code: string }>,
+      challenge: Readonly<{
+        workflowId: string;
+        token: string;
+        code: string;
+        expiresAt: string;
+      }>,
     ) => Promise<void>;
     idFactory?: () => string;
   }>,
 ): Promise<ApproveRecoveryResult> {
-  let challenge: Readonly<{ token: string; code: string }> | undefined;
+  let challenge:
+    | Readonly<{ workflowId: string; token: string; code: string; expiresAt: string }>
+    | undefined;
   const result = await dependencies.transaction.run(async (tx) => {
     const workflow = await tx.repositories.workflows.findById(command.workflowId, {
       forUpdate: true,
@@ -433,7 +440,6 @@ export async function approveRecovery(
           stage_key_version: null,
         });
       }
-      const nextVersion = Number(workflow.version ?? 0) + 1;
       await tx.repositories.workflows.updateVersioned(
         command.workflowId,
         Number(workflow.version ?? 0),
@@ -441,8 +447,8 @@ export async function approveRecovery(
       );
       const token = makeSecret(dependencies.tokenFactory);
       const code = exactEightDigitCode(dependencies.codeFactory);
-      challenge = { token, code };
       const challengeExpiresAt = addMinutes(now, 10);
+      challenge = { workflowId: command.workflowId, token, code, expiresAt: challengeExpiresAt };
       await recoveryRepository(tx.repositories.oneTimeTokens, "one-time tokens").insert({
         id: crypto.randomUUID(),
         purpose: "ADMIN_PASSWORD_RESET",
@@ -473,19 +479,6 @@ export async function approveRecovery(
         locked_at: null,
         created_at: now,
         updated_at: now,
-      });
-      await tx.outbox.enqueue({
-        eventType: "PASSWORD_RECOVERY_THRESHOLD_REACHED",
-        aggregateType: "workflow",
-        aggregateId: command.workflowId,
-        payload: {
-          aggregateId: command.workflowId,
-          aggregateVersion: nextVersion,
-          recipientType: "OWNER_PRIMARY",
-          expiresAt: challengeExpiresAt,
-        },
-        idempotencyKey: `password-recovery-threshold:${command.workflowId}`,
-        availableAt: now,
       });
       return {
         approved: true,

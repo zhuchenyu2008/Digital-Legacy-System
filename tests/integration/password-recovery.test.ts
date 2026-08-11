@@ -186,9 +186,10 @@ async function seed(pool: Pool): Promise<void> {
   );
   await pool.query(
     `INSERT INTO app.auth_sessions (
-       id, session_token_hash, token_hmac_key_version, actor_type, actor_id,
+       id, session_token_hash, csrf_token_hash, token_hmac_key_version, actor_type, actor_id,
        credential_version, created_at, last_seen_at, idle_expires_at, absolute_expires_at
-     ) VALUES ($1, digest('old-owner-session', 'sha256'), 1, 'OWNER', NULL, 0,
+     ) VALUES ($1, digest('old-owner-session', 'sha256'), digest('old-owner-csrf', 'sha256'),
+       1, 'OWNER', NULL, 0,
        clock_timestamp(), clock_timestamp(), clock_timestamp() + interval '1 hour',
        clock_timestamp() + interval '1 day')`,
     [ids.session],
@@ -267,8 +268,8 @@ describe("threshold password recovery with PostgreSQL", () => {
           transaction,
           tokenPepper,
           tokenFactory: () => new Uint8Array(32).fill(1),
-          onPrimaryStartToken: async (token) => {
-            startToken = token;
+          onPrimaryStartToken: async (challenge) => {
+            startToken = challenge.token;
           },
         },
       );

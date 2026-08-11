@@ -6,7 +6,7 @@ const MATERIAL_SYMBOLS_QUERY = '400 24px "Material Symbols Outlined"';
 
 type MaterialFontSet = Readonly<{
   check(query: string): boolean;
-  load(query: string): Promise<unknown>;
+  load(query: string): Promise<readonly unknown[]>;
 }>;
 
 type MaterialFontRoot = Readonly<{
@@ -18,8 +18,8 @@ export async function activateMaterialSymbols(
   fonts: MaterialFontSet,
 ): Promise<void> {
   try {
-    await fonts.load(MATERIAL_SYMBOLS_QUERY);
-    if (fonts.check(MATERIAL_SYMBOLS_QUERY)) {
+    const loadedFaces = await fonts.load(MATERIAL_SYMBOLS_QUERY);
+    if (loadedFaces.length > 0 && fonts.check(MATERIAL_SYMBOLS_QUERY)) {
       root.classList.add("dls-material-symbols-ready");
     }
   } catch {

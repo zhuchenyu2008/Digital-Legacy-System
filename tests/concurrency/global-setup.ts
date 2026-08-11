@@ -14,7 +14,9 @@ export default async function cleanupInterruptedConcurrencyFixtures(): Promise<v
     await client.query("BEGIN");
     await client.query(`
       CREATE TEMP TABLE dls_concurrency_packages ON COMMIT DROP AS
-        SELECT id FROM app.legacy_packages WHERE object_key LIKE 'concurrency/%';
+        SELECT id, vault_id, share_generation_id
+        FROM app.legacy_packages
+        WHERE object_key LIKE 'concurrency/%';
       CREATE TEMP TABLE dls_concurrency_workflows ON COMMIT DROP AS
         SELECT id, share_generation_id
         FROM app.workflows
@@ -22,8 +24,11 @@ export default async function cleanupInterruptedConcurrencyFixtures(): Promise<v
       CREATE TEMP TABLE dls_concurrency_generations ON COMMIT DROP AS
         SELECT DISTINCT generation.id, generation.vault_id
         FROM app.share_generations AS generation
-        JOIN dls_concurrency_workflows AS workflow
-          ON workflow.share_generation_id = generation.id;
+        WHERE generation.id IN (
+          SELECT share_generation_id FROM dls_concurrency_packages
+          UNION
+          SELECT share_generation_id FROM dls_concurrency_workflows
+        );
       CREATE TEMP TABLE dls_concurrency_contacts ON COMMIT DROP AS
         SELECT DISTINCT contact_id
         FROM app.workflow_contacts
@@ -60,14 +65,14 @@ export default async function cleanupInterruptedConcurrencyFixtures(): Promise<v
       WHERE generation_id IN (SELECT id FROM dls_concurrency_generations);
       DELETE FROM app.emergency_contacts
       WHERE id IN (SELECT contact_id FROM dls_concurrency_contacts);
+      DELETE FROM app.legacy_packages
+      WHERE id IN (SELECT id FROM dls_concurrency_packages);
       UPDATE app.vaults SET active_share_generation_id = NULL
       WHERE id IN (SELECT vault_id FROM dls_concurrency_generations);
       DELETE FROM app.share_generations
       WHERE id IN (SELECT id FROM dls_concurrency_generations);
       DELETE FROM app.vaults
       WHERE id IN (SELECT vault_id FROM dls_concurrency_generations);
-      DELETE FROM app.legacy_packages
-      WHERE id IN (SELECT id FROM dls_concurrency_packages);
 
       CREATE TEMP TABLE dls_orphan_concurrency_generations ON COMMIT DROP AS
         SELECT generation.id, generation.vault_id
@@ -86,6 +91,9 @@ export default async function cleanupInterruptedConcurrencyFixtures(): Promise<v
           );
       UPDATE app.vaults SET active_share_generation_id = NULL
       WHERE id IN (SELECT vault_id FROM dls_orphan_concurrency_generations);
+      DELETE FROM app.legacy_packages
+      WHERE share_generation_id IN (SELECT id FROM dls_orphan_concurrency_generations)
+        AND object_key LIKE 'concurrency/%';
       DELETE FROM app.share_generations
       WHERE id IN (SELECT id FROM dls_orphan_concurrency_generations);
       DELETE FROM app.vaults AS vault

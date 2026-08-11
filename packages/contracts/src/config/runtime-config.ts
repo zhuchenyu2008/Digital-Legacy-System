@@ -13,6 +13,7 @@ export type RuntimeConfig = Readonly<{
         endpoint?: URL;
         region: string;
         privateBucket: string;
+        stagingBucket: string;
         publicBucket: string;
         accessKeyId: string;
         secretAccessKey: string;
@@ -62,6 +63,7 @@ const s3EnvironmentSchema = z
     S3_ENDPOINT: z.url().optional(),
     S3_REGION: z.string().trim().min(1),
     S3_PRIVATE_BUCKET: z.string().trim().min(1),
+    S3_STAGING_BUCKET: z.string().trim().min(1),
     S3_PUBLIC_BUCKET: z.string().trim().min(1),
     S3_ACCESS_KEY_ID: z.string().min(1),
     S3_SECRET_ACCESS_KEY: z.string().min(1),
@@ -103,6 +105,16 @@ function freezeObject<T extends object>(value: T): Readonly<T> {
 }
 
 export function parseRuntimeConfig(environment: Record<string, string | undefined>): RuntimeConfig {
+  if (environment.NODE_ENV === "production" && environment.DLS_TEST_MODE === "true") {
+    throw new Error("Invalid runtime configuration: DLS_TEST_MODE=true is forbidden in production");
+  }
+  if (environment.NODE_ENV === "production") {
+    for (const variable of ["PUBLIC_BASE_URL", "MAIL_TRANSPORT_URL", "MAIL_FROM"]) {
+      if (!environment[variable]?.trim()) {
+        throw new Error(`Invalid runtime configuration: ${variable}: is required in production`);
+      }
+    }
+  }
   const common = parseWithVariableNames(commonEnvironmentSchema, environment);
   const storage =
     environment.STORAGE_DRIVER === "s3"
@@ -113,6 +125,7 @@ export function parseRuntimeConfig(environment: Record<string, string | undefine
             ...(s3.S3_ENDPOINT ? { endpoint: new URL(s3.S3_ENDPOINT) } : {}),
             region: s3.S3_REGION,
             privateBucket: s3.S3_PRIVATE_BUCKET,
+            stagingBucket: s3.S3_STAGING_BUCKET,
             publicBucket: s3.S3_PUBLIC_BUCKET,
             accessKeyId: s3.S3_ACCESS_KEY_ID,
             secretAccessKey: s3.S3_SECRET_ACCESS_KEY,

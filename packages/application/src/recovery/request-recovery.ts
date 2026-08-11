@@ -18,7 +18,9 @@ export async function requestRecovery(
     transaction: TransactionManager;
     tokenPepper: Uint8Array;
     tokenFactory?: () => Uint8Array;
-    onPrimaryStartToken?: (token: string) => Promise<void>;
+    onPrimaryStartToken?: (
+      challenge: Readonly<{ challengeId: string; token: string; expiresAt: string }>,
+    ) => Promise<void>;
     idFactory?: () => string;
   }>,
 ): Promise<RequestRecoveryResult> {
@@ -53,14 +55,6 @@ export async function requestRecovery(
       revoked_at: null,
       created_at: now,
     });
-    await tx.outbox.enqueue({
-      eventType: "PASSWORD_RECOVERY_START_REQUESTED",
-      aggregateType: "owner",
-      aggregateId: "00000000-0000-0000-0000-000000000001",
-      payload: { recipientType: "OWNER_PRIMARY", tokenId, expiresAt },
-      idempotencyKey: `password-recovery-start:${tokenId}`,
-      availableAt: now,
-    });
     await tx.audit.append({
       eventId: crypto.randomUUID(),
       occurredAt: now,
@@ -73,6 +67,29 @@ export async function requestRecovery(
       metadata: {},
     });
   });
-  if (issuedToken !== undefined) await dependencies.onPrimaryStartToken?.(issuedToken);
+  if (issuedToken !== undefined) {
+    const token = issuedToken;
+    const expiresAt = await dependencies.transaction.run(async (tx) => {
+      const row = await tx.repositories.oneTimeTokens?.findOneBy?.(
+        "token_hash",
+        digestSecret(token, dependencies.tokenPepper),
+      );
+      if (row === null || row === undefined || typeof row.expires_at !== "string") {
+        throw new Error("recovery start challenge is unavailable");
+      }
+      return row.expires_at;
+    });
+    const challengeId = await dependencies.transaction.run(async (tx) => {
+      const row = await tx.repositories.oneTimeTokens?.findOneBy?.(
+        "token_hash",
+        digestSecret(token, dependencies.tokenPepper),
+      );
+      if (row === null || row === undefined) {
+        throw new Error("recovery start challenge is unavailable");
+      }
+      return String(row.id);
+    });
+    await dependencies.onPrimaryStartToken?.({ challengeId, token, expiresAt });
+  }
   return GENERIC_RESPONSE;
 }

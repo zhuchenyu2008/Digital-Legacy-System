@@ -90,8 +90,8 @@ export async function acceptContactInvitation(
       if (
         invitation === null ||
         invitation === undefined ||
-        invitation.consumed_at !== undefined ||
-        invitation.revoked_at !== undefined ||
+        (invitation.consumed_at !== null && invitation.consumed_at !== undefined) ||
+        (invitation.revoked_at !== null && invitation.revoked_at !== undefined) ||
         typeof invitation.expires_at !== "string" ||
         Date.parse(now) >= Date.parse(invitation.expires_at)
       ) {

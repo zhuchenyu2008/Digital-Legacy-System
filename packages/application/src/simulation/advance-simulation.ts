@@ -49,6 +49,38 @@ function atOffset(startAt: string, hours: number): string {
   return new Date(Date.parse(startAt) + hours * 3_600_000).toISOString();
 }
 
+function advanceWorkflow(
+  scenario: SimulationScenario,
+  target: SimulationMilestone,
+  targetAt: string,
+): SimulationScenario["synthetic"]["workflow"] {
+  const workflow = scenario.synthetic.workflow;
+  if (target === "CHECKIN_DUE" && workflow.state === "SCHEDULED") {
+    return Object.freeze({ ...workflow, state: "AWAITING_CONFIRMATIONS", startedAt: targetAt });
+  }
+  if (
+    target === "RELEASE_COUNTDOWN" &&
+    workflow.state === "RELEASE_PENDING" &&
+    workflow.releaseAt !== undefined &&
+    Date.parse(targetAt) >= Date.parse(workflow.releaseAt)
+  ) {
+    return Object.freeze({ ...workflow, state: "PUBLISH_LOCKED", publishLockedAt: targetAt });
+  }
+  if (target === "PUBLICATION" && workflow.state === "PUBLISH_LOCKED") {
+    return Object.freeze({
+      ...workflow,
+      state: "PUBLISHED",
+      publication: Object.freeze({
+        objectKey: scenario.synthetic.publicObjectKey,
+        publishedAt: targetAt,
+        willHtml: "<h1>测试遗嘱</h1>",
+        plaintextSha256: "00".repeat(32),
+      }),
+    });
+  }
+  return workflow;
+}
+
 function transitions(scenario: SimulationScenario, target: SimulationMilestone) {
   const current = Date.parse(scenario.currentAt);
   const targetMilestone = milestone(target);
@@ -89,6 +121,10 @@ export async function advanceSimulation(
     currentAt: targetAt,
     state: command.target,
     revision: scenario.revision + 1,
+    synthetic: Object.freeze({
+      ...scenario.synthetic,
+      workflow: advanceWorkflow(scenario, command.target, targetAt),
+    }),
     pendingMail: Object.freeze([
       ...scenario.pendingMail,
       ...events

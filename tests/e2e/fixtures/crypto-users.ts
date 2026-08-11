@@ -26,8 +26,11 @@ const ids = Object.freeze({
 
 export type CryptoContact = Readonly<{
   contactId: string;
+  displayName: string;
   email: string;
   password: string;
+  rotatedPassword: string;
+  reinvitedPassword: string;
   keyPair: ContactKeyPair;
   contactKek: Uint8Array;
   wrappedPrivateKey: WrappedKeyV1;
@@ -42,12 +45,13 @@ export type CryptoGeneration = Readonly<{
 }>;
 
 export type CryptoUsers = Readonly<{
-  owner: Readonly<{ email: string; password: string }>;
+  owner: Readonly<{ email: string; password: string; recoveryPassword: string }>;
   vaultId: string;
   packageId: string;
   vaultKey: Uint8Array;
   vkCommitment: Uint8Array;
   contacts: readonly CryptoContact[];
+  rotationContact: Readonly<{ displayName: string; email: string; password: string }>;
   deathGeneration: CryptoGeneration;
   recoveryGeneration: CryptoGeneration;
 }>;
@@ -109,8 +113,11 @@ export async function createCryptoUsers(): Promise<CryptoUsers> {
     contacts.push(
       Object.freeze({
         contactId,
+        displayName: `E2E Contact ${["One", "Two", "Three"][index] ?? index + 1}`,
         email: `contact-${index + 1}@example.test`,
         password: `contact-${index + 1}-password-2026`,
+        rotatedPassword: `contact-${index + 1}-rotated-password-2026`,
+        reinvitedPassword: `contact-${index + 1}-reinvited-password-2026`,
         keyPair,
         contactKek,
         wrappedPrivateKey,
@@ -121,12 +128,18 @@ export async function createCryptoUsers(): Promise<CryptoUsers> {
     owner: Object.freeze({
       email: "owner+e2e@example.test",
       password: "owner-e2e-password-2026",
+      recoveryPassword: "owner-e2e-recovered-password-2026",
     }),
     vaultId: ids.vault,
     packageId: ids.package,
     vaultKey: material.vaultKey,
     vkCommitment: material.vkCommitment,
     contacts: Object.freeze(contacts),
+    rotationContact: Object.freeze({
+      displayName: "E2E Contact Four",
+      email: "contact-4@example.test",
+      password: "contact-4-password-2026",
+    }),
     deathGeneration: await generation(
       "DEATH",
       ids.deathGeneration,

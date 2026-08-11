@@ -5,6 +5,7 @@ import {
   type ChangeContactPasswordResult,
   type ContactPrivateKeyEnvelope,
   changeContactPassword,
+  createNotificationInTransaction,
   getContactCryptoMaterial,
   type InviteContactCommand,
   type InviteContactResult,
@@ -17,7 +18,8 @@ import {
   type SessionService,
   viewContactInvitation,
 } from "@dls/application";
-import { hashServerPassword, verifyServerPassword } from "@dls/crypto/node";
+import { AesNotificationCipher, hashServerPassword, verifyServerPassword } from "@dls/crypto/node";
+import { renderTemplate, TEMPLATE_CODES, type TemplateCode } from "@dls/email-templates";
 import { createPgPool, PgTransactionManager } from "@dls/persistence";
 import { getApiRuntimeConfig } from "../config/api-runtime-config.js";
 import { AesFieldProtector } from "../setup/setup.runtime.js";
@@ -79,6 +81,7 @@ export class PostgresContactRuntime implements ContactRuntime {
   readonly #consentVersion: string;
   readonly #consentDocumentSha256: Uint8Array;
   readonly #config = getApiRuntimeConfig();
+  readonly #notificationCipher = new AesNotificationCipher(this.#config.sessionSecret);
 
   public constructor(transaction: PgTransactionManager, sessions: SessionService) {
     this.#transaction = transaction;
@@ -97,6 +100,53 @@ export class PostgresContactRuntime implements ContactRuntime {
       tokenPepper: this.#tokenPepper,
       fieldProtector: this.#protector,
       emailLookupHmac: (email) => this.#protector.lookup(email),
+      queueInvitationNotification: async (input, tx) => {
+        const owner = await tx.repositories.ownerProfile.findById(true);
+        if (owner === null) throw new Error("Owner profile is unavailable");
+        const ownerName = await this.#protector.unprotect(
+          {
+            ciphertext: Uint8Array.from(owner.display_name_ciphertext as ArrayLike<number>),
+            nonce: Uint8Array.from(owner.display_name_nonce as ArrayLike<number>),
+            keyVersion: Number(owner.display_name_key_version),
+          },
+          "owner-display-name",
+        );
+        const actionUrl = new URL("/contact-invitations", this.#config.publicBaseUrl);
+        actionUrl.hash = new URLSearchParams({ invite: input.token }).toString();
+        const created = await createNotificationInTransaction(
+          {
+            eventId: crypto.randomUUID(),
+            aggregateId: input.contactId,
+            aggregateType: "contact",
+            templateCode: "CONTACT_INVITATION",
+            templateContext: {
+              owner_name: ownerName,
+              contact_name: input.contactName,
+              expires_at: input.expiresAt,
+              action_url: actionUrl.href,
+            },
+            recipient: {
+              type: "CONTACT",
+              email: input.recipientEmail,
+              ref: input.contactId,
+            },
+            idempotencyKey: `contact-invitation-notification:${input.invitationId}`,
+          },
+          tx,
+          {
+            cipher: this.#notificationCipher,
+            renderer: {
+              render: (code, context) => {
+                if (!TEMPLATE_CODES.includes(code as TemplateCode)) {
+                  throw new Error("Unknown email template code");
+                }
+                return renderTemplate(code as TemplateCode, context);
+              },
+            },
+          },
+        );
+        return created.notificationId;
+      },
     });
   }
 

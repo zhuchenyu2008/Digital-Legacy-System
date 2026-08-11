@@ -22,6 +22,7 @@ export type StreamContext = Readonly<{
 export type StreamManifest = Readonly<{
   version: 1;
   algorithm: typeof STREAM_ALGORITHM;
+  streamHeader: string;
   plaintextBytes: number;
   ciphertextBytes: number;
   plaintextSha256: string;

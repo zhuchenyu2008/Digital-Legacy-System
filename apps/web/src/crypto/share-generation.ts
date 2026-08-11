@@ -23,10 +23,45 @@ export type ShareGenerationWorkerInput = Readonly<{
 
 type Split = Readonly<{ shares: readonly Uint8Array[]; commitments: Uint8Array }>;
 
-type ShareGenerationDependencies = Readonly<{
+export type ShareGenerationDependencies = Readonly<{
   initialize(): Promise<void>;
   split(secret: Uint8Array, threshold: number, shareCount: number, context: Uint8Array): Split;
 }>;
+
+export type OwnerEnvelopeShareGenerationInput = Omit<ShareGenerationWorkerInput, "vaultKey"> &
+  Readonly<{
+    password: string;
+    envelope: Readonly<Record<string, unknown>>;
+  }>;
+
+export async function buildShareGenerationUploadFromOwnerEnvelope(
+  input: OwnerEnvelopeShareGenerationInput,
+  dependencies: Readonly<{
+    unwrapOwnerVault(
+      input: Readonly<{
+        password: string;
+        envelope: Readonly<Record<string, unknown>>;
+        vaultId: string;
+      }>,
+    ): Promise<Uint8Array>;
+    shareGeneration?: ShareGenerationDependencies;
+  }>,
+) {
+  const vaultKey = await dependencies.unwrapOwnerVault({
+    password: input.password,
+    envelope: input.envelope,
+    vaultId: input.vaultId,
+  });
+  try {
+    const { password: _password, envelope: _envelope, ...generationInput } = input;
+    return await buildShareGenerationUpload(
+      { ...generationInput, vaultKey: encodeBase64Url(vaultKey) },
+      dependencies.shareGeneration,
+    );
+  } finally {
+    vaultKey.fill(0);
+  }
+}
 
 const defaultDependencies: ShareGenerationDependencies = {
   initialize: initializeBrowser,
@@ -195,8 +230,8 @@ export async function buildShareGenerationUpload(
             shareIndex: index + 1,
             deathShareCiphertext: death.ciphertext,
             recoveryShareCiphertext: recovery.ciphertext,
-            deathShareCommitment: death.commitmentDigest,
-            recoveryShareCommitment: recovery.commitmentDigest,
+            deathShareCommitment: encodeBase64Url(deathGeneration.commitments),
+            recoveryShareCommitment: encodeBase64Url(recoveryGeneration.commitments),
           };
         }),
       } as const;

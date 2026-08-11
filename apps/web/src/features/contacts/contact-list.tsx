@@ -1,5 +1,15 @@
+"use client";
+
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { Icon } from "../../components/icons/icon";
+import { Button } from "../../components/ui/button";
+import { Field } from "../../components/ui/field";
 import { StatusBadge } from "../../components/ui/status-badge";
+import { Toast } from "../../components/ui/toast";
+import { apiRequest } from "../../lib/api/browser-client";
+import { requestIdFrom } from "../auth/form-security";
+import { removeContactWithReauth } from "./contact-rotation";
 
 export type ContactView = Readonly<{
   id: string;
@@ -17,6 +27,30 @@ const labels: Record<string, string> = {
 };
 
 export function ContactList({ contacts }: Readonly<{ contacts: readonly ContactView[] }>) {
+  const router = useRouter();
+  const [removing, setRemoving] = useState<ContactView>();
+  const [password, setPassword] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState<string>();
+
+  async function remove(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (busy || removing === undefined) return;
+    setBusy(true);
+    try {
+      await removeContactWithReauth(removing.id, password, { request: apiRequest });
+      setMessage(`${removing.displayName} 已移除。重新邀请后必须生成新分片代次。`);
+      setRemoving(undefined);
+      setPassword("");
+      router.refresh();
+    } catch (error) {
+      const requestId = requestIdFrom(error);
+      setMessage(`移除联系人失败${requestId ? `。请求编号：${requestId}` : ""}`);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   if (contacts.length === 0)
     return (
       <section className="dls-panel">
@@ -116,8 +150,12 @@ export function ContactList({ contacts }: Readonly<{ contacts: readonly ContactV
                     </button>
                     <button
                       aria-label="移除联系人"
-                      disabled
-                      title="联系人操作将在后续详情页开放"
+                      onClick={() => {
+                        setRemoving(contact);
+                        setMessage(undefined);
+                        setPassword("");
+                      }}
+                      title="重新认证后移除联系人"
                       type="button"
                     >
                       <Icon name="delete" size={20} />
@@ -134,6 +172,43 @@ export function ContactList({ contacts }: Readonly<{ contacts: readonly ContactV
           </tbody>
         </table>
       </div>
+      {removing ? (
+        <form
+          aria-label={`移除 ${removing.displayName}`}
+          className="dls-inline-form"
+          onSubmit={remove}
+        >
+          <p>
+            移除 <strong>{removing.displayName}</strong> 后，系统将要求重新生成分片代次。
+          </p>
+          <Field
+            autoComplete="current-password"
+            id="remove-contact-owner-password"
+            label="当前主密码"
+            onChange={(event) => setPassword(event.target.value)}
+            required
+            type="password"
+            value={password}
+          />
+          <Button busy={busy} type="submit">
+            确认移除联系人
+          </Button>
+          <Button
+            disabled={busy}
+            onClick={() => {
+              setRemoving(undefined);
+              setPassword("");
+            }}
+            type="button"
+            tone="secondary"
+          >
+            取消
+          </Button>
+        </form>
+      ) : null}
+      {message ? (
+        <Toast tone={message.includes("已移除") ? "success" : "error"}>{message}</Toast>
+      ) : null}
     </section>
   );
 }

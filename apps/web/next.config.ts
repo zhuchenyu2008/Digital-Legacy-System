@@ -2,7 +2,12 @@ import type { NextConfig } from "next";
 import { nextRuntime } from "./src/config/next-runtime";
 
 const { development } = nextRuntime();
-const scriptSources = ["'self'", "'unsafe-inline'", ...(development ? ["'unsafe-eval'"] : [])];
+const scriptSources = [
+  "'self'",
+  "'unsafe-inline'",
+  "'wasm-unsafe-eval'",
+  ...(development ? ["'unsafe-eval'"] : []),
+];
 const contentSecurityPolicy = [
   "default-src 'self'",
   `script-src ${scriptSources.join(" ")}`,

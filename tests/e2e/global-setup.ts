@@ -2,8 +2,8 @@ import { spawn } from "node:child_process";
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import type { FullConfig } from "@playwright/test";
-import { validateMailpitTransport } from "./fixtures/app.js";
-import { type E2EStackState, e2eStateFile } from "./stack-state.js";
+import { assertDisposableComposeProjectName, validateMailpitTransport } from "./fixtures/app.js";
+import { assertE2ERuntimeDirectory, type E2EStackState, e2eStateFile } from "./stack-state.js";
 
 type CommandResult = Readonly<{ stdout: string; stderr: string }>;
 
@@ -137,6 +137,8 @@ export default async function globalSetup(_config: FullConfig): Promise<void> {
   ) {
     throw new Error("Playwright E2E runtime environment was not initialized by its config");
   }
+  assertDisposableComposeProjectName(projectName);
+  assertE2ERuntimeDirectory(projectName, runtimeDirectory);
   const secretDirectory = resolve(runtimeDirectory, "secrets");
   const dockerConfigDirectory = resolve(runtimeDirectory, "docker-config");
   await mkdir(secretDirectory, { recursive: true });

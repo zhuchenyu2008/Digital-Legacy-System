@@ -203,6 +203,23 @@ export type paths = {
         readonly patch?: never;
         readonly trace?: never;
     };
+    readonly "/contact/simulations/{simulationId}/decision": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get?: never;
+        readonly put?: never;
+        /** Record an authenticated contact decision in an isolated simulation */
+        readonly post: operations["ContactSimulationController_decide"];
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
     readonly "/contact/workflows/{workflowId}/approve-password-recovery": {
         readonly parameters: {
             readonly query?: never;
@@ -314,6 +331,23 @@ export type paths = {
         readonly get: operations["HealthController_ready"];
         readonly put?: never;
         readonly post?: never;
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/owner/arm": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get?: never;
+        readonly put?: never;
+        /** Atomically accept irreversible risk and arm the owner system */
+        readonly post: operations["OwnerController_arm"];
         readonly delete?: never;
         readonly options?: never;
         readonly head?: never;
@@ -678,6 +712,91 @@ export type paths = {
         readonly patch?: never;
         readonly trace?: never;
     };
+    readonly "/owner/simulations/{simulationId}/cancel": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get?: never;
+        readonly put?: never;
+        /** Cancel an isolated synthetic release before its publish lock */
+        readonly post: operations["SimulationController_cancel"];
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/owner/simulations/{simulationId}/publication": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        /** Read one isolated sanitized simulation publication */
+        readonly get: operations["SimulationController_publication"];
+        readonly put?: never;
+        readonly post?: never;
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/owner/simulations/{simulationId}/publication/finalize": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get?: never;
+        readonly put?: never;
+        /** Finalize an isolated synthetic publication */
+        readonly post: operations["SimulationController_publish"];
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/owner/simulations/{simulationId}/publication/lock": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get?: never;
+        readonly put?: never;
+        /** Lock an isolated synthetic publication at its release deadline */
+        readonly post: operations["SimulationController_lock"];
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/owner/simulations/{simulationId}/publication/package": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        /** Download an isolated deterministic simulation ZIP */
+        readonly get: operations["SimulationController_download"];
+        readonly put?: never;
+        readonly post?: never;
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
     readonly "/owner/simulations/{simulationId}/reset": {
         readonly parameters: {
             readonly query?: never;
@@ -695,6 +814,23 @@ export type paths = {
         readonly patch?: never;
         readonly trace?: never;
     };
+    readonly "/owner/smtp-settings/test": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get?: never;
+        readonly put?: never;
+        /** Send a safe SMTP connectivity test to the owner primary address */
+        readonly post: operations["OwnerController_smtpTest"];
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
     readonly "/owner/system-health": {
         readonly parameters: {
             readonly query?: never;
@@ -704,6 +840,23 @@ export type paths = {
         };
         /** Read redacted operational health categories */
         readonly get: operations["OwnerSystemHealthController_read"];
+        readonly put?: never;
+        readonly post?: never;
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/owner/vault/material": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        /** Read the encrypted owner vault envelope and share roster context */
+        readonly get: operations["VaultController_material"];
         readonly put?: never;
         readonly post?: never;
         readonly delete?: never;
@@ -968,6 +1121,9 @@ export type components = {
         readonly CancelDeathWorkflowDto: {
             readonly password: string;
         };
+        readonly CancelSimulationDto: {
+            readonly password: string;
+        };
         readonly ChangeContactPasswordDto: {
             readonly newPassword: string;
             readonly newPrivateKeyEnvelope: components["schemas"]["ContactPrivateKeyEnvelopeDto"];
@@ -1067,6 +1223,8 @@ export type components = {
             readonly password: string;
             readonly primaryEmail: string;
             readonly setupToken: string;
+            /** Format: uuid */
+            readonly vaultId: string;
         };
         readonly CreateRecoveryMaterialDto: {
             /** Format: byte */
@@ -1083,6 +1241,7 @@ export type components = {
         };
         readonly CreateSimulationDto: {
             readonly contactEmails: readonly string[];
+            readonly contactIds?: readonly string[];
             /** Format: email */
             readonly ownerEmail: string;
             /** Format: uuid */
@@ -1113,6 +1272,9 @@ export type components = {
             /** @description Base64url encoded manifest nonce */
             readonly manifestNonce: string;
             /** Format: uuid */
+            readonly packageId?: string;
+            readonly packageVersion?: number;
+            /** Format: uuid */
             readonly shareGenerationId: string;
             /** @description Base64url encoded secretstream header */
             readonly streamHeader: string;
@@ -1140,6 +1302,14 @@ export type components = {
             /** @enum {string} */
             readonly mode: "synthetic" | "data";
             readonly override?: components["schemas"]["TemplateOverrideDto"];
+        };
+        readonly OwnerArmDto: {
+            readonly confirmationText: string;
+            /** Format: uuid */
+            readonly expectedPackageId?: string;
+            /** Format: uuid */
+            readonly expectedShareGenerationId?: string;
+            readonly password: string;
         };
         readonly OwnerCheckInDto: {
             readonly password: string;
@@ -1242,6 +1412,10 @@ export type components = {
             /** Format: byte */
             readonly recoveryShareCommitment: string;
             readonly shareIndex: number;
+        };
+        readonly SimulationContactDecisionDto: {
+            /** @enum {string} */
+            readonly decision: "ALIVE" | "DEATH_LIKELY";
         };
         readonly StartRecoveryDto: {
             readonly token: string;
@@ -1528,6 +1702,29 @@ export interface operations {
             };
         };
     };
+    readonly ContactSimulationController_decide: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path: {
+                readonly simulationId: string;
+            };
+            readonly cookie?: never;
+        };
+        readonly requestBody: {
+            readonly content: {
+                readonly "application/json": components["schemas"]["SimulationContactDecisionDto"];
+            };
+        };
+        readonly responses: {
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     readonly ContactRecoveryController_approve: {
         readonly parameters: {
             readonly query?: never;
@@ -1667,6 +1864,27 @@ export interface operations {
         readonly requestBody?: never;
         readonly responses: {
             readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    readonly OwnerController_arm: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly requestBody: {
+            readonly content: {
+                readonly "application/json": components["schemas"]["OwnerArmDto"];
+            };
+        };
+        readonly responses: {
+            readonly 201: {
                 headers: {
                     readonly [name: string]: unknown;
                 };
@@ -2152,6 +2370,113 @@ export interface operations {
             };
         };
     };
+    readonly SimulationController_cancel: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path: {
+                readonly simulationId: string;
+            };
+            readonly cookie?: never;
+        };
+        readonly requestBody: {
+            readonly content: {
+                readonly "application/json": components["schemas"]["CancelSimulationDto"];
+            };
+        };
+        readonly responses: {
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    readonly SimulationController_publication: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path: {
+                readonly simulationId: string;
+            };
+            readonly cookie?: never;
+        };
+        readonly requestBody?: never;
+        readonly responses: {
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    readonly SimulationController_publish: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path: {
+                readonly simulationId: string;
+            };
+            readonly cookie?: never;
+        };
+        readonly requestBody?: never;
+        readonly responses: {
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    readonly SimulationController_lock: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path: {
+                readonly simulationId: string;
+            };
+            readonly cookie?: never;
+        };
+        readonly requestBody?: never;
+        readonly responses: {
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    readonly SimulationController_download: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path: {
+                readonly simulationId: string;
+            };
+            readonly cookie?: never;
+        };
+        readonly requestBody?: never;
+        readonly responses: {
+            /** @description Complete simulation ZIP */
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description One byte range of the simulation ZIP */
+            readonly 206: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     readonly SimulationController_reset: {
         readonly parameters: {
             readonly query?: never;
@@ -2171,6 +2496,23 @@ export interface operations {
             };
         };
     };
+    readonly OwnerController_smtpTest: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly requestBody?: never;
+        readonly responses: {
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     readonly OwnerSystemHealthController_read: {
         readonly parameters: {
             readonly query?: never;
@@ -2180,6 +2522,24 @@ export interface operations {
         };
         readonly requestBody?: never;
         readonly responses: {
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    readonly VaultController_material: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly requestBody?: never;
+        readonly responses: {
+            /** @description Encrypted owner vault material */
             readonly 200: {
                 headers: {
                     readonly [name: string]: unknown;

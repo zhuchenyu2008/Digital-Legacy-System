@@ -6,7 +6,8 @@ import { Field } from "../../components/ui/field";
 import { Progress } from "../../components/ui/progress";
 import { Toast } from "../../components/ui/toast";
 import { apiRequest } from "../../lib/api/browser-client";
-import { consumeFragmentToken, requestIdFrom, validateNewPassword } from "../auth/form-security";
+import { observeFragmentValues, requestIdFrom, validateNewPassword } from "../auth/form-security";
+import { completeOwnerRecovery } from "./recovery-reset";
 
 type Stage = "request" | "start" | "waiting" | "code" | "new-password" | "complete";
 
@@ -23,16 +24,34 @@ export function RecoveryFlow() {
   const [confirmation, setConfirmation] = useState("");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string>();
-  useEffect(() => {
-    const value = consumeFragmentToken("recovery", {
-      hash: location.hash,
-      pathname: location.pathname,
-      search: location.search,
-      replaceState: history.replaceState.bind(history),
-    });
-    setToken(value);
-    if (value) setStage("start");
-  }, []);
+  useEffect(
+    () =>
+      observeFragmentValues(
+        ["recovery", "code"],
+        () => ({
+          hash: location.hash,
+          pathname: location.pathname,
+          search: location.search,
+          replaceState: history.replaceState.bind(history),
+        }),
+        (listener) => {
+          window.addEventListener("hashchange", listener);
+          return () => window.removeEventListener("hashchange", listener);
+        },
+        (values) => {
+          setToken(values.recovery);
+          if (values.recovery && /^\d{8}$/u.test(values.code ?? "")) {
+            setCode(values.code ?? "");
+            setStage("new-password");
+          } else if (values.recovery) {
+            setStage("start");
+          } else {
+            setStage("request");
+          }
+        },
+      ),
+    [],
+  );
   async function run(work: () => Promise<void>) {
     if (busy) return;
     setBusy(true);
@@ -55,18 +74,18 @@ export function RecoveryFlow() {
     run(async () => {
       if (!token) throw new Error("恢复入口缺失");
       const response = await apiRequest<{
-        data: { workflowId: string; approvedCount?: number; threshold?: number };
+        data: { workflowId: string; expiresAt: string; requiredCount: number };
       }>("/auth/owner/password-recovery/start", {
         method: "POST",
         body: JSON.stringify({ token }),
       });
-      setWorkflow(response.data);
+      setWorkflow({
+        workflowId: response.data.workflowId,
+        approvedCount: 0,
+        threshold: response.data.requiredCount,
+      });
       setToken(undefined);
-      setStage(
-        (response.data.approvedCount ?? 0) >= (response.data.threshold ?? Number.POSITIVE_INFINITY)
-          ? "code"
-          : "waiting",
-      );
+      setStage("waiting");
     });
   const material = () =>
     run(async () => {
@@ -74,6 +93,7 @@ export function RecoveryFlow() {
         setMessage("请输入 8 位邮箱验证码");
         return;
       }
+      if (!token) throw new Error("恢复重置入口缺失");
       setStage("new-password");
     });
   const finish = () =>
@@ -87,8 +107,14 @@ export function RecoveryFlow() {
         setMessage("两次输入的新主密码不一致");
         return;
       }
-      setMessage("恢复材料将在一次性浏览器密钥中解封，并重新包装保险库密钥。");
+      if (!token || !/^\d{8}$/u.test(code)) throw new Error("恢复重置入口缺失");
+      await completeOwnerRecovery({
+        token,
+        emailVerificationCode: code,
+        newPassword: checked.normalized,
+      });
       setStage("complete");
+      setToken(undefined);
       setPassword("");
       setConfirmation("");
       setCode("");
@@ -125,10 +151,9 @@ export function RecoveryFlow() {
             max={workflow.threshold ?? 1}
             value={workflow.approvedCount ?? 0}
           />
-          <p>达到门限后，主邮箱将收到一次性验证码。页面不会显示联系人身份。</p>
-          <Button onClick={() => setStage("code")} tone="secondary">
-            我已收到验证码
-          </Button>
+          <p>
+            达到门限后，主邮箱将收到一次性重置入口。请从该邮件链接继续；页面不会显示联系人身份。
+          </p>
         </>
       ) : null}
       {stage === "code" ? (

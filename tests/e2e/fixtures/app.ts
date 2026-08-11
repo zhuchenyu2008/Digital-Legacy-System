@@ -2,12 +2,21 @@ import { test as base, expect, type Page } from "@playwright/test";
 import { readE2EState } from "../stack-state.js";
 import {
   assertNoStackSecrets,
+  type LiveOwnerVaultMaterial,
   registerFixtureSecrets,
+  registerLiveOwnerVaultSecrets,
   SecretLeakDetector,
 } from "./assert-no-secrets.js";
 import { type CryptoUsers, createCryptoUsers } from "./crypto-users.js";
 import { MailpitClient } from "./mailpit.js";
 import { createSyntheticLegacy, type SyntheticLegacy } from "./synthetic-legacy.js";
+
+export function assertDisposableComposeProjectName(value: string): string {
+  if (!/^dls-e2e-[a-z0-9][a-z0-9-]{0,48}$/u.test(value)) {
+    throw new Error("E2E Compose project name must use the disposable dls-e2e namespace");
+  }
+  return value;
+}
 
 export function composeProjectName(seed: string): string {
   const normalized = seed
@@ -17,7 +26,7 @@ export function composeProjectName(seed: string): string {
     .slice(0, 42);
   if (normalized.length === 0)
     throw new Error("Compose project seed must contain a letter or digit");
-  return `dls-e2e-${normalized}`;
+  return assertDisposableComposeProjectName(`dls-e2e-${normalized}`);
 }
 
 export function validateMailpitTransport(value: string): URL {
@@ -73,6 +82,36 @@ type DlsFixtures = Readonly<{
   secrets: SecretLeakDetector;
 }>;
 
+async function registerCurrentOwnerSecrets(
+  page: Page,
+  detector: SecretLeakDetector,
+  passwords: readonly string[],
+): Promise<void> {
+  const material = await page.evaluate(async () => {
+    const response = await fetch("/api/owner/vault/material");
+    if (!response.ok) return null;
+    const payload = (await response.json()) as { data?: LiveOwnerVaultMaterial };
+    return payload.data ?? null;
+  });
+  if (material === null) return;
+  let lastFailure: unknown;
+  for (const password of passwords) {
+    try {
+      await registerLiveOwnerVaultSecrets(detector, {
+        label: "browser-owner",
+        password,
+        material,
+      });
+      return;
+    } catch (error) {
+      lastFailure = error;
+    }
+  }
+  throw new Error("authenticated owner vault material could not be opened", {
+    cause: lastFailure,
+  });
+}
+
 export const test = base.extend<DlsFixtures>({
   app: async ({ page }, use) => {
     await use(new DlsApp(page));
@@ -92,7 +131,13 @@ export const test = base.extend<DlsFixtures>({
       const detector = new SecretLeakDetector();
       registerFixtureSecrets(detector, cryptoUsers, legacy);
       detector.attach(page);
+      if (page.url() === "about:blank") {
+        await page.goto("/", { waitUntil: "domcontentloaded" });
+      }
+      const ownerPasswords = [cryptoUsers.owner.password, cryptoUsers.owner.recoveryPassword];
+      await registerCurrentOwnerSecrets(page, detector, ownerPasswords);
       await use(detector);
+      await registerCurrentOwnerSecrets(page, detector, ownerPasswords);
       await detector.assertPage(page);
       await assertNoStackSecrets(detector, await readE2EState());
     },

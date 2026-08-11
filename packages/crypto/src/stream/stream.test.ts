@@ -103,6 +103,7 @@ describe("authenticated DLSF secretstream v1", () => {
     expect(decrypted.bytes).toEqual(concatenate(chunks));
     expect(decrypted.manifest.plaintextBytes).toBe(concatenate(chunks).length);
     expect(encrypted.manifest.ciphertextBytes).toBe(encrypted.bytes.length);
+    expect(decodeBase64Url(encrypted.manifest.streamHeader)).toHaveLength(24);
     expect(decodeBase64Url(decrypted.manifest.plaintextSha256)).toHaveLength(32);
   });
 

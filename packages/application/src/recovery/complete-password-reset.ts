@@ -1,4 +1,5 @@
 import { beijingDateAt, computeCheckinDeadline } from "@dls/domain";
+import type { SessionService } from "../auth/session-service.js";
 import { OWNER_ACTOR_ID } from "../owner/owner-identity.js";
 import type { TransactionManager } from "../ports/transaction-manager.js";
 import type { OwnerVaultEnvelope } from "../setup/create-owner.js";
@@ -71,6 +72,7 @@ export async function completePasswordReset(
   command: CompletePasswordResetCommand,
   dependencies: Readonly<{
     transaction: TransactionManager;
+    sessionService: SessionService;
     tokenPepper: Uint8Array;
     recoveryCryptography: RecoveryCryptography;
     passwordHasher: (password: string) => Promise<string>;
@@ -88,7 +90,7 @@ export async function completePasswordReset(
   }>,
 ): Promise<CompletePasswordResetResult> {
   validate(command);
-  return dependencies.transaction.run(async (tx) => {
+  const result = await dependencies.transaction.run<CompletePasswordResetResult>(async (tx) => {
     const rewraps = recoveryRepository(
       tx.repositories.passwordRewrapSessions,
       "password rewrap sessions",
@@ -282,14 +284,6 @@ export async function completePasswordReset(
           },
         );
       }
-      await tx.outbox.enqueue({
-        eventType: "PASSWORD_RECOVERY_COMPLETED",
-        aggregateType: "workflow",
-        aggregateId: workflowId,
-        payload: { aggregateId: workflowId, aggregateVersion: Number(workflow.version ?? 0) + 1 },
-        idempotencyKey: `password-recovery-completed:${workflowId}`,
-        availableAt: now,
-      });
       await tx.audit.append({
         eventId: crypto.randomUUID(),
         occurredAt: now,
@@ -311,4 +305,6 @@ export async function completePasswordReset(
       vaultKey.fill(0);
     }
   });
+  await dependencies.sessionService.revokeAll("OWNER", OWNER_ACTOR_ID);
+  return result;
 }

@@ -1,7 +1,8 @@
 import type { SessionActorType, SessionService } from "@dls/application";
-import { SESSION_COOKIE_NAMES } from "@dls/application";
 import type { CanActivate, ExecutionContext } from "@nestjs/common";
 import { Inject, Injectable, UnauthorizedException } from "@nestjs/common";
+import { getApiRuntimeConfig } from "../config/api-runtime-config.js";
+import { sessionCookieName } from "./session-cookies.js";
 
 export const SESSION_SERVICE = Symbol("DLS_SESSION_SERVICE");
 
@@ -30,8 +31,9 @@ function parseCookieHeader(header: string | undefined): Readonly<Record<string, 
 export function readSessionToken(
   request: SecurityRequest,
   actorType: SessionActorType,
+  secure = true,
 ): string | undefined {
-  const cookieName = SESSION_COOKIE_NAMES[actorType];
+  const cookieName = sessionCookieName(actorType, secure);
   const header = request.headers?.cookie;
   const parsed = parseCookieHeader(Array.isArray(header) ? header[0] : header);
   return request.cookies?.[cookieName] ?? parsed[cookieName];
@@ -46,7 +48,11 @@ export class SessionGuard implements CanActivate {
 
   public async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<SecurityRequest>();
-    const token = readSessionToken(request, this.actorType);
+    const token = readSessionToken(
+      request,
+      this.actorType,
+      getApiRuntimeConfig().nodeEnv === "production",
+    );
     if (token === undefined) throw new UnauthorizedException("authentication is required");
     try {
       request.user = await this.sessions.authenticate(token, { actorType: this.actorType });

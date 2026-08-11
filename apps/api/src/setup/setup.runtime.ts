@@ -94,6 +94,7 @@ export class PostgresSetupRuntime implements SetupRuntime {
       protector: this.#protector,
       sessionService: this.#sessions,
       publicBaseUrl: this.#config.publicBaseUrl,
+      smtpConfigured: this.#config.smtpConfigured,
     });
   }
 }

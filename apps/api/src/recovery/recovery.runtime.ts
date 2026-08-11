@@ -6,6 +6,7 @@ import {
   type CompletePasswordResetResult,
   type CreateRewrapSessionResult,
   completePasswordReset,
+  createNotification,
   createRewrapSession,
   type FragmentCryptography,
   type FragmentEnvelopeContext,
@@ -14,12 +15,14 @@ import {
   type RepositoryRow,
   type RequestRecoveryResult,
   requestRecovery,
+  type SessionService,
   type StageKeyProvider,
   type StartRecoveryResult,
   startRecovery,
   type TransactionManager,
 } from "@dls/application";
 import {
+  AesNotificationCipher,
   commitVaultKey,
   createVssContext,
   decodeBase64Url,
@@ -36,10 +39,13 @@ import {
   wrapKeyV1,
   wrapStageFragmentV1,
 } from "@dls/crypto/node";
+import { renderTemplate, TEMPLATE_CODES, type TemplateCode } from "@dls/email-templates";
 import { createPgPool, PgTransactionManager } from "@dls/persistence";
 import { combinePedersen, verifyPedersenShare } from "@dls/vss-wasm/node";
 import { getApiRuntimeConfig } from "../config/api-runtime-config.js";
 import { type ApiKeyCapabilities, loadApiKeyCapabilities } from "../config/key-capabilities.js";
+import { AesFieldProtector } from "../setup/setup.runtime.js";
+import { RecoveryNotifications } from "./recovery-notifications.js";
 
 export const RECOVERY_RUNTIME = Symbol("DLS_RECOVERY_RUNTIME");
 
@@ -295,22 +301,55 @@ function createRecoveryCryptography(stageKeys: StageKeyProvider): RecoveryCrypto
 
 export class PostgresRecoveryRuntime implements RecoveryRuntime {
   readonly #tokenPepper = getApiRuntimeConfig().tokenPepper;
+  readonly #config = getApiRuntimeConfig();
+  readonly #notifications: RecoveryNotifications;
   #capabilities: Promise<ApiKeyCapabilities> | undefined;
 
-  public constructor(private readonly transaction: TransactionManager) {}
+  public constructor(
+    private readonly transaction: TransactionManager,
+    private readonly sessions: SessionService,
+  ) {
+    const protector = new AesFieldProtector(this.#config.sessionSecret);
+    const cipher = new AesNotificationCipher(this.#config.sessionSecret);
+    const renderer = {
+      render: (code: string, context: Readonly<Record<string, unknown>>) => {
+        if (!TEMPLATE_CODES.includes(code as TemplateCode)) {
+          throw new Error("Unknown email template code");
+        }
+        return renderTemplate(code as TemplateCode, context);
+      },
+    };
+    this.#notifications = new RecoveryNotifications({
+      transaction,
+      publicBaseUrl: this.#config.publicBaseUrl,
+      unprotect: (value, purpose) => protector.unprotect(value, purpose),
+      enqueue: (command) =>
+        createNotification(command, {
+          transaction,
+          cipher,
+          renderer,
+        }).then(() => undefined),
+    });
+  }
 
   public request(requestId: string) {
     return requestRecovery(
       { requestId },
-      { transaction: this.transaction, tokenPepper: this.#tokenPepper },
+      {
+        transaction: this.transaction,
+        tokenPepper: this.#tokenPepper,
+        onPrimaryStartToken: (challenge) => this.#notifications.ownerStart(challenge),
+      },
     );
   }
 
-  public start(command: Readonly<{ token: string; requestId: string }>) {
-    return startRecovery(command, {
+  public async start(command: Readonly<{ token: string; requestId: string }>) {
+    const result = await startRecovery(command, {
       transaction: this.transaction,
       tokenPepper: this.#tokenPepper,
     });
+    await this.#notifications.contacts(result);
+    return result;
   }
 
   public async approve(command: ApproveRecoveryCommand) {
@@ -323,6 +362,7 @@ export class PostgresRecoveryRuntime implements RecoveryRuntime {
       fragmentCryptography,
       recoveryCryptography: createRecoveryCryptography(stageKeys),
       tokenPepper: this.#tokenPepper,
+      onPrimaryResetChallenge: (challenge) => this.#notifications.ownerReset(challenge),
     });
   }
 
@@ -345,6 +385,7 @@ export class PostgresRecoveryRuntime implements RecoveryRuntime {
     const stageKeys = await this.stageKeys();
     return completePasswordReset(command, {
       transaction: this.transaction,
+      sessionService: this.sessions,
       tokenPepper: this.#tokenPepper,
       recoveryCryptography: createRecoveryCryptography(stageKeys),
       passwordHasher: (password) => hashServerPassword(password, this.#tokenPepper),
@@ -364,7 +405,7 @@ export class PostgresRecoveryRuntime implements RecoveryRuntime {
   }
 }
 
-export function createRecoveryRuntime(): RecoveryRuntime {
+export function createRecoveryRuntime(sessions: SessionService): RecoveryRuntime {
   const pool = createPgPool({ connectionString: getApiRuntimeConfig().databaseUrl });
-  return new PostgresRecoveryRuntime(new PgTransactionManager(pool));
+  return new PostgresRecoveryRuntime(new PgTransactionManager(pool), sessions);
 }

@@ -1,7 +1,8 @@
 import { spawn } from "node:child_process";
 import { rm } from "node:fs/promises";
 import type { FullConfig } from "@playwright/test";
-import { readE2EState } from "./stack-state.js";
+import { assertDisposableComposeProjectName } from "./fixtures/app.js";
+import { assertE2ERuntimeDirectory, readE2EState } from "./stack-state.js";
 
 async function run(executable: string, args: readonly string[], environment: NodeJS.ProcessEnv) {
   await new Promise<void>((resolveRun, rejectRun) => {
@@ -24,6 +25,8 @@ export default async function globalTeardown(_config: FullConfig): Promise<void>
     throw error;
   });
   if (state === undefined) return;
+  assertDisposableComposeProjectName(state.projectName);
+  assertE2ERuntimeDirectory(state.projectName, state.runtimeDirectory);
   const secretDirectory = `${state.runtimeDirectory}/secrets`;
   const dockerConfigDirectory = `${state.runtimeDirectory}/docker-config`;
   const composeArguments = state.composeFiles.flatMap((file) => ["--file", file]);

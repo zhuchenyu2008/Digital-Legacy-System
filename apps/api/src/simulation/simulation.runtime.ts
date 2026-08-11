@@ -3,67 +3,35 @@ import {
   type AdvanceSimulationResult,
   advanceSimulation,
   type CreateSimulationCommand,
+  cancelSimulationOwner,
   createSimulation,
+  finalizeSimulationPublication,
+  lockSimulationPublication,
+  recordSimulationContactDecision,
   resetSimulation,
   type SimulationAuditEvent,
   SimulationError,
   type SimulationScenario,
   type SimulationStore,
+  type TransactionManager,
 } from "@dls/application";
+import { verifyServerPassword } from "@dls/crypto/node";
+import { createPgPool, PgTransactionManager } from "@dls/persistence";
+import { renderWill } from "@dls/storage";
 import { Pool, type PoolClient } from "pg";
+import { getApiRuntimeConfig } from "../config/api-runtime-config.js";
+import {
+  getSimulationRuntimeConfig,
+  type SimulationRuntimeConfig,
+} from "../config/simulation-runtime-config.js";
+import { openSimulationArchive } from "./simulation-artifact.js";
+
+export {
+  getSimulationRuntimeConfig,
+  type SimulationRuntimeConfig,
+} from "../config/simulation-runtime-config.js";
 
 export const SIMULATION_RUNTIME = Symbol("DLS_SIMULATION_RUNTIME");
-
-export type SimulationRuntimeConfig =
-  | Readonly<{ enabled: false }>
-  | Readonly<{
-      enabled: true;
-      databaseUrl: string;
-      storageRoot: string;
-      allowedRecipients: readonly string[];
-    }>;
-
-function configured(value: string | undefined, name: string): string {
-  if (value === undefined || value.trim().length === 0) {
-    throw new Error(`${name} is required when simulation mode is enabled`);
-  }
-  return value.trim();
-}
-
-export function getSimulationRuntimeConfig(
-  environment: Record<string, string | undefined> = process.env,
-): SimulationRuntimeConfig {
-  if (environment.DLS_SIMULATION_MODE !== "enabled") return Object.freeze({ enabled: false });
-  if (environment.NODE_ENV !== "test") {
-    throw new Error("simulation mode may only run in the test environment");
-  }
-  const formalDatabaseUrl = configured(environment.DATABASE_URL, "DATABASE_URL");
-  const databaseUrl = configured(environment.SIMULATION_DATABASE_URL, "SIMULATION_DATABASE_URL");
-  if (new URL(databaseUrl).href === new URL(formalDatabaseUrl).href) {
-    throw new Error("simulation mode requires a separate database");
-  }
-  const mailTransport = new URL(configured(environment.MAIL_TRANSPORT_URL, "MAIL_TRANSPORT_URL"));
-  if (
-    mailTransport.protocol !== "smtp:" ||
-    !["mailpit", "127.0.0.1", "localhost"].includes(mailTransport.hostname)
-  ) {
-    throw new Error("simulation mail transport must target Mailpit");
-  }
-  const storageRoot = configured(environment.SIMULATION_STORAGE_ROOT, "SIMULATION_STORAGE_ROOT");
-  if (!/(?:^|[\\/])simulations(?:[\\/]|$)/iu.test(storageRoot)) {
-    throw new Error("simulation storage root must be inside a simulations directory");
-  }
-  const allowedRecipients = Object.freeze(
-    (environment.SIMULATION_MAIL_ALLOWLIST ?? "")
-      .split(",")
-      .map((value) => value.trim())
-      .filter((value) => value.length > 0),
-  );
-  if (allowedRecipients.length === 0) {
-    throw new Error("simulation mail allowlist must not be empty");
-  }
-  return Object.freeze({ enabled: true, databaseUrl, storageRoot, allowedRecipients });
-}
 
 async function transaction<T>(pool: Pool, work: (client: PoolClient) => Promise<T>): Promise<T> {
   const client = await pool.connect();
@@ -226,6 +194,25 @@ export interface SimulationRuntime {
   get(simulationId: string, ownerId: string): Promise<SimulationScenario>;
   advance(command: AdvanceSimulationCommand): Promise<AdvanceSimulationResult>;
   reset(simulationId: string, ownerId: string): Promise<void>;
+  contactDecision(
+    command: Parameters<typeof recordSimulationContactDecision>[0],
+  ): Promise<SimulationScenario>;
+  ownerCancel(command: Parameters<typeof cancelSimulationOwner>[0]): Promise<SimulationScenario>;
+  lockPublication(
+    command: Parameters<typeof lockSimulationPublication>[0],
+  ): Promise<SimulationScenario>;
+  finalizePublication(
+    command: Parameters<typeof finalizeSimulationPublication>[0],
+  ): Promise<SimulationScenario>;
+  publication(
+    simulationId: string,
+    ownerId: string,
+  ): Promise<NonNullable<SimulationScenario["synthetic"]["workflow"]["publication"]>>;
+  download(
+    simulationId: string,
+    ownerId: string,
+    range?: Readonly<{ start: number; endInclusive?: number }>,
+  ): Promise<ReturnType<typeof openSimulationArchive>>;
 }
 
 class DisabledSimulationRuntime implements SimulationRuntime {
@@ -247,6 +234,30 @@ class DisabledSimulationRuntime implements SimulationRuntime {
   public reset(): Promise<void> {
     return this.#error();
   }
+
+  public contactDecision(): Promise<SimulationScenario> {
+    return this.#error();
+  }
+
+  public ownerCancel(): Promise<SimulationScenario> {
+    return this.#error();
+  }
+
+  public lockPublication(): Promise<SimulationScenario> {
+    return this.#error();
+  }
+
+  public finalizePublication(): Promise<SimulationScenario> {
+    return this.#error();
+  }
+
+  public publication(): Promise<never> {
+    return this.#error();
+  }
+
+  public download(): Promise<never> {
+    return this.#error();
+  }
 }
 
 class EnabledSimulationRuntime implements SimulationRuntime {
@@ -255,6 +266,7 @@ class EnabledSimulationRuntime implements SimulationRuntime {
   public constructor(
     pool: Pool,
     private readonly config: Extract<SimulationRuntimeConfig, { enabled: true }>,
+    private readonly ownerTransaction: TransactionManager,
   ) {
     this.#store = new PostgresSimulationStore(pool);
   }
@@ -283,11 +295,68 @@ class EnabledSimulationRuntime implements SimulationRuntime {
   public reset(simulationId: string, ownerId: string): Promise<void> {
     return resetSimulation({ simulationId, ownerId }, { store: this.#store });
   }
+
+  public contactDecision(command: Parameters<typeof recordSimulationContactDecision>[0]) {
+    return recordSimulationContactDecision(command, { store: this.#store });
+  }
+
+  public ownerCancel(command: Parameters<typeof cancelSimulationOwner>[0]) {
+    return cancelSimulationOwner(command, {
+      store: this.#store,
+      passwordVerifier: (password) => this.verifyOwnerPassword(password),
+    });
+  }
+
+  public lockPublication(command: Parameters<typeof lockSimulationPublication>[0]) {
+    return lockSimulationPublication(command, { store: this.#store });
+  }
+
+  public finalizePublication(command: Parameters<typeof finalizeSimulationPublication>[0]) {
+    return finalizeSimulationPublication(command, {
+      store: this.#store,
+      renderWill: (source) => renderWill(source).html,
+    });
+  }
+
+  public async publication(simulationId: string, ownerId: string) {
+    const scenario = await this.get(simulationId, ownerId);
+    const publication = scenario.synthetic.workflow.publication;
+    if (scenario.synthetic.workflow.state !== "PUBLISHED" || publication === undefined) {
+      throw new SimulationError("SIMULATION_NOT_FOUND", "simulation publication is unavailable");
+    }
+    return publication;
+  }
+
+  public async download(
+    simulationId: string,
+    ownerId: string,
+    range?: Readonly<{ start: number; endInclusive?: number }>,
+  ) {
+    await this.publication(simulationId, ownerId);
+    return openSimulationArchive(range);
+  }
+
+  private verifyOwnerPassword(password: string): Promise<boolean> {
+    return this.ownerTransaction.run(async (tx) => {
+      const credential = await tx.repositories.ownerCredentials.findById(true);
+      return (
+        typeof credential?.password_phc === "string" &&
+        (await verifyServerPassword(
+          password,
+          getApiRuntimeConfig().tokenPepper,
+          credential.password_phc,
+        ))
+      );
+    });
+  }
 }
 
 export function createSimulationRuntime(): SimulationRuntime {
   const config = getSimulationRuntimeConfig();
-  return config.enabled
-    ? new EnabledSimulationRuntime(new Pool({ connectionString: config.databaseUrl }), config)
-    : new DisabledSimulationRuntime();
+  if (!config.enabled) return new DisabledSimulationRuntime();
+  return new EnabledSimulationRuntime(
+    new Pool({ connectionString: config.databaseUrl }),
+    config,
+    new PgTransactionManager(createPgPool({ connectionString: getApiRuntimeConfig().databaseUrl })),
+  );
 }

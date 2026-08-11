@@ -61,6 +61,8 @@ describe("password recovery controllers", () => {
 
   it("encodes sealed recovery material without exposing server key material", async () => {
     const material = vi.fn(async () => ({
+      workflowId: "workflow-1",
+      vaultId: "vault-1",
       resetSessionToken: "one-time-session",
       encryptedVaultKey: new Uint8Array(80).fill(4),
       sealedVaultKeyDigest: new Uint8Array(32).fill(5),
@@ -79,6 +81,8 @@ describe("password recovery controllers", () => {
       ),
     ).resolves.toMatchObject({
       data: {
+        workflowId: "workflow-1",
+        vaultId: "vault-1",
         resetSessionToken: "one-time-session",
         encryptedVaultKey: Buffer.alloc(80, 4).toString("base64url"),
         sealedVaultKeyDigest: Buffer.alloc(32, 5).toString("base64url"),

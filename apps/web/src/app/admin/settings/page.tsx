@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Icon } from "../../../components/icons/icon";
+import { ArmOwner } from "../../../features/settings/arm-owner";
 import { type OwnerSettingsView, SettingsForm } from "../../../features/settings/settings-form";
 import { SmtpTest } from "../../../features/settings/smtp-test";
 import { serverApiRequest } from "../../../lib/api/server-client";
@@ -72,6 +73,7 @@ export default async function SettingsPage() {
         <SettingsForm initial={value} workflowLocked={locked} />
         <SmtpTest configured={value.smtp.configured} />
       </div>
+      <ArmOwner />
 
       <footer className="dls-settings-footer">
         <span>© 2026 Digital Legacy System. All rights reserved. Secure &amp; Immutable.</span>

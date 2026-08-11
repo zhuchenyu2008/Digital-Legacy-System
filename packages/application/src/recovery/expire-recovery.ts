@@ -32,14 +32,6 @@ export async function expireRecovery(
       ended_at: now,
       end_reason: "RECOVERY_WINDOW_EXPIRED",
     });
-    await tx.outbox.enqueue({
-      eventType: "PASSWORD_RECOVERY_EXPIRED",
-      aggregateType: "workflow",
-      aggregateId: command.workflowId,
-      payload: { aggregateId: command.workflowId, aggregateVersion: currentVersion + 1 },
-      idempotencyKey: `password-recovery-expired:${command.workflowId}`,
-      availableAt: now,
-    });
     await tx.audit.append({
       eventId: crypto.randomUUID(),
       occurredAt: now,

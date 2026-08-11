@@ -2,6 +2,7 @@
 
 import {
   commitVaultKey,
+  contactKeyId,
   createRecoveryReplacementProofsV1,
   decodeBase64Url,
   deriveBrowserKey,
@@ -15,13 +16,18 @@ import {
   wrapKeyV1,
 } from "@dls/crypto/browser";
 import { createContactFragment } from "./contact-fragment";
-import { buildShareGenerationUpload } from "./share-generation";
+import {
+  buildShareGenerationUpload,
+  buildShareGenerationUploadFromOwnerEnvelope,
+} from "./share-generation";
 import type { CryptoOperation } from "./worker-client";
 
 type RequestMessage = Readonly<{ id: string; operation: CryptoOperation; payload: unknown }>;
 
 const scope = self as unknown as DedicatedWorkerGlobalScope;
 const encoder = new TextEncoder();
+let recoveryEphemeralPublicKey: Uint8Array | undefined;
+let recoveryEphemeralPrivateKey: Uint8Array | undefined;
 
 function bytes(value: string): Uint8Array {
   return decodeBase64Url(value);
@@ -151,6 +157,16 @@ async function execute(operation: CryptoOperation, raw: unknown): Promise<unknow
       vaultKey.fill(0);
     }
   }
+  if (operation === "createRecoveryEphemeralKey") {
+    recoveryEphemeralPublicKey?.fill(0);
+    recoveryEphemeralPrivateKey?.fill(0);
+    const pair = await generateContactKeyPair();
+    recoveryEphemeralPublicKey = new Uint8Array(pair.publicKey);
+    recoveryEphemeralPrivateKey = new Uint8Array(pair.privateKey);
+    pair.publicKey.fill(0);
+    pair.privateKey.fill(0);
+    return { publicKey: encodeBase64Url(recoveryEphemeralPublicKey) };
+  }
   if (operation === "unwrapOwnerVault") {
     const value = await unwrapOwner(payload);
     try {
@@ -225,6 +241,7 @@ async function execute(operation: CryptoOperation, raw: unknown): Promise<unknow
   if (operation === "rewrapContactPrivateKey") {
     const publicKey = bytes(String(payload.publicKey));
     const envelope = payload.envelope as Record<string, unknown>;
+    const keyId = await contactKeyId(publicKey);
     const oldKek = await deriveBrowserKey(String(payload.oldPassword), {
       version: 1,
       algorithm: "argon2id13",
@@ -238,7 +255,7 @@ async function execute(operation: CryptoOperation, raw: unknown): Promise<unknow
         version: 1,
         algorithm: "xchacha20poly1305-ietf",
         purpose: "contact-private-key",
-        keyId: String(payload.keyId),
+        keyId,
         nonce: String(envelope.nonce),
         ciphertext: String(envelope.ciphertext),
       },
@@ -292,16 +309,33 @@ async function execute(operation: CryptoOperation, raw: unknown): Promise<unknow
     return createContactFragment(payload as never);
   }
   if (operation === "createShareGeneration") {
+    if (typeof payload.password === "string" && payload.envelope !== undefined) {
+      return buildShareGenerationUploadFromOwnerEnvelope(payload as never, {
+        unwrapOwnerVault: (input) => unwrapOwner(input as Record<string, unknown>),
+      });
+    }
     return buildShareGenerationUpload(payload as never);
   }
   if (operation === "openRecoveryVault") {
-    const vaultKey = await openRecoveryVaultKeyV1({
-      workflowId: String(payload.workflowId),
-      sealed: bytes(String(payload.sealed)),
-      recipientPublicKey: bytes(String(payload.publicKey)),
-      recipientPrivateKey: bytes(String(payload.privateKey)),
-    });
+    const publicKey =
+      typeof payload.publicKey === "string"
+        ? bytes(payload.publicKey)
+        : recoveryEphemeralPublicKey?.slice();
+    const privateKey =
+      typeof payload.privateKey === "string"
+        ? bytes(payload.privateKey)
+        : recoveryEphemeralPrivateKey?.slice();
+    if (publicKey === undefined || privateKey === undefined) {
+      throw new Error("recovery ephemeral key is unavailable");
+    }
+    let vaultKey: Uint8Array | undefined;
     try {
+      vaultKey = await openRecoveryVaultKeyV1({
+        workflowId: String(payload.workflowId),
+        sealed: bytes(String(payload.sealed)),
+        recipientPublicKey: publicKey,
+        recipientPrivateKey: privateKey,
+      });
       const envelope = await ownerEnvelope(
         String(payload.newPassword),
         vaultKey,
@@ -320,7 +354,13 @@ async function execute(operation: CryptoOperation, raw: unknown): Promise<unknow
         vaultKeyProof: proofs.vaultKeyProof,
       };
     } finally {
-      vaultKey.fill(0);
+      vaultKey?.fill(0);
+      publicKey.fill(0);
+      privateKey.fill(0);
+      recoveryEphemeralPublicKey?.fill(0);
+      recoveryEphemeralPrivateKey?.fill(0);
+      recoveryEphemeralPublicKey = undefined;
+      recoveryEphemeralPrivateKey = undefined;
     }
   }
   throw new Error(`尚未为 ${operation} 提供工作线程实现`);

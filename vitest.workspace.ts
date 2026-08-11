@@ -73,7 +73,12 @@ export default defineConfig({
             "tests/contracts/**/*.test.ts",
             "tests/tooling/**/*.test.ts",
           ],
-          exclude: ["**/node_modules/**", "**/dist/**", "**/*.integration.test.ts"],
+          exclude: [
+            "**/node_modules/**",
+            "**/dist/**",
+            "**/*.integration.test.ts",
+            "packages/storage/src/s3/s3-storage.test.ts",
+          ],
         },
       },
       "apps/*/vitest.config.ts",

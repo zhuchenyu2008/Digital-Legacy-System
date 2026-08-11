@@ -56,7 +56,11 @@ export function repository(
 
 export function normalizeContactName(value: string): string {
   const normalized = value.normalize("NFC").trim();
-  if (normalized.length === 0 || normalized.length > 120) {
+  if (
+    normalized.length === 0 ||
+    normalized.length > 120 ||
+    /[\p{Cc}\p{Cf}\p{Zl}\p{Zp}]/u.test(normalized)
+  ) {
     throw new ContactUseCaseError("CONTACT_INVALID", "contact display name is invalid");
   }
   return normalized;
@@ -64,7 +68,11 @@ export function normalizeContactName(value: string): string {
 
 export function normalizeEmail(value: string): string {
   const normalized = value.normalize("NFC").trim().toLowerCase();
-  if (normalized.length > 320 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/u.test(normalized)) {
+  if (
+    normalized.length > 320 ||
+    !/^[\x21-\x7e]+$/u.test(normalized) ||
+    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/u.test(normalized)
+  ) {
     throw new ContactUseCaseError("CONTACT_INVALID", "contact email is invalid");
   }
   return normalized;

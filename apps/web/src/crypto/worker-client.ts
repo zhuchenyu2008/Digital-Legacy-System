@@ -7,6 +7,7 @@ export const cryptoOperations = [
   "createContactFragment",
   "createShareGeneration",
   "openRecoveryVault",
+  "createRecoveryEphemeralKey",
 ] as const;
 
 export type CryptoOperation = (typeof cryptoOperations)[number];

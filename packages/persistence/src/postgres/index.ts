@@ -5,4 +5,5 @@ export * from "./pg-idempotency.js";
 export * from "./pg-outbox.js";
 export * from "./pg-pool.js";
 export * from "./pg-repositories.js";
+export * from "./pg-session-store.js";
 export * from "./pg-transaction-manager.js";

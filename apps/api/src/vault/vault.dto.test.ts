@@ -6,6 +6,8 @@ const b64 = (bytes: Uint8Array) => Buffer.from(bytes).toString("base64url");
 
 function body() {
   return {
+    packageId: "00000000-0000-0000-0000-000000000099",
+    packageVersion: 7,
     vaultId: "00000000-0000-0000-0000-000000000001",
     shareGenerationId: "00000000-0000-0000-0000-000000000010",
     cipherAlgorithm: "XCHACHA20_POLY1305_SECRETSTREAM_V1",
@@ -30,6 +32,8 @@ describe("vault upload API DTOs", () => {
     const parsed = parseCreateVaultUpload(body(), "2026-08-08T13:00:00.000Z");
     expect(parsed.streamHeader).toHaveLength(24);
     expect(parsed.dekEnvelope).toEqual(new Uint8Array([1]));
+    expect(parsed.packageId).toBe("00000000-0000-0000-0000-000000000099");
+    expect(parsed.packageVersion).toBe(7);
     expect(parsed.expiresAt).toBe("2026-08-08T13:00:00.000Z");
   });
 

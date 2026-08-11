@@ -6,7 +6,13 @@ import { readRequestContext } from "../../apps/api/src/security/request-context.
 describe("HTTP security contract", () => {
   it("requires exact origin matching for unsafe methods", () => {
     const guard = new OriginGuard(["https://legacy.example"]);
-    expect(() => guard.assert({ method: "POST", origin: "https://legacy.example" })).not.toThrow();
+    expect(() =>
+      guard.assert({
+        method: "POST",
+        origin: "https://legacy.example",
+        fetchSite: "same-origin",
+      }),
+    ).not.toThrow();
     expect(() => guard.assert({ method: "POST", origin: "https://legacy.example.evil" })).toThrow();
   });
 

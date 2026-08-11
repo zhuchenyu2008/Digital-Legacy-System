@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
   advanceSimulation,
+  cancelSimulationOwner,
   createSimulation,
+  finalizeSimulationPublication,
+  lockSimulationPublication,
+  recordSimulationContactDecision,
   resetSimulation,
   type SimulationAuditEvent,
   SimulationClock,
@@ -55,6 +59,21 @@ class MemorySimulationStore implements SimulationStore {
 const actor = "00000000-0000-4000-8000-000000000001";
 const simulationId = "00000000-0000-4000-8000-000000000010";
 const startAt = "2026-08-10T00:00:00.000Z";
+const contactIds = [
+  "00000000-0000-0000-0000-000000000011",
+  "00000000-0000-0000-0000-000000000012",
+  "00000000-0000-0000-0000-000000000013",
+] as const;
+
+type PasswordProtectedCancel = (
+  command: Readonly<{ simulationId: string; ownerId: string; password: string }>,
+  dependencies: Readonly<{
+    store: SimulationStore;
+    passwordVerifier(password: string): Promise<boolean>;
+  }>,
+) => Promise<SimulationScenario>;
+
+const cancelWithPassword = cancelSimulationOwner as unknown as PasswordProtectedCancel;
 
 async function scenario(store: MemorySimulationStore) {
   return createSimulation(
@@ -63,6 +82,7 @@ async function scenario(store: MemorySimulationStore) {
       ownerId: actor,
       ownerEmail: "owner+simulation@example.test",
       contactEmails: ["contact-1@example.test", "contact-2@example.test", "contact-3@example.test"],
+      contactIds,
       startAt,
     },
     {
@@ -214,5 +234,126 @@ describe("isolated workflow simulation", () => {
       simulationId,
       ownerId: actor,
     });
+  });
+
+  it("runs the isolated alive cancellation path and reschedules the synthetic check-in", async () => {
+    const store = new MemorySimulationStore();
+    await scenario(store);
+
+    await advanceSimulation(
+      {
+        simulationId,
+        ownerId: actor,
+        idempotencyKey: "checkin-due-action",
+        target: "CHECKIN_DUE",
+      },
+      { store },
+    );
+    const cancelled = await recordSimulationContactDecision(
+      {
+        simulationId,
+        contactId: contactIds[0],
+        decision: "ALIVE",
+      },
+      { store },
+    );
+
+    expect(cancelled.synthetic.workflow).toMatchObject({
+      state: "CANCELLED_ALIVE",
+      contactDecisions: [{ contactId: contactIds[0], decision: "ALIVE" }],
+      disclosureMailSent: true,
+    });
+    expect(cancelled.synthetic.workflow.rescheduledCheckinAt).toBe("2026-08-16T00:00:00.000Z");
+  });
+
+  it("enforces the release lock and publishes only after the owner cancellation window closes", async () => {
+    const store = new MemorySimulationStore();
+    await scenario(store);
+
+    await advanceSimulation(
+      {
+        simulationId,
+        ownerId: actor,
+        idempotencyKey: "checkin-due-death",
+        target: "CHECKIN_DUE",
+      },
+      { store },
+    );
+    await recordSimulationContactDecision(
+      { simulationId, contactId: contactIds[0], decision: "DEATH_LIKELY" },
+      { store },
+    );
+    const pending = await recordSimulationContactDecision(
+      { simulationId, contactId: contactIds[1], decision: "DEATH_LIKELY" },
+      { store },
+    );
+    expect(pending.synthetic.workflow.state).toBe("RELEASE_PENDING");
+
+    const passwordVerifier = async (password: string) => password === "owner-password-2026";
+    await expect(
+      cancelWithPassword(
+        { simulationId, ownerId: actor, password: "wrong-owner-password" },
+        { store, passwordVerifier },
+      ),
+    ).rejects.toMatchObject({ code: "SIMULATION_OWNER_REAUTH_REQUIRED" });
+    const ownerCancelled = await cancelWithPassword(
+      { simulationId, ownerId: actor, password: "owner-password-2026" },
+      { store, passwordVerifier },
+    );
+    expect(ownerCancelled.synthetic.workflow.state).toBe("CANCELLED_OWNER");
+
+    await resetSimulation({ simulationId, ownerId: actor }, { store });
+    await scenario(store);
+    await advanceSimulation(
+      {
+        simulationId,
+        ownerId: actor,
+        idempotencyKey: "checkin-due-publish",
+        target: "CHECKIN_DUE",
+      },
+      { store },
+    );
+    await recordSimulationContactDecision(
+      { simulationId, contactId: contactIds[0], decision: "DEATH_LIKELY" },
+      { store },
+    );
+    await recordSimulationContactDecision(
+      { simulationId, contactId: contactIds[1], decision: "DEATH_LIKELY" },
+      { store },
+    );
+    await advanceSimulation(
+      {
+        simulationId,
+        ownerId: actor,
+        idempotencyKey: "publish-lock-time",
+        target: "RELEASE_COUNTDOWN",
+      },
+      { store },
+    );
+    await expect(
+      cancelWithPassword(
+        { simulationId, ownerId: actor, password: "owner-password-2026" },
+        { store, passwordVerifier },
+      ),
+    ).rejects.toMatchObject({ code: "SIMULATION_PUBLISH_LOCKED" });
+    const locked = await lockSimulationPublication({ simulationId, ownerId: actor }, { store });
+    expect(locked.synthetic.workflow.state).toBe("PUBLISH_LOCKED");
+    const published = await finalizeSimulationPublication(
+      { simulationId, ownerId: actor },
+      {
+        store,
+        renderWill: (source) => {
+          expect(source).toContain("<script>");
+          return "<h1>测试遗嘱</h1><p>sanitized</p>";
+        },
+      },
+    );
+    expect(published.synthetic.workflow.state).toBe("PUBLISHED");
+    expect(published.synthetic.workflow.publication?.willHtml).toBe(
+      "<h1>测试遗嘱</h1><p>sanitized</p>",
+    );
+    expect(published.synthetic.workflow.publication?.objectKey).toContain(
+      `simulations/${simulationId}/public/legacy.zip`,
+    );
   });
 });

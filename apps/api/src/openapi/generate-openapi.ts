@@ -2,10 +2,15 @@ import "reflect-metadata";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { Module } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
 import { FastifyAdapter, type NestFastifyApplication } from "@nestjs/platform-fastify";
 import { DocumentBuilder, type OpenAPIObject, SwaggerModule } from "@nestjs/swagger";
 import { AppModule } from "../app.module.js";
+import { SimulationModule } from "../simulation/simulation.module.js";
+
+@Module({ imports: [AppModule, SimulationModule] })
+class OpenApiAppModule {}
 
 const workspaceRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../../..");
 const outputPath = resolve(workspaceRoot, "packages/contracts/openapi/openapi.json");
@@ -46,9 +51,11 @@ export function serializeOpenApiDocument(document: OpenAPIObject): string {
 }
 
 export async function buildOpenApiDocument(): Promise<OpenAPIObject> {
-  const app = await NestFactory.create<NestFastifyApplication>(AppModule, new FastifyAdapter(), {
-    logger: false,
-  });
+  const app = await NestFactory.create<NestFastifyApplication>(
+    OpenApiAppModule,
+    new FastifyAdapter(),
+    { logger: false },
+  );
   try {
     const options = new DocumentBuilder()
       .setTitle("Digital Legacy System API")

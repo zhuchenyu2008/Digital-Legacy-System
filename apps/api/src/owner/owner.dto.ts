@@ -35,6 +35,20 @@ export class ChangeOwnerPasswordDto {
   vaultKeyProof?: string;
 }
 
+export class OwnerArmDto {
+  @ApiProperty({ type: String, minLength: 1, writeOnly: true })
+  password!: string;
+
+  @ApiProperty({ type: String, minLength: 1 })
+  confirmationText!: string;
+
+  @ApiPropertyOptional({ type: String, format: "uuid" })
+  expectedPackageId?: string;
+
+  @ApiPropertyOptional({ type: String, format: "uuid" })
+  expectedShareGenerationId?: string;
+}
+
 function bodyObject(value: unknown): Record<string, unknown> {
   if (value === null || typeof value !== "object" || Array.isArray(value)) {
     throw new BadRequestException("JSON request body must be an object");
@@ -85,5 +99,23 @@ export function parseOwnerPasswordChange(value: unknown) {
     newPassword: password(input.newPassword),
     newOwnerVaultEnvelope: envelope as OwnerVaultEnvelope,
     ...(typeof input.vaultKeyProof === "string" ? { vaultKeyProof: input.vaultKeyProof } : {}),
+  };
+}
+
+export function parseOwnerArm(value: unknown) {
+  const input = bodyObject(value);
+  const confirmationText = input.confirmationText;
+  if (typeof confirmationText !== "string" || confirmationText.length === 0) {
+    throw new BadRequestException("confirmationText is required");
+  }
+  return {
+    password: password(input.password),
+    confirmationText,
+    ...(typeof input.expectedPackageId === "string"
+      ? { expectedPackageId: input.expectedPackageId }
+      : {}),
+    ...(typeof input.expectedShareGenerationId === "string"
+      ? { expectedShareGenerationId: input.expectedShareGenerationId }
+      : {}),
   };
 }

@@ -181,6 +181,26 @@ describe("durable jobs and outbox dispatch", () => {
     ]);
   });
 
+  it("routes recovery expiry at its durable deadline to the dedicated worker", async () => {
+    await manager.run((tx) =>
+      tx.outbox.enqueue(outboxEvent("job-recovery-expire", "PASSWORD_RECOVERY_STARTED")),
+    );
+    const published: Array<{ name: string; payload: unknown }> = [];
+    const dispatcher = new PgOutboxDispatcher(pool, {
+      async publish(name, payload) {
+        published.push({ name, payload });
+      },
+    });
+
+    expect(await dispatcher.dispatchBatch()).toBe(1);
+    expect(published).toEqual([
+      {
+        name: JOB_NAMES.RECOVERY_EXPIRE,
+        payload: { aggregateId: "00000000-0000-0000-0000-000000000021", aggregateVersion: 4 },
+      },
+    ]);
+  });
+
   it("recovers the pending row after a dispatcher restart", async () => {
     await manager.run((tx) => tx.outbox.enqueue(outboxEvent("job-test-restart")));
     let attempts = 0;
@@ -210,7 +230,7 @@ describe("durable jobs and outbox dispatch", () => {
     expect(computeRetryDelayMs(1, () => 0)).toBe(1_000);
     expect(computeRetryDelayMs(4, () => 1)).toBe(16_000);
     expect(computeRetryDelayMs(99, () => 1)).toBe(86_400_000);
-    expect(Object.values(JOB_NAMES)).toHaveLength(8);
+    expect(Object.values(JOB_NAMES)).toHaveLength(10);
   });
 
   it("uses aggregate identity and version as the pg-boss singleton key", async () => {

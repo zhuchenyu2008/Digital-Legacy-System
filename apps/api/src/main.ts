@@ -7,6 +7,7 @@ import { ConsoleLogger } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
 import { FastifyAdapter, type NestFastifyApplication } from "@nestjs/platform-fastify";
 import { AppModule } from "./app.module.js";
+import { registerBinaryBodyParser } from "./bootstrap/binary-body-parser.js";
 import { loadApiKeyCapabilities } from "./config/key-capabilities.js";
 import { loadApiConfig } from "./config/load-config.js";
 
@@ -21,6 +22,7 @@ async function bootstrap(): Promise<void> {
     logger: new ConsoleLogger({ json: true, prefix: "api" }),
   });
   const server = adapter.getInstance();
+  registerBinaryBodyParser(server);
 
   await server.register(helmet, { contentSecurityPolicy: false });
   server.addHook("onRequest", (request, reply, done) => {

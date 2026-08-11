@@ -24,6 +24,32 @@ export function consumeFragmentToken(
   return token;
 }
 
+export function consumeFragmentValues(
+  keys: readonly string[],
+  source: Readonly<{
+    hash: string;
+    pathname: string;
+    search: string;
+    replaceState: (data: unknown, unused: string, url?: string | URL | null) => void;
+  }>,
+): Readonly<Record<string, string | undefined>> {
+  const values = new URLSearchParams(source.hash.replace(/^#/u, ""));
+  const result = Object.fromEntries(keys.map((key) => [key, values.get(key) ?? undefined]));
+  source.replaceState(null, "", `${source.pathname}${source.search}`);
+  return result;
+}
+
+export function observeFragmentValues(
+  keys: readonly string[],
+  source: () => Parameters<typeof consumeFragmentValues>[1],
+  subscribe: (listener: () => void) => () => void,
+  onValues: (values: ReturnType<typeof consumeFragmentValues>) => void,
+): () => void {
+  const consume = () => onValues(consumeFragmentValues(keys, source()));
+  consume();
+  return subscribe(consume);
+}
+
 export function requestIdFrom(error: unknown): string | undefined {
   return typeof error === "object" && error !== null && "requestId" in error
     ? String((error as { requestId?: unknown }).requestId ?? "") || undefined

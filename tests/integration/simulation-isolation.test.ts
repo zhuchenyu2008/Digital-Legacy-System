@@ -150,6 +150,7 @@ describe("simulation configuration fail-closed rules", () => {
   it("rejects production enablement, shared databases, external SMTP, and empty allowlists", () => {
     const base = {
       NODE_ENV: "test",
+      DLS_TEST_MODE: "true",
       DLS_SIMULATION_MODE: "enabled",
       DATABASE_URL: formalUrl,
       SIMULATION_DATABASE_URL: simulationUrl,

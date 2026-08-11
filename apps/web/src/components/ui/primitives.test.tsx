@@ -52,7 +52,7 @@ describe("visual contract and UI primitives", () => {
 
   test("activates supplied Material Symbols only after the font loads and preserves icon sizing", async () => {
     const classes: string[] = [];
-    const load = vi.fn().mockResolvedValue([]);
+    const load = vi.fn().mockResolvedValue([{}]);
     const check = vi.fn().mockReturnValue(true);
 
     await activateMaterialSymbols(

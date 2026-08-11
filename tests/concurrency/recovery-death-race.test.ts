@@ -260,11 +260,11 @@ async function cleanup(state: Fixture): Promise<void> {
     "UPDATE app.vaults SET active_share_generation_id = NULL WHERE id = $1",
     [state.vaultId],
   );
+  await concurrencyPool.query("DELETE FROM app.legacy_packages WHERE id = $1", [state.packageId]);
   await concurrencyPool.query("DELETE FROM app.share_generations WHERE id = $1", [
     state.generationId,
   ]);
   await concurrencyPool.query("DELETE FROM app.vaults WHERE id = $1", [state.vaultId]);
-  await concurrencyPool.query("DELETE FROM app.legacy_packages WHERE id = $1", [state.packageId]);
 }
 
 const stageKeys = {

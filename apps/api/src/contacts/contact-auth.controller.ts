@@ -9,9 +9,12 @@ import {
   Post,
   Req,
   Res,
+  UseGuards,
 } from "@nestjs/common";
 import { ApiBody, ApiOperation, ApiResponse, ApiTags } from "@nestjs/swagger";
 import type { FastifyReply, FastifyRequest } from "fastify";
+import { CsrfGuard } from "../security/csrf.guard.js";
+import { ContactSessionGuard } from "../security/session.guard.js";
 import { setSessionCookies } from "../security/session-cookies.js";
 import {
   ChangeContactPasswordDto,
@@ -75,6 +78,7 @@ export class ContactPasswordController {
   public constructor(@Inject(CONTACT_RUNTIME) private readonly runtime: ContactRuntime) {}
 
   @Post("complete")
+  @UseGuards(ContactSessionGuard, CsrfGuard)
   @HttpCode(HttpStatus.OK)
   @ApiBody({ type: ChangeContactPasswordDto })
   @ApiOperation({ summary: "Rotate the contact password and wrapped private key" })

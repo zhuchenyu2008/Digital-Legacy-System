@@ -28,6 +28,22 @@ describe("browser API requests", () => {
     expect(String(fetchMock.mock.calls[0]?.[0])).not.toContain("secret");
   });
 
+  test("does not declare JSON content for a bodyless mutation", async () => {
+    const fetchMock = vi.fn(
+      async () =>
+        new Response(JSON.stringify({ data: { ok: true } }), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await apiRequest("/owner/packages/package-1/abort", { method: "POST" });
+
+    const [, init] = fetchMock.mock.calls[0] ?? [];
+    expect(new Headers(init?.headers).get("content-type")).toBeNull();
+  });
+
   test("recovers the role-specific CSRF token from a strict cookie after a page reload", async () => {
     expect(
       browserCsrfToken(

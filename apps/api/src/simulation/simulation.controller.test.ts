@@ -1,7 +1,7 @@
 import { SimulationError, type SimulationScenario } from "@dls/application";
 import { NotFoundException } from "@nestjs/common";
 import { describe, expect, it } from "vitest";
-import { SimulationController } from "./simulation.controller.js";
+import { ContactSimulationController, SimulationController } from "./simulation.controller.js";
 import type { SimulationRuntime } from "./simulation.runtime.js";
 
 const ownerId = "00000000-0000-4000-8000-000000000301";
@@ -18,8 +18,17 @@ const scenario = {
   synthetic: {
     ownerEmail: "owner+simulation@example.test",
     contactEmails: ["contact-1@example.test"],
+    contactIds: ["00000000-0000-4000-8000-000000000399"],
     packageObjectKey: `simulations/${simulationId}/private/test.zip`,
     publicObjectKey: `simulations/${simulationId}/public/legacy.zip`,
+    workflow: {
+      id: `simulation:${simulationId}:workflow:death`,
+      state: "SCHEDULED",
+      requiredCount: 1,
+      contactIds: ["00000000-0000-4000-8000-000000000399"],
+      contactDecisions: [],
+      disclosureMailSent: false,
+    },
   },
   pendingMail: [],
 } satisfies SimulationScenario;
@@ -44,6 +53,10 @@ describe("simulation HTTP controller", () => {
         events: [],
       }),
       reset: async () => undefined,
+      contactDecision: async () => scenario,
+      ownerCancel: async () => scenario,
+      lockPublication: async () => scenario,
+      finalizePublication: async () => scenario,
     };
     const controller = new SimulationController(runtime);
 
@@ -75,6 +88,10 @@ describe("simulation HTTP controller", () => {
         throw new Error("runtime must not be reached");
       },
       reset: async () => undefined,
+      contactDecision: async () => scenario,
+      ownerCancel: async () => scenario,
+      lockPublication: async () => scenario,
+      finalizePublication: async () => scenario,
     });
 
     await expect(
@@ -96,9 +113,102 @@ describe("simulation HTTP controller", () => {
       reset: async () => {
         throw new SimulationError("SIMULATION_DISABLED", "simulation mode is disabled");
       },
+      contactDecision: async () => {
+        throw new SimulationError("SIMULATION_DISABLED", "simulation mode is disabled");
+      },
+      ownerCancel: async () => {
+        throw new SimulationError("SIMULATION_DISABLED", "simulation mode is disabled");
+      },
+      lockPublication: async () => {
+        throw new SimulationError("SIMULATION_DISABLED", "simulation mode is disabled");
+      },
+      finalizePublication: async () => {
+        throw new SimulationError("SIMULATION_DISABLED", "simulation mode is disabled");
+      },
     };
     const controller = new SimulationController(runtime);
 
     await expect(controller.get(simulationId, request())).rejects.toBeInstanceOf(NotFoundException);
+  });
+
+  it("takes the contact identity from the authenticated request for isolated decisions", async () => {
+    let captured: unknown;
+    const runtime: SimulationRuntime = {
+      create: async () => scenario,
+      get: async () => scenario,
+      advance: async () => ({
+        simulationId,
+        currentAt: scenario.currentAt,
+        state: "CHECKIN_DUE",
+        events: [],
+      }),
+      reset: async () => undefined,
+      contactDecision: async (command) => {
+        captured = command;
+        return scenario;
+      },
+      ownerCancel: async () => scenario,
+      lockPublication: async () => scenario,
+      finalizePublication: async () => scenario,
+    };
+    const controller = new ContactSimulationController(runtime);
+
+    const response = await controller.decide(
+      simulationId,
+      { decision: "ALIVE" },
+      request("00000000-0000-4000-8000-000000000399"),
+    );
+
+    expect(captured).toEqual({
+      simulationId,
+      contactId: "00000000-0000-4000-8000-000000000399",
+      decision: "ALIVE",
+    });
+    expect(response).toEqual({ data: scenario, requestId: "request-1" });
+  });
+
+  it("forwards owner-only cancel and publication actions with the session owner", async () => {
+    const commands: unknown[] = [];
+    const runtime: SimulationRuntime = {
+      create: async () => scenario,
+      get: async () => scenario,
+      advance: async () => ({
+        simulationId,
+        currentAt: scenario.currentAt,
+        state: "CHECKIN_DUE",
+        events: [],
+      }),
+      reset: async () => undefined,
+      contactDecision: async () => scenario,
+      ownerCancel: async (command) => {
+        commands.push(command);
+        return scenario;
+      },
+      lockPublication: async (command) => {
+        commands.push(command);
+        return scenario;
+      },
+      finalizePublication: async (command) => {
+        commands.push(command);
+        return scenario;
+      },
+    };
+    const controller = new SimulationController(runtime);
+
+    await (
+      controller.cancel as unknown as (
+        id: string,
+        body: Readonly<{ password: string }>,
+        request: never,
+      ) => Promise<unknown>
+    )(simulationId, { password: "owner-password-2026" }, request());
+    await controller.lock(simulationId, request());
+    await controller.publish(simulationId, request());
+
+    expect(commands).toEqual([
+      { simulationId, ownerId, password: "owner-password-2026" },
+      { simulationId, ownerId },
+      { simulationId, ownerId },
+    ]);
   });
 });

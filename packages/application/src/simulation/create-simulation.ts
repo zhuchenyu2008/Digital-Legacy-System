@@ -11,6 +11,7 @@ export type CreateSimulationCommand = Readonly<{
   ownerId: string;
   ownerEmail: string;
   contactEmails: readonly string[];
+  contactIds?: readonly string[];
   startAt: string;
 }>;
 
@@ -53,6 +54,22 @@ export async function createSimulation(
     dependencies.allowedRecipients,
   );
   const namespace = `simulation:${command.simulationId}`;
+  const contactIds = Object.freeze(
+    command.contactIds === undefined
+      ? command.contactEmails.map((_email, index) => `${namespace}:contact:${index + 1}`)
+      : [...command.contactIds],
+  );
+  if (
+    contactIds.length !== command.contactEmails.length ||
+    contactIds.length < 3 ||
+    new Set(contactIds).size !== contactIds.length ||
+    contactIds.some((value) => value.trim().length === 0)
+  ) {
+    throw new SimulationError(
+      "INVALID_SIMULATION_INPUT",
+      "simulation requires at least three distinct contact identities",
+    );
+  }
   const scenario: SimulationScenario = Object.freeze({
     id: command.simulationId,
     ownerId: command.ownerId,
@@ -65,8 +82,17 @@ export async function createSimulation(
     synthetic: Object.freeze({
       ownerEmail: command.ownerEmail,
       contactEmails: Object.freeze([...command.contactEmails]),
+      contactIds,
       packageObjectKey: `simulations/${command.simulationId}/private/test.zip`,
       publicObjectKey: `simulations/${command.simulationId}/public/legacy.zip`,
+      workflow: Object.freeze({
+        id: `${namespace}:workflow:death`,
+        state: "SCHEDULED",
+        requiredCount: 2,
+        contactIds,
+        contactDecisions: Object.freeze([]),
+        disclosureMailSent: false,
+      }),
     }),
     pendingMail: Object.freeze([
       Object.freeze({

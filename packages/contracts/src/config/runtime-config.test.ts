@@ -68,6 +68,21 @@ describe("parseRuntimeConfig", () => {
     ).toThrow("DEBUG");
   });
 
+  test.each(["PUBLIC_BASE_URL", "MAIL_TRANSPORT_URL", "MAIL_FROM"])(
+    "requires an explicit %s in production",
+    (variable) => {
+      expect(() =>
+        parseRuntimeConfig(validEnvironment({ NODE_ENV: "production", [variable]: undefined })),
+      ).toThrow(variable);
+    },
+  );
+
+  test("rejects the test-mode flag in every production process", () => {
+    expect(() =>
+      parseRuntimeConfig(validEnvironment({ NODE_ENV: "production", DLS_TEST_MODE: "true" })),
+    ).toThrow(/DLS_TEST_MODE.*production/u);
+  });
+
   test("normalizes configured filesystem paths without creating them", () => {
     const config = parseRuntimeConfig(
       validEnvironment({
@@ -89,6 +104,7 @@ describe("parseRuntimeConfig", () => {
     "S3_REGION",
     "S3_PRIVATE_BUCKET",
     "S3_PUBLIC_BUCKET",
+    "S3_STAGING_BUCKET",
     "S3_ACCESS_KEY_ID",
     "S3_SECRET_ACCESS_KEY",
   ])("requires %s when S3 storage is selected", (variable) => {
@@ -97,6 +113,7 @@ describe("parseRuntimeConfig", () => {
       S3_REGION: "us-east-1",
       S3_PRIVATE_BUCKET: "dls-private",
       S3_PUBLIC_BUCKET: "dls-public",
+      S3_STAGING_BUCKET: "dls-staging",
       S3_ACCESS_KEY_ID: "local-access-key",
       S3_SECRET_ACCESS_KEY: "local-secret-key",
       [variable]: undefined,
@@ -113,6 +130,7 @@ describe("parseRuntimeConfig", () => {
         S3_REGION: "us-east-1",
         S3_PRIVATE_BUCKET: "dls-private",
         S3_PUBLIC_BUCKET: "dls-public",
+        S3_STAGING_BUCKET: "dls-staging",
         S3_ACCESS_KEY_ID: "local-access-key",
         S3_SECRET_ACCESS_KEY: "local-secret-key",
         S3_FORCE_PATH_STYLE: "true",
@@ -122,6 +140,7 @@ describe("parseRuntimeConfig", () => {
     expect(config.storage).toMatchObject({
       driver: "s3",
       endpoint: new URL("http://minio:9000"),
+      stagingBucket: "dls-staging",
       forcePathStyle: true,
     });
   });

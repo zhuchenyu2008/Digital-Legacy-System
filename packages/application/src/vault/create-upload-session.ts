@@ -8,7 +8,14 @@ import {
   VaultUseCaseError,
 } from "./ports.js";
 
-export type CreateUploadSessionInput = EncryptedPackageMetadata & Readonly<{ expiresAt: string }>;
+export type CreateUploadSessionInput = EncryptedPackageMetadata &
+  Readonly<{
+    expiresAt: string;
+    /** Browser-generated identity keeps stream and package AAD identical. */
+    packageId?: string;
+    /** Browser-reserved version keeps stream and package AAD identical. */
+    packageVersion?: number;
+  }>;
 
 export type UploadSession = Readonly<{
   package: VaultPackageRecord;
@@ -16,6 +23,7 @@ export type UploadSession = Readonly<{
     mode: "API_STREAM";
     method: "PUT";
     url: string;
+    uploadId: string;
     expiresAt: string;
   }>;
 }>;
@@ -42,6 +50,18 @@ export class CreateUploadSession {
   }
 
   async execute(input: CreateUploadSessionInput): Promise<UploadSession> {
+    if (input.packageId !== undefined && input.packageId.length === 0) {
+      throw new VaultUseCaseError("DLS-PACKAGE-METADATA", "packageId must be non-empty");
+    }
+    if (
+      input.packageVersion !== undefined &&
+      (!Number.isSafeInteger(input.packageVersion) || input.packageVersion < 1)
+    ) {
+      throw new VaultUseCaseError(
+        "DLS-PACKAGE-METADATA",
+        "packageVersion must be a positive safe integer",
+      );
+    }
     if (!Number.isSafeInteger(input.ciphertextSize) || input.ciphertextSize < 0) {
       throw new VaultUseCaseError(
         "DLS-PACKAGE-METADATA",
@@ -82,11 +102,12 @@ export class CreateUploadSession {
       );
     }
 
-    const id = this.idFactory();
+    const { packageId, packageVersion, ...metadata } = input;
+    const id = packageId ?? this.idFactory();
     const record: VaultPackageRecord = {
-      ...input,
+      ...metadata,
       id,
-      versionNo: await this.nextVersionNo(),
+      versionNo: packageVersion ?? (await this.nextVersionNo()),
       version: 0,
       status: "UPLOADING",
       objectKey: this.objectKeyFactory(id),
@@ -99,6 +120,7 @@ export class CreateUploadSession {
         mode: "API_STREAM",
         method: "PUT",
         url: `/api/v1/owner/packages/${created.id}/content`,
+        uploadId: created.uploadId,
         expiresAt: created.expiresAt,
       },
     };

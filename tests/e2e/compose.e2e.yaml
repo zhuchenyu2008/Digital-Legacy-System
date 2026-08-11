@@ -6,12 +6,15 @@ services:
   api:
     environment:
       NODE_ENV: test
+      DLS_TEST_MODE: "true"
       DLS_SIMULATION_MODE: enabled
       SIMULATION_STORAGE_ROOT: /var/lib/dls/simulations
       SIMULATION_MAIL_ALLOWLIST: "*@example.test"
     command:
       - |
         export SESSION_SECRET="$$(cat /run/secrets/session_secret)"
+        export SESSION_PEPPER="$$(cat /run/secrets/session_pepper)"
+        export SETUP_TOKEN="$$(cat /run/secrets/setup_token)"
         export TOKEN_PEPPER="$$(cat /run/secrets/token_pepper)"
         export RELEASE_INGRESS_PUBLIC_KEY="$$(cat /run/secrets/release_ingress_public_key)"
         export RECOVERY_INGRESS_PUBLIC_KEY="$$(cat /run/secrets/recovery_ingress_public_key)"
@@ -23,6 +26,10 @@ services:
         exec node apps/api/dist/main.js
     volumes:
       - simulation_objects:/var/lib/dls/simulations
+
+  worker:
+    environment:
+      NODE_ENV: test
 
 volumes:
   simulation_objects:

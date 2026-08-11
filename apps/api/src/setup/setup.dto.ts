@@ -45,6 +45,9 @@ export class CreateOwnerDto {
   @ApiProperty({ type: String, writeOnly: true })
   public setupToken!: string;
 
+  @ApiProperty({ type: String, format: "uuid" })
+  public vaultId!: string;
+
   @ApiProperty({ type: String })
   public displayName!: string;
 
@@ -78,6 +81,7 @@ export function parseCreateOwner(value: unknown, requestId: string): OwnerSetupC
   if (typeof params !== "object" || params === null) throw new Error("kdfParams is required");
   return {
     setupToken: text(body.setupToken, "setupToken"),
+    vaultId: text(body.vaultId, "vaultId"),
     displayName: text(body.displayName, "displayName"),
     primaryEmail: text(body.primaryEmail, "primaryEmail"),
     ...(body.backupEmail === undefined

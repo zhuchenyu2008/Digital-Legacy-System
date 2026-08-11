@@ -192,6 +192,19 @@
         ],
         "type": "object"
       },
+      "CancelSimulationDto": {
+        "properties": {
+          "password": {
+            "minLength": 1,
+            "type": "string",
+            "writeOnly": true
+          }
+        },
+        "required": [
+          "password"
+        ],
+        "type": "object"
+      },
       "ChangeContactPasswordDto": {
         "properties": {
           "newPassword": {
@@ -583,10 +596,15 @@
           "setupToken": {
             "type": "string",
             "writeOnly": true
+          },
+          "vaultId": {
+            "format": "uuid",
+            "type": "string"
           }
         },
         "required": [
           "setupToken",
+          "vaultId",
           "displayName",
           "primaryEmail",
           "password",
@@ -646,6 +664,13 @@
               "type": "string"
             },
             "minItems": 1,
+            "type": "array"
+          },
+          "contactIds": {
+            "items": {
+              "type": "string"
+            },
+            "minItems": 3,
             "type": "array"
           },
           "ownerEmail": {
@@ -720,6 +745,14 @@
           "manifestNonce": {
             "description": "Base64url encoded manifest nonce",
             "type": "string"
+          },
+          "packageId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "packageVersion": {
+            "minimum": 1,
+            "type": "number"
           },
           "shareGenerationId": {
             "format": "uuid",
@@ -822,6 +855,32 @@
         },
         "required": [
           "mode"
+        ],
+        "type": "object"
+      },
+      "OwnerArmDto": {
+        "properties": {
+          "confirmationText": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "expectedPackageId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "expectedShareGenerationId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "password": {
+            "minLength": 1,
+            "type": "string",
+            "writeOnly": true
+          }
+        },
+        "required": [
+          "password",
+          "confirmationText"
         ],
         "type": "object"
       },
@@ -1151,6 +1210,21 @@
           "recoveryShareCiphertext",
           "deathShareCommitment",
           "recoveryShareCommitment"
+        ],
+        "type": "object"
+      },
+      "SimulationContactDecisionDto": {
+        "properties": {
+          "decision": {
+            "enum": [
+              "ALIVE",
+              "DEATH_LIKELY"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "decision"
         ],
         "type": "object"
       },
@@ -1569,6 +1643,41 @@
         ]
       }
     },
+    "/contact/simulations/{simulationId}/decision": {
+      "post": {
+        "operationId": "ContactSimulationController_decide",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "simulationId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SimulationContactDecisionDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Record an authenticated contact decision in an isolated simulation",
+        "tags": [
+          "Contact simulation"
+        ]
+      }
+    },
     "/contact/workflows/{workflowId}/approve-password-recovery": {
       "post": {
         "operationId": "ContactRecoveryController_approve",
@@ -1744,6 +1853,31 @@
         },
         "tags": [
           "Health"
+        ]
+      }
+    },
+    "/owner/arm": {
+      "post": {
+        "operationId": "OwnerController_arm",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OwnerArmDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Atomically accept irreversible risk and arm the owner system",
+        "tags": [
+          "Owner"
         ]
       }
     },
@@ -2491,6 +2625,144 @@
         ]
       }
     },
+    "/owner/simulations/{simulationId}/cancel": {
+      "post": {
+        "operationId": "SimulationController_cancel",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "simulationId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CancelSimulationDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Cancel an isolated synthetic release before its publish lock",
+        "tags": [
+          "Owner simulation"
+        ]
+      }
+    },
+    "/owner/simulations/{simulationId}/publication": {
+      "get": {
+        "operationId": "SimulationController_publication",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "simulationId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Read one isolated sanitized simulation publication",
+        "tags": [
+          "Owner simulation"
+        ]
+      }
+    },
+    "/owner/simulations/{simulationId}/publication/finalize": {
+      "post": {
+        "operationId": "SimulationController_publish",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "simulationId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Finalize an isolated synthetic publication",
+        "tags": [
+          "Owner simulation"
+        ]
+      }
+    },
+    "/owner/simulations/{simulationId}/publication/lock": {
+      "post": {
+        "operationId": "SimulationController_lock",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "simulationId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Lock an isolated synthetic publication at its release deadline",
+        "tags": [
+          "Owner simulation"
+        ]
+      }
+    },
+    "/owner/simulations/{simulationId}/publication/package": {
+      "get": {
+        "operationId": "SimulationController_download",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "simulationId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Complete simulation ZIP"
+          },
+          "206": {
+            "description": "One byte range of the simulation ZIP"
+          }
+        },
+        "summary": "Download an isolated deterministic simulation ZIP",
+        "tags": [
+          "Owner simulation"
+        ]
+      }
+    },
     "/owner/simulations/{simulationId}/reset": {
       "post": {
         "operationId": "SimulationController_reset",
@@ -2516,6 +2788,21 @@
         ]
       }
     },
+    "/owner/smtp-settings/test": {
+      "post": {
+        "operationId": "OwnerController_smtpTest",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Send a safe SMTP connectivity test to the owner primary address",
+        "tags": [
+          "Owner"
+        ]
+      }
+    },
     "/owner/system-health": {
       "get": {
         "operationId": "OwnerSystemHealthController_read",
@@ -2528,6 +2815,26 @@
         "summary": "Read redacted operational health categories",
         "tags": [
           "Owner system health"
+        ]
+      }
+    },
+    "/owner/vault/material": {
+      "get": {
+        "operationId": "VaultController_material",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Encrypted owner vault material"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Read the encrypted owner vault envelope and share roster context",
+        "tags": [
+          "Vault"
         ]
       }
     },

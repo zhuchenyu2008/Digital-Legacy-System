@@ -1,7 +1,13 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, test, vi } from "vitest";
 import { ContactLoginForm } from "./contact-login-form";
-import { consumeFragmentToken, navigateAfterLogin, validateNewPassword } from "./form-security";
+import {
+  consumeFragmentToken,
+  consumeFragmentValues,
+  navigateAfterLogin,
+  observeFragmentValues,
+  validateNewPassword,
+} from "./form-security";
 import { OwnerLoginForm } from "./owner-login-form";
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
@@ -38,6 +44,52 @@ describe("secure identity pages", () => {
     const push = vi.fn();
     navigateAfterLogin(push, "/contact/workflows/current");
     expect(push).toHaveBeenCalledWith("/contact/workflows/current");
+  });
+
+  test("consumes recovery token and email code together before removing the fragment", () => {
+    const replaceState = vi.fn();
+    expect(
+      consumeFragmentValues(["recovery", "code"], {
+        hash: "#recovery=reset-secret&code=12345678",
+        pathname: "/password-recovery",
+        search: "",
+        replaceState,
+      }),
+    ).toEqual({ recovery: "reset-secret", code: "12345678" });
+    expect(replaceState).toHaveBeenCalledWith(null, "", "/password-recovery");
+    expect(JSON.stringify(replaceState.mock.calls)).not.toContain("reset-secret");
+    expect(JSON.stringify(replaceState.mock.calls)).not.toContain("12345678");
+  });
+
+  test("observes a recovery fragment added while the page is already mounted", () => {
+    let hash = "";
+    let onHashChange: (() => void) | undefined;
+    const stop = vi.fn();
+    const replaceState = vi.fn();
+    const received: Readonly<Record<string, string | undefined>>[] = [];
+
+    const unsubscribe = observeFragmentValues(
+      ["recovery", "code"],
+      () => ({
+        hash,
+        pathname: "/password-recovery",
+        search: "",
+        replaceState,
+      }),
+      (listener) => {
+        onHashChange = listener;
+        return stop;
+      },
+      (values) => received.push(values),
+    );
+
+    expect(received).toEqual([{ recovery: undefined, code: undefined }]);
+    hash = "#recovery=start-secret";
+    onHashChange?.();
+    expect(received.at(-1)).toEqual({ recovery: "start-secret", code: undefined });
+    expect(replaceState).toHaveBeenLastCalledWith(null, "", "/password-recovery");
+    unsubscribe();
+    expect(stop).toHaveBeenCalledOnce();
   });
 
   test("renders role-specific login forms with generic recovery messaging", () => {

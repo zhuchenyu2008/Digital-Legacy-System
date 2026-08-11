@@ -12,6 +12,11 @@ import {
   createNotificationDeliverHandler,
   NotificationDeliverHandler,
 } from "./jobs/notification-deliver.handler.js";
+import { OutboxDispatchHandler } from "./jobs/outbox-dispatch.handler.js";
+import {
+  createPackageObjectDeleteHandler,
+  PackageObjectDeleteHandler,
+} from "./jobs/package-object-delete.handler.js";
 import {
   createProcessReleaseFragmentHandler,
   ProcessReleaseFragmentHandler,
@@ -20,6 +25,10 @@ import {
   createPublicationFinalizeHandler,
   PublicationFinalizeHandler,
 } from "./jobs/publication-finalize.handler.js";
+import {
+  createRecoveryExpireHandler,
+  RecoveryExpireHandler,
+} from "./jobs/recovery-expire.handler.js";
 import {
   createWorkflowAdvanceHandler,
   WorkflowAdvanceHandler,
@@ -36,16 +45,22 @@ import {
     },
     { provide: CheckinEvaluateHandler, useFactory: createCheckinEvaluateHandler },
     { provide: NotificationDeliverHandler, useFactory: createNotificationDeliverHandler },
+    OutboxDispatchHandler,
+    { provide: PackageObjectDeleteHandler, useFactory: createPackageObjectDeleteHandler },
     { provide: ProcessReleaseFragmentHandler, useFactory: createProcessReleaseFragmentHandler },
     { provide: PublicationFinalizeHandler, useFactory: createPublicationFinalizeHandler },
+    { provide: RecoveryExpireHandler, useFactory: createRecoveryExpireHandler },
     { provide: WorkflowAdvanceHandler, useFactory: createWorkflowAdvanceHandler },
   ],
   exports: [
     WorkerHeartbeat,
     CheckinEvaluateHandler,
     NotificationDeliverHandler,
+    OutboxDispatchHandler,
+    PackageObjectDeleteHandler,
     ProcessReleaseFragmentHandler,
     PublicationFinalizeHandler,
+    RecoveryExpireHandler,
     WorkflowAdvanceHandler,
   ],
 })

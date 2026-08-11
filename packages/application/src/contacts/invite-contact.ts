@@ -1,5 +1,5 @@
 import { addExactDays } from "@dls/domain";
-import type { TransactionManager } from "../ports/transaction-manager.js";
+import type { TransactionContext, TransactionManager } from "../ports/transaction-manager.js";
 import type { FieldProtector } from "../setup/field-protector.js";
 import {
   ContactUseCaseError,
@@ -20,6 +20,16 @@ export type InviteContactCommand = Readonly<{
 export type InviteContactResult = Readonly<{
   contactId: string;
   invitationId: string;
+  token: string;
+  expiresAt: string;
+}>;
+
+export type InvitationNotificationInput = Readonly<{
+  ownerId: string;
+  contactId: string;
+  invitationId: string;
+  contactName: string;
+  recipientEmail: string;
   token: string;
   expiresAt: string;
 }>;
@@ -49,6 +59,10 @@ export async function inviteContact(
     idFactory?: () => string;
     fieldProtector: FieldProtector;
     emailLookupHmac: (email: string) => Promise<Uint8Array>;
+    queueInvitationNotification?: (
+      input: InvitationNotificationInput,
+      tx: TransactionContext,
+    ) => Promise<string>;
   }>,
 ): Promise<InviteContactResult> {
   const displayName = normalizeContactName(command.displayName);
@@ -111,7 +125,8 @@ export async function inviteContact(
         email_lookup_hmac: Buffer.from(emailLookup),
         credential_version: 0,
       });
-      await repository(tx.repositories.contactInvitations, "contact invitations").insert({
+      const invitations = repository(tx.repositories.contactInvitations, "contact invitations");
+      await invitations.insert({
         id: invitationId,
         contact_id: contactId,
         token_hash: digestToken(token, dependencies.tokenPepper),
@@ -142,6 +157,21 @@ export async function inviteContact(
         idempotencyKey: `contact-invitation:${invitationId}`,
         availableAt: now,
       });
+      if (dependencies.queueInvitationNotification !== undefined) {
+        const notificationId = await dependencies.queueInvitationNotification(
+          {
+            ownerId: command.ownerId,
+            contactId,
+            invitationId,
+            contactName: displayName,
+            recipientEmail: email,
+            token,
+            expiresAt,
+          },
+          tx,
+        );
+        await invitations.updateById?.(invitationId, { notification_id: notificationId });
+      }
       return { contactId, invitationId, token, expiresAt };
     },
     { isolation: "serializable" },

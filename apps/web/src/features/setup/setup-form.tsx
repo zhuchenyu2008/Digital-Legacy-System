@@ -36,15 +36,17 @@ export function SetupForm() {
     setBusy(true);
     setMessage("正在本地生成保险库密钥，请保持页面打开……");
     try {
+      const vaultId = crypto.randomUUID();
       const cryptoResult = await createCryptoWorkerClient().run<{
         envelope: Record<string, unknown>;
-      }>("createOwnerVault", { password: checked.normalized, vaultId: "pending-setup" });
+      }>("createOwnerVault", { password: checked.normalized, vaultId });
       const response = await apiRequest<{ data: { session?: { csrfToken: string } } }>(
         "/setup/owner",
         {
           method: "POST",
           body: JSON.stringify({
             setupToken: form.setupToken,
+            vaultId,
             displayName: form.displayName.normalize("NFC"),
             primaryEmail: form.primaryEmail,
             ...(form.backupEmail ? { backupEmail: form.backupEmail } : {}),

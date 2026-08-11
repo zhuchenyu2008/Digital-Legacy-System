@@ -16,6 +16,14 @@ describe("session cookie headers", () => {
     expect(headers[1]).toContain("Secure");
   });
 
+  test("uses an unprefixed host-only session cookie when secure transport is disabled", () => {
+    const headers = sessionCookieHeaders("OWNER", "session token", "csrf token", false);
+
+    expect(headers[0]).toContain("dls-owner=session%20token");
+    expect(headers[0]).not.toContain("__Host-");
+    expect(headers[0]).not.toContain("Secure");
+  });
+
   test("expires both owner cookies without exposing either value", () => {
     const headers = clearedSessionCookieHeaders("OWNER", false);
 

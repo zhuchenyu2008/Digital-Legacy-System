@@ -5,6 +5,7 @@ import type { TransactionContext } from "../ports/transaction-manager.js";
 import { acceptContactInvitation } from "./accept-invitation.js";
 import { inviteContact } from "./invite-contact.js";
 import { loginContact } from "./login-contact.js";
+import { viewContactInvitation } from "./view-invitation.js";
 
 const envelope = {
   publicKey: "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE",
@@ -47,6 +48,7 @@ function fixture() {
   rows.set("contacts", []);
   rows.set("contactInvitations", []);
   rows.set("contactConsents", []);
+  rows.set("vaults", [{ id: "vault-1" }]);
   rows.set("workflows", []);
 
   const repository = (table: string) => ({
@@ -218,6 +220,69 @@ describe("contact invitation and authentication", () => {
     ).rejects.toMatchObject({ code: "CONTACT_EMAIL_EXISTS" });
   });
 
+  it("queues the invitation notification in the same transaction without persisting the raw token", async () => {
+    const state = fixture();
+    const deps = dependencies(state);
+    let queued: Readonly<{ token: string; contactId: string; invitationId: string }> | undefined;
+    const invitation = await inviteContact(
+      {
+        ownerId: "owner-1",
+        displayName: "李四",
+        email: "lisi@example.com",
+        requestId: "request-1",
+      },
+      {
+        ...deps,
+        queueInvitationNotification: async (input) => {
+          queued = input;
+          return "00000000-0000-0000-0000-000000000099";
+        },
+      },
+    );
+
+    expect(queued).toMatchObject({
+      token: invitation.token,
+      contactId: invitation.contactId,
+      invitationId: invitation.invitationId,
+    });
+    expect(state.rows.get("contactInvitations")?.[0]?.notification_id).toBe(
+      "00000000-0000-0000-0000-000000000099",
+    );
+    expect(JSON.stringify(state.rows.get("contactInvitations"))).not.toContain(invitation.token);
+  });
+
+  it("resolves a pending PostgreSQL-shaped invitation with null lifecycle timestamps", async () => {
+    const state = fixture();
+    const deps = dependencies(state);
+    const invitation = await inviteContact(
+      {
+        ownerId: "owner-1",
+        displayName: "李四",
+        email: "lisi@example.com",
+        requestId: "request-1",
+      },
+      deps,
+    );
+    Object.assign(state.rows.get("contactInvitations")?.[0] ?? {}, {
+      consumed_at: null,
+      revoked_at: null,
+    });
+
+    await expect(
+      viewContactInvitation(invitation.token, {
+        transaction: state.transaction,
+        tokenPepper: deps.tokenPepper,
+      }),
+    ).resolves.toEqual({
+      contactId: invitation.contactId,
+      status: "INVITED",
+      expiresAt: invitation.expiresAt,
+      vaultId: "vault-1",
+      consentVersion: "2026-08-01",
+      consentDocumentSha256: "07".repeat(32),
+    });
+  });
+
   it("captures exact consent and consumes the invitation exactly once", async () => {
     const state = fixture();
     const deps = dependencies(state);
@@ -230,6 +295,10 @@ describe("contact invitation and authentication", () => {
       },
       deps,
     );
+    Object.assign(state.rows.get("contactInvitations")?.[0] ?? {}, {
+      consumed_at: null,
+      revoked_at: null,
+    });
     const accepted = await acceptContactInvitation(
       {
         token: invitation.token,

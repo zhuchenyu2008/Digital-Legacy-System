@@ -48,7 +48,14 @@ export function browserClient(fetchImplementation: typeof fetch = fetch) {
 
 export async function apiRequest<T>(path: string, init?: RequestInit): Promise<T> {
   const headers = new Headers(init?.headers);
-  headers.set("content-type", "application/json");
+  if (
+    !headers.has("content-type") &&
+    init?.body !== undefined &&
+    init.body !== null &&
+    !(init.body instanceof Blob)
+  ) {
+    headers.set("content-type", "application/json");
+  }
   const csrf = currentCsrfToken();
   if (csrf !== undefined) headers.set("x-csrf-token", csrf);
   const response = await fetch(`/api${path}`, {

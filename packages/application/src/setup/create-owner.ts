@@ -27,6 +27,7 @@ export type OwnerVaultEnvelope = Readonly<{
 
 export type OwnerSetupCommand = Readonly<{
   setupToken: string;
+  vaultId: string;
   displayName: string;
   primaryEmail: string;
   backupEmail?: string;
@@ -45,6 +46,7 @@ export type OwnerSetupDependencies = Readonly<{
   consentVersion?: string;
   consentDocumentSha256?: Uint8Array;
   publicBaseUrl?: string;
+  smtpConfigured?: boolean;
 }>;
 
 export type OwnerSetupResult = Readonly<{
@@ -90,6 +92,10 @@ function normalizeEmail(value: string, name: string): string {
 function validateCommand(command: OwnerSetupCommand, expectedSetupToken: string): void {
   if (!equalSecret(command.setupToken, expectedSetupToken))
     setupError("setup capability is invalid");
+  if (
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u.test(command.vaultId)
+  )
+    setupError("vault id is invalid");
   if (command.displayName.normalize("NFC").trim().length === 0 || command.displayName.length > 120)
     setupError("display name is invalid");
   const primaryEmail = normalizeEmail(command.primaryEmail, "primary email");
@@ -140,7 +146,7 @@ export async function createOwner(
   validateCommand(command, dependencies.expectedSetupToken);
   const idFactory = dependencies.idFactory ?? randomUUID;
   const ownerId = OWNER_ACTOR_ID;
-  const vaultId = idFactory();
+  const vaultId = command.vaultId;
   return dependencies.transaction.run(
     async (tx) => {
       if ((await tx.repositories.ownerProfile.findById(true, { forUpdate: true })) !== null) {
@@ -210,6 +216,7 @@ export async function createOwner(
         contact_consent_version: dependencies.consentVersion ?? "2026-08-01",
         contact_consent_sha256: Buffer.from(consentDocumentSha256),
         public_base_url: dependencies.publicBaseUrl ?? "http://localhost:3000",
+        smtp_configured: dependencies.smtpConfigured === true,
       });
       await tx.repositories.vaults.insert({
         id: vaultId,

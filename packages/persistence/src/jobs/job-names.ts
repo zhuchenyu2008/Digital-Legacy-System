@@ -4,7 +4,9 @@ export const JOB_NAMES = Object.freeze({
   WORKFLOW_ADVANCE: "workflow.advance",
   NOTIFICATION_DELIVER: "notification.deliver",
   PACKAGE_VALIDATE: "package.validate",
+  PACKAGE_OBJECT_DELETE: "package.object-delete",
   PUBLICATION_FINALIZE: "publication.finalize",
+  RECOVERY_EXPIRE: "recovery.expire",
   OUTBOX_DISPATCH: "outbox.dispatch",
   RECONCILIATION_SCAN: "reconciliation.scan",
 } as const);

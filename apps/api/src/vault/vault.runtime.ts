@@ -35,6 +35,7 @@ export type VaultRequestContext = Readonly<{
 }>;
 
 export interface VaultRuntime {
+  getVaultMaterial(context: VaultRequestContext): Promise<Readonly<Record<string, unknown>>>;
   createUploadSession(
     input: CreateUploadSessionInput,
     context: VaultRequestContext,
@@ -331,6 +332,70 @@ export class PostgresVaultRuntime implements VaultRuntime {
     this.#vaultTransactions = vaultTransactions(transaction);
   }
 
+  public getVaultMaterial(_context: VaultRequestContext) {
+    return this.transaction.run(async (tx) => {
+      const [vault, settings] = await Promise.all([
+        tx.repositories.vaults.findFirst?.(),
+        tx.repositories.systemSettings.findById(true),
+      ]);
+      if (vault === null || vault === undefined || settings === null) {
+        throw new VaultUseCaseError("DLS-VAULT-NOT-FOUND", "owner vault is unavailable", 404);
+      }
+      const packageRows =
+        (await tx.repositories.packages.findMany?.("vault_id", String(vault.id))) ?? [];
+      const packageVersions = packageRows.map((row) => Number(row.version_no));
+      if (packageVersions.some((version) => !Number.isSafeInteger(version) || version < 1)) {
+        throw new VaultUseCaseError(
+          "DLS-PACKAGE-STORAGE",
+          "package version metadata is invalid",
+          500,
+        );
+      }
+      const activePackage = packageRows.find((row) => row.status === "ACTIVE");
+      const contactSetVersion = Number(settings.contact_set_version);
+      if (!Number.isSafeInteger(contactSetVersion) || contactSetVersion < 0) {
+        throw new VaultUseCaseError(
+          "DLS-SHARE-GENERATION-MISMATCH",
+          "contact roster version is invalid",
+          409,
+        );
+      }
+      const kdfParams = vault.owner_kdf_params;
+      if (kdfParams === null || typeof kdfParams !== "object" || Array.isArray(kdfParams)) {
+        throw new VaultUseCaseError("DLS-PACKAGE-STORAGE", "owner KDF parameters are invalid", 500);
+      }
+      const activeShareGenerationId = optionalText(vault.active_share_generation_id);
+      return {
+        vaultId: text(vault.id, "vault id"),
+        ...(activeShareGenerationId === undefined ? {} : { activeShareGenerationId }),
+        contactSetVersion,
+        nextPackageVersion: Math.max(0, ...packageVersions) + 1,
+        ...(activePackage === undefined
+          ? {}
+          : {
+              activePackage: {
+                id: text(activePackage.id, "active package id"),
+                versionNo: Number(activePackage.version_no),
+                status: "ACTIVE",
+                ciphertextSha256: Buffer.from(
+                  bytes(activePackage.ciphertext_sha256, "active package ciphertext digest"),
+                ).toString("hex"),
+              },
+            }),
+        ownerVaultEnvelope: {
+          ciphertext: Buffer.from(
+            bytes(vault.owner_vault_envelope, "owner vault envelope"),
+          ).toString("base64url"),
+          nonce: Buffer.from(bytes(vault.owner_envelope_nonce, "owner envelope nonce")).toString(
+            "base64url",
+          ),
+          kdfSalt: Buffer.from(bytes(vault.owner_kdf_salt, "owner KDF salt")).toString("base64url"),
+          kdfParams,
+        },
+      };
+    });
+  }
+
   public createUploadSession(input: CreateUploadSessionInput, _context: VaultRequestContext) {
     return this.transaction.run(
       async (tx) => {
@@ -342,13 +407,24 @@ export class PostgresVaultRuntime implements VaultRuntime {
             403,
           );
         }
+        const existingRows = (await tx.repositories.packages.findMany?.("vault_id", vaultId)) ?? [];
+        const nextVersionNo = Math.max(0, ...existingRows.map((row) => Number(row.version_no))) + 1;
+        if (
+          !Number.isSafeInteger(nextVersionNo) ||
+          (input.packageVersion !== undefined && input.packageVersion !== nextVersionNo)
+        ) {
+          throw new VaultUseCaseError(
+            "DLS-VERSION-CONFLICT",
+            "next package version changed before upload session creation",
+            409,
+          );
+        }
         const packages = packagesFor(tx);
-        const existing = await packages.list(vaultId);
         return new CreateUploadSession({
           packages,
           idFactory: randomUUID,
           objectKeyFactory: buildObjectKey,
-          nextVersionNo: async () => Math.max(0, ...existing.map((record) => record.versionNo)) + 1,
+          nextVersionNo: async () => nextVersionNo,
         }).execute(input);
       },
       { isolation: "serializable" },

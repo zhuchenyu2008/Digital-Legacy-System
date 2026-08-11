@@ -1,5 +1,5 @@
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, test } from "vitest";
+import { describe, expect, test, vi } from "vitest";
 import { ContactEditor } from "../contacts/contact-editor";
 import { ContactList } from "../contacts/contact-list";
 import { SettingsForm } from "../settings/settings-form";
@@ -8,6 +8,8 @@ import { EncryptedUpload } from "../vault/encrypted-upload";
 import { PackageList } from "../vault/package-list";
 import { uploadStateLabel } from "../vault/upload-state";
 import { Dashboard } from "./dashboard";
+
+vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: () => undefined }) }));
 
 describe("owner workspace surfaces", () => {
   test("renders only API-backed dashboard values and an honest arming checklist", () => {

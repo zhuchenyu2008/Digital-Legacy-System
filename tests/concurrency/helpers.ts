@@ -118,7 +118,7 @@ export async function insertActiveGeneration(
 
 export async function insertWorkflow(
   pool: Pick<Pool, "query">,
-  _vaultId: string,
+  vaultId: string,
   generationId: string,
   contactIds: readonly string[],
   state: string,
@@ -130,15 +130,16 @@ export async function insertWorkflow(
        ciphertext_size, ciphertext_sha256, dek_envelope, dek_envelope_nonce,
        dek_envelope_algorithm, dek_envelope_protocol_version, dek_envelope_aad_hash,
        manifest_ciphertext, manifest_nonce, manifest_algorithm, manifest_aad_hash,
-       activated_at
+       vault_id, share_generation_id, expires_at, client_crypto_version, activated_at
      ) VALUES (
        (SELECT COALESCE(MAX(version_no), 0) + 1 FROM app.legacy_packages),
        'ACTIVE', $1, 'test', decode('00', 'hex'), 0, digest('ciphertext', 'sha256'),
        decode('00', 'hex'), decode('00', 'hex'), 'test', 1, digest('dek', 'sha256'),
        decode('00', 'hex'), decode('00', 'hex'), 'test', digest('manifest', 'sha256'),
+       $2, $3, clock_timestamp() + interval '15 minutes', 'concurrency-test-v1',
        clock_timestamp()
      ) RETURNING id, version_no`,
-    [`concurrency/${randomUUID()}`],
+    [`concurrency/${randomUUID()}`, vaultId, generationId],
   );
   const workflow = await pool.query(
     `INSERT INTO app.workflows (

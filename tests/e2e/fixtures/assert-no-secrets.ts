@@ -1,5 +1,14 @@
 import { spawn } from "node:child_process";
-import type { Page } from "@playwright/test";
+import { createHash } from "node:crypto";
+import type { Browser, BrowserContext, BrowserContextOptions, Page } from "@playwright/test";
+import {
+  contactKeyId,
+  decodeBase64Url,
+  deriveBrowserKey,
+  openShareV1,
+  unwrapContactPrivateKey,
+  unwrapKeyV1,
+} from "../../../packages/crypto/dist/browser.js";
 import type { E2EStackState } from "../stack-state.js";
 import type { CryptoUsers } from "./crypto-users.js";
 import { MailpitClient } from "./mailpit.js";
@@ -31,6 +40,12 @@ function variants(value: string | Uint8Array): readonly string[] {
     bytes.toString("base64"),
     bytes.toString("base64url"),
   ].filter((entry, index, all) => entry.length >= 8 && all.indexOf(entry) === index);
+}
+
+export function networkUrlWithoutFragment(value: string): string {
+  const url = new URL(value);
+  url.hash = "";
+  return url.href;
 }
 
 export class SecretLeakDetector {
@@ -68,7 +83,9 @@ export class SecretLeakDetector {
 
   public attach(page: Page): void {
     page.on("console", (message) => this.capture("browser-console", message.text()));
-    page.on("request", (request) => this.capture("network-url", request.url()));
+    page.on("request", (request) =>
+      this.capture("network-url", networkUrlWithoutFragment(request.url())),
+    );
   }
 
   public async assertPage(page: Page): Promise<void> {
@@ -85,19 +102,221 @@ export class SecretLeakDetector {
   }
 }
 
+export type SecretCheckedContext = Readonly<{
+  newPage(): Promise<Page>;
+  storageState: BrowserContext["storageState"];
+  close(): Promise<void>;
+}>;
+
+export async function createSecretCheckedContext(
+  browser: Browser,
+  detector: SecretLeakDetector,
+  options?: BrowserContextOptions,
+): Promise<SecretCheckedContext> {
+  const context = await browser.newContext({
+    storageState: { cookies: [], origins: [] },
+    ...options,
+  });
+  const pages = new Set<Page>();
+  const track = (page: Page) => {
+    if (pages.has(page)) return;
+    pages.add(page);
+    detector.attach(page);
+  };
+  context.on("page", track);
+  for (const page of context.pages()) track(page);
+
+  let closed = false;
+  return {
+    newPage: () => context.newPage(),
+    storageState: context.storageState.bind(context),
+    close: async () => {
+      if (closed) return;
+      closed = true;
+      let failure: unknown;
+      for (const page of pages) {
+        try {
+          if (page.isClosed()) throw new Error("secret-checked page closed before final scan");
+          await detector.assertPage(page);
+        } catch (error) {
+          failure ??= error;
+        }
+      }
+      try {
+        await context.close();
+      } catch (error) {
+        failure ??= error;
+      }
+      if (failure !== undefined) throw failure;
+    },
+  };
+}
+
+export type LiveOwnerVaultMaterial = Readonly<{
+  vaultId: string;
+  ownerVaultEnvelope: Readonly<{
+    ciphertext: string;
+    nonce: string;
+    kdfSalt: string;
+  }>;
+}>;
+
+export async function registerLiveOwnerVaultSecrets(
+  detector: SecretLeakDetector,
+  input: Readonly<{
+    label: string;
+    password: string;
+    material: LiveOwnerVaultMaterial;
+  }>,
+): Promise<void> {
+  const wrappingKey = await deriveBrowserKey(input.password, {
+    version: 1,
+    algorithm: "argon2id13",
+    opsLimit: 3,
+    memLimit: 64 * 1024 * 1024,
+    salt: input.material.ownerVaultEnvelope.kdfSalt,
+    outputBytes: 32,
+  });
+  let vaultKey: Uint8Array | undefined;
+  try {
+    vaultKey = await unwrapKeyV1({
+      envelope: {
+        version: 1,
+        algorithm: "xchacha20poly1305-ietf",
+        purpose: "owner-vk",
+        keyId: "owner-vk",
+        nonce: input.material.ownerVaultEnvelope.nonce,
+        ciphertext: input.material.ownerVaultEnvelope.ciphertext,
+      },
+      wrappingKey,
+      aad: {
+        protocol: "dls-crypto-v1",
+        version: 1,
+        purpose: "owner-vk",
+        vaultId: input.material.vaultId,
+        keyId: "owner-vk",
+        algorithm: "xchacha20poly1305-ietf",
+      },
+    });
+    detector.register(`${input.label}-vault-kek`, wrappingKey);
+    detector.register(`${input.label}-vault-key`, vaultKey);
+  } finally {
+    wrappingKey.fill(0);
+    vaultKey?.fill(0);
+  }
+}
+
+export type LiveContactCryptoMaterial = Readonly<{
+  vaultId: string;
+  contactId: string;
+  publicKey: string;
+  privateKeyEnvelope: Readonly<{
+    ciphertext: string;
+    nonce: string;
+    kdfSalt: string;
+  }>;
+}>;
+
+export type LiveContactShare = Readonly<{
+  purpose: "death-share" | "recovery-share";
+  generationId: string;
+  shareIndex: number;
+  threshold: number;
+  ciphertext: string;
+  commitment: string;
+}>;
+
+export async function registerLiveContactSecrets(
+  detector: SecretLeakDetector,
+  input: Readonly<{
+    label: string;
+    password: string;
+    material: LiveContactCryptoMaterial;
+    shares?: readonly LiveContactShare[];
+  }>,
+): Promise<void> {
+  const publicKey = decodeBase64Url(input.material.publicKey);
+  const contactKek = await deriveBrowserKey(input.password, {
+    version: 1,
+    algorithm: "argon2id13",
+    opsLimit: 3,
+    memLimit: 64 * 1024 * 1024,
+    salt: input.material.privateKeyEnvelope.kdfSalt,
+    outputBytes: 32,
+  });
+  let privateKey: Uint8Array | undefined;
+  try {
+    privateKey = await unwrapContactPrivateKey({
+      envelope: {
+        version: 1,
+        algorithm: "xchacha20poly1305-ietf",
+        purpose: "contact-private-key",
+        keyId: await contactKeyId(publicKey),
+        nonce: input.material.privateKeyEnvelope.nonce,
+        ciphertext: input.material.privateKeyEnvelope.ciphertext,
+      },
+      publicKey,
+      contactKek,
+      vaultId: input.material.vaultId,
+      contactId: input.material.contactId,
+    });
+    detector.register(`${input.label}-kek`, contactKek);
+    detector.register(`${input.label}-private-key`, privateKey);
+    for (const share of input.shares ?? []) {
+      const commitmentDigest = createHash("sha256")
+        .update(decodeBase64Url(share.commitment))
+        .digest("base64url");
+      const plaintext = await openShareV1({
+        envelope: {
+          version: 1,
+          algorithm: "crypto-box-seal",
+          purpose: share.purpose,
+          vaultId: input.material.vaultId,
+          generationId: share.generationId,
+          contactId: input.material.contactId,
+          shareIndex: share.shareIndex,
+          threshold: share.threshold,
+          commitmentDigest,
+          ciphertext: share.ciphertext,
+        },
+        keyPair: { publicKey, privateKey },
+        expected: {
+          vaultId: input.material.vaultId,
+          generationId: share.generationId,
+          purpose: share.purpose,
+          contactId: input.material.contactId,
+        },
+      });
+      try {
+        detector.register(`${input.label}-${share.purpose}`, plaintext);
+      } finally {
+        plaintext.fill(0);
+      }
+    }
+  } finally {
+    publicKey.fill(0);
+    contactKek.fill(0);
+    privateKey?.fill(0);
+  }
+}
+
 export function registerFixtureSecrets(
   detector: SecretLeakDetector,
   users: CryptoUsers,
   legacy: SyntheticLegacy,
 ): void {
   detector.register("owner-password", users.owner.password);
+  detector.register("owner-recovery-password", users.owner.recoveryPassword);
   detector.register("vault-key", users.vaultKey);
   detector.register("will-body", "Private testament fixture text");
   for (const [index, contact] of users.contacts.entries()) {
     detector.register(`contact-${index + 1}-password`, contact.password);
+    detector.register(`contact-${index + 1}-rotated-password`, contact.rotatedPassword);
+    detector.register(`contact-${index + 1}-reinvited-password`, contact.reinvitedPassword);
     detector.register(`contact-${index + 1}-private-key`, contact.keyPair.privateKey);
     detector.register(`contact-${index + 1}-kek`, contact.contactKek);
   }
+  detector.register("rotation-contact-password", users.rotationContact.password);
   for (const [purpose, generation] of [
     ["death", users.deathGeneration],
     ["recovery", users.recoveryGeneration],

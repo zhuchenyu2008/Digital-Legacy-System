@@ -5,6 +5,7 @@ import {
   Controller,
   Get,
   Headers,
+  HttpCode,
   HttpException,
   Inject,
   Param,
@@ -67,6 +68,14 @@ function publicPackage(record: VaultPackageRecord) {
 @UseGuards(OwnerSessionGuard)
 export class VaultController {
   public constructor(@Inject(VAULT_RUNTIME) private readonly runtime: VaultRuntime) {}
+
+  @Get("vault/material")
+  @ApiOperation({ summary: "Read the encrypted owner vault envelope and share roster context" })
+  @ApiResponse({ status: 200, description: "Encrypted owner vault material" })
+  public async material(@Req() request: AuthenticatedRequest) {
+    const context = this.context(request, false);
+    return this.run(() => this.runtime.getVaultMaterial(context));
+  }
 
   @Post("packages/uploads")
   @UseGuards(OriginGuard, CsrfGuard)
@@ -198,6 +207,7 @@ export class VaultController {
   @ApiHeader({ name: "idempotency-key", required: true })
   @ApiHeader({ name: "x-upload-id", required: true })
   @ApiResponse({ status: 200, description: "Upload aborted" })
+  @HttpCode(200)
   public async abort(
     @Param("packageId") packageId: string,
     @Headers() headers: Record<string, string | string[] | undefined>,

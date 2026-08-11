@@ -13,17 +13,27 @@ const HOP_BY_HOP_HEADERS = [
   "upgrade",
 ] as const;
 
+const UNTRUSTED_FORWARDING_HEADERS = [
+  "forwarded",
+  "x-forwarded-for",
+  "x-forwarded-host",
+  "x-forwarded-port",
+  "x-forwarded-proto",
+] as const;
+
 function forwardedHeaders(source: Headers): Headers {
   const headers = new Headers(source);
   headers.delete("host");
   headers.delete("content-length");
   for (const name of HOP_BY_HOP_HEADERS) headers.delete(name);
+  for (const name of UNTRUSTED_FORWARDING_HEADERS) headers.delete(name);
   return headers;
 }
 
 function responseHeaders(source: Headers): Headers {
   const headers = new Headers(source);
   for (const name of HOP_BY_HOP_HEADERS) headers.delete(name);
+  headers.delete("location");
   return headers;
 }
 

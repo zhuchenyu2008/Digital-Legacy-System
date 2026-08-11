@@ -12,6 +12,40 @@ export type SimulationMilestone =
   | "SMTP_RETRY"
   | "PUBLICATION";
 
+export type SimulationContactDecision = "ALIVE" | "DEATH_LIKELY";
+
+export type SimulationWorkflowState =
+  | "SCHEDULED"
+  | "AWAITING_CONFIRMATIONS"
+  | "RELEASE_PENDING"
+  | "CANCELLED_ALIVE"
+  | "CANCELLED_OWNER"
+  | "PUBLISH_LOCKED"
+  | "PUBLISHED";
+
+export type SimulationWorkflow = Readonly<{
+  id: string;
+  state: SimulationWorkflowState;
+  requiredCount: number;
+  contactIds: readonly string[];
+  contactDecisions: readonly Readonly<{
+    contactId: string;
+    decision: SimulationContactDecision;
+    decidedAt: string;
+  }>[];
+  disclosureMailSent: boolean;
+  startedAt?: string;
+  releaseAt?: string;
+  publishLockedAt?: string;
+  rescheduledCheckinAt?: string;
+  publication?: Readonly<{
+    objectKey: string;
+    publishedAt: string;
+    willHtml: string;
+    plaintextSha256: string;
+  }>;
+}>;
+
 export type SimulationScenario = Readonly<{
   id: string;
   ownerId: string;
@@ -24,8 +58,10 @@ export type SimulationScenario = Readonly<{
   synthetic: Readonly<{
     ownerEmail: string;
     contactEmails: readonly string[];
+    contactIds: readonly string[];
     packageObjectKey: string;
     publicObjectKey: string;
+    workflow: SimulationWorkflow;
   }>;
   pendingMail: readonly SimulationMail[];
 }>;
@@ -55,7 +91,12 @@ export type SimulationErrorCode =
   | "SIMULATION_FORBIDDEN"
   | "SIMULATION_TIME_BACKWARD"
   | "RECIPIENT_NOT_ALLOWED"
-  | "INVALID_SIMULATION_INPUT";
+  | "INVALID_SIMULATION_INPUT"
+  | "SIMULATION_ACTION_UNAVAILABLE"
+  | "SIMULATION_CONTACT_FORBIDDEN"
+  | "SIMULATION_DECISION_REPLAYED"
+  | "SIMULATION_OWNER_REAUTH_REQUIRED"
+  | "SIMULATION_PUBLISH_LOCKED";
 
 export class SimulationError extends Error {
   public constructor(

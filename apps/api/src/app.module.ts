@@ -1,5 +1,6 @@
 import { Module } from "@nestjs/common";
 import { AuditModule } from "./audit/audit.module.js";
+import { getSimulationRuntimeConfig } from "./config/simulation-runtime-config.js";
 import { ContactModule } from "./contacts/contact.module.js";
 import { EmailTemplatesModule } from "./email-templates/email-templates.module.js";
 import { HealthController } from "./health/health.controller.js";
@@ -27,12 +28,13 @@ import { WorkflowsModule } from "./workflows/workflows.module.js";
 
 const startupProbe: HealthProbe = Object.freeze({ check: async () => undefined });
 
-@Module({
-  imports: [
+export function applicationImports(environment?: Record<string, string | undefined>) {
+  const simulation = getSimulationRuntimeConfig(environment);
+  return [
     AuditModule,
     EmailTemplatesModule,
     SecurityModule,
-    SimulationModule,
+    ...(simulation.enabled ? [SimulationModule] : []),
     SetupModule,
     OwnerModule,
     ContactModule,
@@ -41,7 +43,11 @@ const startupProbe: HealthProbe = Object.freeze({ check: async () => undefined }
     WorkflowsModule,
     RecoveryModule,
     PublicModule,
-  ],
+  ];
+}
+
+@Module({
+  imports: applicationImports(),
   controllers: [HealthController, OwnerSystemHealthController],
   providers: [
     { provide: DATABASE_HEALTH_PROBE, useValue: startupProbe },

@@ -1,9 +1,5 @@
-import { hashWithLabel } from "../keys/key-material.js";
 import { encodeBase64Url } from "../protocol/base64url.js";
 import { type ShareEnvelopeV1, type SharePurpose, sealShareV1 } from "./share-envelope.js";
-
-const SHARE_COMMITMENT_DIGEST_LABEL = "DLS/SHARE-COMMITMENT-DIGEST/V1\0";
-const textEncoder = new TextEncoder();
 
 export type ShareGeneration = Readonly<{
   version: 1;
@@ -24,19 +20,6 @@ type ShareGenerationInput = Readonly<{
   shares: readonly Uint8Array[];
   commitments: Uint8Array;
 }>;
-
-function canonicalGenerationBytes(input: ShareGenerationInput): Uint8Array {
-  const record = {
-    commitments: encodeBase64Url(input.commitments),
-    generationId: input.generationId,
-    purpose: input.purpose,
-    shareCount: input.shares.length,
-    threshold: input.threshold,
-    vaultId: input.vaultId,
-    version: 1,
-  };
-  return textEncoder.encode(JSON.stringify(record));
-}
 
 function validateInput(input: ShareGenerationInput): void {
   if (input.vaultId.length === 0 || input.generationId.length === 0) {
@@ -65,10 +48,10 @@ export async function createShareGeneration(input: ShareGenerationInput): Promis
   validateInput(input);
   const commitments = new Uint8Array(input.commitments);
   const shares = input.shares.map((share) => new Uint8Array(share));
-  const digestInput = canonicalGenerationBytes({ ...input, commitments, shares });
+  const digestInput = new Uint8Array(commitments);
   try {
     const commitmentDigest = encodeBase64Url(
-      await hashWithLabel(SHARE_COMMITMENT_DIGEST_LABEL, digestInput),
+      new Uint8Array(await crypto.subtle.digest("SHA-256", digestInput.buffer)),
     );
     return Object.freeze({
       version: 1,

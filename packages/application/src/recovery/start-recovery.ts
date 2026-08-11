@@ -171,7 +171,7 @@ export async function startRecovery(
       aggregateId: workflowId,
       payload: { aggregateId: workflowId, aggregateVersion: 0, expiresAt },
       idempotencyKey: `password-recovery-started:${workflowId}`,
-      availableAt: now,
+      availableAt: expiresAt,
     });
     await tx.audit.append({
       eventId: crypto.randomUUID(),

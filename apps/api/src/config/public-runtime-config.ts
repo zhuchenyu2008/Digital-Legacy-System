@@ -23,6 +23,7 @@ function storageConfig(environment: Record<string, string | undefined>): Storage
       region,
       forcePathStyle: environment.S3_FORCE_PATH_STYLE === "true",
       privateBucket: environment.S3_PRIVATE_BUCKET ?? "dls-private",
+      stagingBucket: environment.S3_STAGING_BUCKET ?? "dls-staging",
       publicBucket: environment.S3_PUBLIC_BUCKET ?? "dls-public",
       accessKeyId: environment.S3_ACCESS_KEY_ID ?? "missing",
       secretAccessKey: environment.S3_SECRET_ACCESS_KEY ?? "missing",

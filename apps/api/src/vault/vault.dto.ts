@@ -3,6 +3,12 @@ import { BadRequestException } from "@nestjs/common";
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 
 export class CreateVaultUploadDto {
+  @ApiPropertyOptional({ type: String, format: "uuid" })
+  packageId?: string;
+
+  @ApiPropertyOptional({ type: Number, minimum: 1 })
+  packageVersion?: number;
+
   @ApiProperty({ type: String, format: "uuid" })
   vaultId!: string;
 
@@ -133,7 +139,14 @@ export function parseCreateVaultUpload(
   expiresAt: string,
 ): EncryptedPackageMetadata & { expiresAt: string } {
   const input = objectBody(body);
+  const packageVersion =
+    input.packageVersion === undefined ? undefined : requiredInteger(input, "packageVersion");
+  if (packageVersion !== undefined && packageVersion < 1) {
+    throw new BadRequestException("packageVersion must be a positive safe integer");
+  }
   return {
+    ...(input.packageId === undefined ? {} : { packageId: requiredString(input, "packageId") }),
+    ...(packageVersion === undefined ? {} : { packageVersion }),
     vaultId: requiredString(input, "vaultId"),
     shareGenerationId: requiredString(input, "shareGenerationId"),
     cipherAlgorithm: requiredString(input, "cipherAlgorithm"),

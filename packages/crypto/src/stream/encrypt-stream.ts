@@ -85,6 +85,7 @@ export async function encryptStream(input: EncryptStreamInput): Promise<StreamMa
     return {
       version: 1,
       algorithm: "secretstream-xchacha20poly1305",
+      streamHeader: encodeBase64Url(push.header),
       plaintextBytes,
       ciphertextBytes,
       plaintextSha256,

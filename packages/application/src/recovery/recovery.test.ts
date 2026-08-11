@@ -1,6 +1,8 @@
 import { createHash } from "node:crypto";
 import { parseInstant } from "@dls/domain";
 import { describe, expect, it } from "vitest";
+import { InMemorySessionStore, SessionService } from "../auth/session-service.js";
+import { OWNER_ACTOR_ID } from "../owner/owner-identity.js";
 import type { TransactionContext } from "../ports/transaction-manager.js";
 import type { RecoveryCryptography } from "./approve-recovery.js";
 import { approveRecovery } from "./approve-recovery.js";
@@ -196,9 +198,14 @@ function fixture() {
       },
     },
   } as unknown as TransactionContext;
+  const sessionService = new SessionService(new InMemorySessionStore(), {
+    pepper: new Uint8Array(32).fill(11),
+    clock: { now: () => now },
+  });
   return {
     tables,
     outbox,
+    sessionService,
     transaction: { run: async <T>(work: (tx: TransactionContext) => Promise<T>) => work(context) },
     setNow(value: string) {
       now = parseInstant(value);
@@ -254,7 +261,7 @@ function fragment(contact: number) {
 }
 
 async function start(state: ReturnType<typeof fixture>) {
-  let token = "";
+  let challenge: Readonly<{ challengeId: string; token: string; expiresAt: string }> | undefined;
   await requestRecovery(
     { requestId: "00000000-0000-4000-8000-000000000001" },
     {
@@ -262,21 +269,28 @@ async function start(state: ReturnType<typeof fixture>) {
       tokenPepper,
       tokenFactory: () => new Uint8Array(32).fill(1),
       onPrimaryStartToken: async (value) => {
-        token = value;
+        challenge = value;
       },
     },
   );
+  expect(challenge).toMatchObject({
+    challengeId: expect.any(String),
+    expiresAt: "2026-08-10T02:30:00Z",
+  });
+  if (challenge === undefined) throw new Error("recovery start challenge was not issued");
   const result = await startRecovery(
-    { token, requestId: "00000000-0000-4000-8000-000000000002" },
+    { token: challenge.token, requestId: "00000000-0000-4000-8000-000000000002" },
     { transaction: state.transaction, tokenPepper, idFactory: () => "workflow-recovery" },
   );
-  return { token, workflowId: result.workflowId };
+  return { token: challenge.token, workflowId: result.workflowId };
 }
 
 async function reachThreshold(state: ReturnType<typeof fixture>) {
   const { workflowId } = await start(state);
   let resetToken = "";
   let code = "";
+  let challengeWorkflowId = "";
+  let challengeExpiresAt = "";
   for (const contact of [1, 2]) {
     await approveRecovery(
       {
@@ -299,11 +313,13 @@ async function reachThreshold(state: ReturnType<typeof fixture>) {
         onPrimaryResetChallenge: async (challenge) => {
           resetToken = challenge.token;
           code = challenge.code;
+          challengeWorkflowId = challenge.workflowId;
+          challengeExpiresAt = challenge.expiresAt;
         },
       },
     );
   }
-  return { workflowId, resetToken, code };
+  return { workflowId, resetToken, code, challengeWorkflowId, challengeExpiresAt };
 }
 
 const replacementEnvelope = {
@@ -338,12 +354,13 @@ describe("threshold owner password recovery", () => {
       required_count_snapshot: 2,
       expires_at: "2026-08-16T02:30:00Z",
     });
-    expect(state.outbox.map((row) => (row.payload as Row | undefined)?.recipientType)).toContain(
-      "OWNER_PRIMARY",
-    );
-    expect(
-      state.outbox.map((row) => (row.payload as Row | undefined)?.recipientType),
-    ).not.toContain("OWNER_BACKUP");
+    expect(state.outbox).toEqual([
+      expect.objectContaining({
+        eventType: "PASSWORD_RECOVERY_STARTED",
+        aggregateId: workflowId,
+        availableAt: "2026-08-16T02:30:00Z",
+      }),
+    ]);
   });
 
   it("requires contact password reauthentication and stages VK only at a valid threshold", async () => {
@@ -369,8 +386,14 @@ describe("threshold owner password recovery", () => {
       ),
     ).rejects.toMatchObject({ code: "DLS-RECOVERY-REAUTH-REQUIRED", status: 401 });
 
-    const reached = await reachThreshold(fixture());
+    const reachedState = fixture();
+    const reached = await reachThreshold(reachedState);
     expect(reached.code).toMatch(/^\d{8}$/u);
+    expect(reached.challengeWorkflowId).toBe(reached.workflowId);
+    expect(reached.challengeExpiresAt).toBe("2026-08-09T02:40:00Z");
+    expect(reachedState.outbox.map((row) => row.eventType)).not.toContain(
+      "PASSWORD_RECOVERY_THRESHOLD_REACHED",
+    );
   });
 
   it("rejects mixed-generation and cryptographically invalid recovery shares", async () => {
@@ -456,6 +479,7 @@ describe("threshold owner password recovery", () => {
         resetSessionTokenFactory: () => new Uint8Array(32).fill(3),
       },
     );
+    expect(material).toMatchObject({ workflowId: "workflow-recovery", vaultId: "vault-1" });
     expect(material.encryptedVaultKey).toHaveLength(80);
     expect(material.expiresAt).toBe("2026-08-09T02:45:00Z");
     expect(state.tables.get("passwordRewrapSessions")?.[0]).toMatchObject({ status: "ACTIVE" });
@@ -470,6 +494,7 @@ describe("threshold owner password recovery", () => {
       },
       {
         transaction: state.transaction,
+        sessionService: state.sessionService,
         tokenPepper,
         recoveryCryptography,
         passwordHasher: async () => "new-auth-hash",
@@ -487,6 +512,7 @@ describe("threshold owner password recovery", () => {
       stage_key_envelope: null,
     });
     expect(state.tables.get("checkIns")).toHaveLength(1);
+    expect(state.outbox.map((row) => row.eventType)).not.toContain("PASSWORD_RECOVERY_COMPLETED");
     await expect(
       completePasswordReset(
         {
@@ -498,6 +524,7 @@ describe("threshold owner password recovery", () => {
         },
         {
           transaction: state.transaction,
+          sessionService: state.sessionService,
           tokenPepper,
           recoveryCryptography,
           passwordHasher: async () => "must-not-run",
@@ -505,6 +532,58 @@ describe("threshold owner password recovery", () => {
         },
       ),
     ).rejects.toMatchObject({ code: "DLS-RECOVERY-SESSION-INVALID" });
+  });
+
+  it("revokes all issued owner sessions after password recovery completes", async () => {
+    const state = fixture();
+    const sessionService = new SessionService(new InMemorySessionStore(), {
+      pepper: new Uint8Array(32).fill(11),
+    });
+    const oldSession = await sessionService.create({
+      actorType: "OWNER",
+      actorId: OWNER_ACTOR_ID,
+      credentialVersion: 2,
+    });
+    const { resetToken, code } = await reachThreshold(state);
+    const material = await createRewrapSession(
+      {
+        token: resetToken,
+        emailVerificationCode: code,
+        clientEphemeralPublicKey: new Uint8Array(32).fill(9),
+      },
+      {
+        transaction: state.transaction,
+        tokenPepper,
+        recoveryCryptography,
+        resetSessionTokenFactory: () => new Uint8Array(32).fill(3),
+      },
+    );
+    const dependencies = {
+      transaction: state.transaction,
+      tokenPepper,
+      recoveryCryptography,
+      passwordHasher: async () => "new-auth-hash",
+      replacementVerifier: async () => true,
+      sessionService,
+    };
+
+    await completePasswordReset(
+      {
+        resetSessionToken: material.resetSessionToken,
+        newPassword: "a-new-owner-password",
+        newOwnerVaultEnvelope: replacementEnvelope,
+        vaultKeyProof: Buffer.alloc(32, 8).toString("base64url"),
+        requestId: "00000000-0000-4000-8000-000000000023",
+      },
+      dependencies,
+    );
+
+    await expect(
+      sessionService.authenticate(oldSession.token, {
+        actorType: "OWNER",
+        actorId: OWNER_ACTOR_ID,
+      }),
+    ).rejects.toMatchObject({ code: "SESSION_INVALID" });
   });
 
   it("expires after seven days without changing the check-in deadline", async () => {
@@ -517,6 +596,7 @@ describe("threshold owner password recovery", () => {
     ).resolves.toMatchObject({ status: "EXPIRED" });
     expect(state.tables.get("workflows")?.[0]?.state).toBe("EXPIRED");
     expect(state.tables.get("checkinSchedules")?.[0]?.deadline_at).toBe(deadline);
+    expect(state.outbox.map((row) => row.eventType)).not.toContain("PASSWORD_RECOVERY_EXPIRED");
   });
 
   it("expires at the fixed seven-day deadline even after approval versions advance", async () => {

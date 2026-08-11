@@ -240,7 +240,7 @@ describe("vault and contact key hierarchy v1", () => {
     ).rejects.toThrow();
   });
 
-  it("keeps death and recovery generations context-separated and wraps package DEKs", async () => {
+  it("uses the public commitment digest across share purposes and wraps package DEKs", async () => {
     const commitments = await commitVaultKey(bytes(32, 71));
     const death = await createShareGeneration({
       vaultId,
@@ -258,7 +258,7 @@ describe("vault and contact key hierarchy v1", () => {
       shares: [bytes(34, 8), bytes(34, 9)],
       commitments,
     });
-    expect(death.commitmentDigest).not.toBe(recovery.commitmentDigest);
+    expect(death.commitmentDigest).toBe(recovery.commitmentDigest);
 
     const dek = bytes(32, 121);
     const packageKek = bytes(32, 131);

@@ -23,12 +23,16 @@ export function SmtpTest({ configured }: Readonly<{ configured: boolean }>) {
     if (!configured || busy) return;
     setBusy(true);
     try {
-      await apiRequest("/owner/settings/smtp-test", {
+      const result = await apiRequest<{ data?: { status?: string } }>("/owner/smtp-settings/test", {
         method: "POST",
         headers: { "idempotency-key": crypto.randomUUID() },
         body: "{}",
       });
-      setMessage("测试邮件已进入投递队列，请在邮件沙箱或收件箱中核对。");
+      setMessage(
+        result.data?.status === "SUCCESS"
+          ? "SMTP 测试成功，已向主邮箱发送安全测试邮件。"
+          : "SMTP 测试已完成但未成功，请检查服务端配置。",
+      );
     } catch {
       setMessage("当前 API 未启用 SMTP 测试入口，请检查运维配置。");
     } finally {

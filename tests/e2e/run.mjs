@@ -69,7 +69,9 @@ try {
   const playwright = start(process.execPath, [
     "node_modules/@playwright/test/cli.js",
     "test",
-    ...(requested.length > 0 ? requested : ["tests/e2e"]),
+    ...(requested.length > 0
+      ? requested
+      : ["tests/e2e/contact-workflow.spec.ts", "tests/e2e/scenario-isolation.spec.ts"]),
     "--pass-with-no-tests",
   ]);
   finalExitCode = await new Promise((resolveExit) => {

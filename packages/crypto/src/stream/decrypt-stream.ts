@@ -74,6 +74,7 @@ export async function decryptStream(input: DecryptStreamInput): Promise<StreamMa
   let plaintextBytes = 0;
   let ciphertextBytes = 0;
   let finalSeen = false;
+  let streamHeader: string | undefined;
 
   const processQueue = async (): Promise<void> => {
     while (true) {
@@ -81,6 +82,7 @@ export async function decryptStream(input: DecryptStreamInput): Promise<StreamMa
         if (queue.length < FILE_HEADER_BYTES) return;
         const header = queue.take(FILE_HEADER_BYTES);
         const secretstreamHeader = parseFileHeader(header);
+        streamHeader = encodeBase64Url(secretstreamHeader);
         header.fill(0);
         state = sodium.crypto_secretstream_xchacha20poly1305_init_pull(secretstreamHeader, key);
         secretstreamHeader.fill(0);
@@ -154,6 +156,7 @@ export async function decryptStream(input: DecryptStreamInput): Promise<StreamMa
     return {
       version: 1,
       algorithm: "secretstream-xchacha20poly1305",
+      streamHeader: streamHeader ?? "",
       plaintextBytes,
       ciphertextBytes,
       plaintextSha256: encodeBase64Url(plaintextHash.final()),

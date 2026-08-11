@@ -24,6 +24,7 @@ const envelope = {
 
 const command: OwnerSetupCommand = {
   setupToken: "setup-secret",
+  vaultId: "11111111-1111-4111-8111-111111111111",
   displayName: "张三",
   primaryEmail: "owner@example.com",
   backupEmail: "backup@example.com",
@@ -110,6 +111,7 @@ function dependencies() {
       let index = 0;
       return () => `00000000-0000-0000-0000-00000000000${++index}`;
     })(),
+    smtpConfigured: true,
   };
 }
 
@@ -131,6 +133,16 @@ describe("createOwner", () => {
     expect(owner?.primary_email_ciphertext).toBeInstanceOf(Uint8Array);
     expect(owner).not.toHaveProperty("password");
     expect(deps.rows.get("ownerCredentials")?.[0]?.password_phc).toMatch(/^\$argon2id\$/);
+    expect(deps.rows.get("systemSettings")?.[0]?.smtp_configured).toBe(true);
+  });
+
+  it("uses the browser-provided vault id so the envelope AAD binds to the stored vault", async () => {
+    const deps = dependencies();
+    const vaultId = "11111111-1111-4111-8111-111111111111";
+    const result = await createOwner({ ...command, vaultId }, deps);
+
+    expect(result.vaultId).toBe(vaultId);
+    expect(deps.rows.get("vaults")?.[0]?.id).toBe(vaultId);
   });
 
   it("rejects an invalid or replayed setup capability before inserting state", async () => {
