@@ -1,0 +1,16 @@
+version: 1
+image: aquasec/trivy:0.73.0
+# The OCI index digest for aquasec/trivy:0.73.0, resolved from Docker Registry.
+# A mutable tag is deliberately rejected by ops/scripts/security-scan.*.
+digest: "sha256:7cced7cae583819fc7806d4cbc0dbbc7cad18b99f7d3e235192e6da8c091045c"
+scans:
+  - target: filesystem
+    path: .
+  - target: lockfiles
+    path: pnpm-lock.yaml
+  - target: images
+    images:
+      - dls-local-v1-api
+      - dls-local-v1-worker
+      - dls-local-v1-web
+      - dls-local-v1-caddy

@@ -8,6 +8,7 @@ test("pages emit a restrictive CSP and load no third-party JavaScript", async ({
   expect(csp).toContain("frame-ancestors 'none'");
   expect(csp).toContain("form-action 'self'");
   expect(csp).toContain("font-src 'self' https://fonts.gstatic.com");
+  expect(csp).toMatch(/script-src[^;]*'wasm-unsafe-eval'/u);
   expect(csp).not.toMatch(/script-src[^;]*https?:\/\//u);
 
   const scripts = await page
