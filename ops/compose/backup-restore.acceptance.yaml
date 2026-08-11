@@ -1,0 +1,11 @@
+services:
+  api:
+    volumes: !override
+      - ${DLS_BACKUP_DATA_DIR:?DLS_BACKUP_DATA_DIR is required}/objects/private:/var/lib/dls/objects/private
+      - ${DLS_BACKUP_DATA_DIR:?DLS_BACKUP_DATA_DIR is required}/objects/staging:/var/lib/dls/objects/staging
+      - ${DLS_BACKUP_DATA_DIR:?DLS_BACKUP_DATA_DIR is required}/objects/public:/var/lib/dls/objects/public
+  worker:
+    volumes: !override
+      - ${DLS_BACKUP_DATA_DIR:?DLS_BACKUP_DATA_DIR is required}/objects/private:/var/lib/dls/objects/private
+      - ${DLS_BACKUP_DATA_DIR:?DLS_BACKUP_DATA_DIR is required}/objects/staging:/var/lib/dls/objects/staging
+      - ${DLS_BACKUP_DATA_DIR:?DLS_BACKUP_DATA_DIR is required}/objects/public:/var/lib/dls/objects/public
