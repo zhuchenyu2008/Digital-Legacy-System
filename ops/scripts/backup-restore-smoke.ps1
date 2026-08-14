@@ -35,9 +35,20 @@ function Invoke-Compose {
 
 function Stop-Project([string]$Project) {
   Assert-DisposableProject $Project
-  & docker compose --file (Join-Path $root "compose.yaml") --file $override --project-name $Project down --remove-orphans --volumes 2>$null
+  $previousErrorAction = $ErrorActionPreference
+  try {
+    $ErrorActionPreference = "Continue"
+    $cleanupOutput = @(& docker compose --file (Join-Path $root "compose.yaml") --file $override --project-name $Project down --remove-orphans --volumes 2>&1)
+    $cleanupExitCode = $LASTEXITCODE
+  } finally {
+    $ErrorActionPreference = $previousErrorAction
+  }
+  if ($cleanupExitCode -ne 0) {
+    throw "Backup Compose cleanup failed: $($cleanupOutput -join [Environment]::NewLine)"
+  }
 }
 
+$primaryError = $null
 try {
   if (Test-Path -LiteralPath $work) { Remove-Item -LiteralPath $work -Recurse -Force }
   if (Test-Path -LiteralPath $reconciliationPath) { Remove-Item -LiteralPath $reconciliationPath -Force }
@@ -48,8 +59,9 @@ try {
   if ($LASTEXITCODE -ne 0) { throw "secret generation failed" }
 
   Invoke-Compose $sourceProject --profile ops build migrator
-  Invoke-Compose $sourceProject up --detach postgres
+  Invoke-Compose $sourceProject up --detach --wait postgres
   Invoke-Compose $sourceProject --profile ops run --rm migrator
+  Invoke-Compose $sourceProject --profile ops run --rm --no-TTY --entrypoint node migrator ops/scripts/seed-backup-restore-job.mjs
   Invoke-Compose $sourceProject exec --no-TTY postgres psql --username postgres --dbname dls --set ON_ERROR_STOP=1 --command "CREATE TABLE IF NOT EXISTS backup_restore_marker (id integer PRIMARY KEY); INSERT INTO backup_restore_marker (id) VALUES (1) ON CONFLICT DO NOTHING;"
   foreach ($entry in @(
     @{ Path = "private/backup-marker.txt"; Value = "private" },
@@ -66,13 +78,13 @@ try {
 
   $env:DLS_BACKUP_DATA_DIR = $targetData
   Invoke-Compose $targetProject --profile ops build migrator worker
-  Invoke-Compose $targetProject up --detach postgres
+  Invoke-Compose $targetProject up --detach --wait postgres
   & $powerShell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $root "ops/scripts/restore.ps1") -Backup $backupDirectory -ProjectName $targetProject -ObjectRoot (Join-Path $targetData "objects") -ComposeFile (Join-Path $root "compose.yaml") -ComposeProdFile $override
   if ($LASTEXITCODE -ne 0) { throw "restore failed" }
   & $powerShell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $root "ops/scripts/verify-restore.ps1") -Backup $backupDirectory -ProjectName $targetProject -ObjectRoot (Join-Path $targetData "objects") -ComposeFile (Join-Path $root "compose.yaml") -ComposeProdFile $override
   if ($LASTEXITCODE -ne 0) { throw "restore verification failed" }
 
-  $reconciliationOutput = @(Invoke-Compose $targetProject run --rm worker node ops/scripts/runtime-reconcile.mjs)
+  $reconciliationOutput = @(Invoke-Compose $targetProject run --rm --no-TTY --entrypoint node worker ops/scripts/runtime-reconcile.mjs)
   $reconciliationJson = $reconciliationOutput | Where-Object { $_ -match '^\s*\{' } | Select-Object -Last 1
   if ([string]::IsNullOrWhiteSpace($reconciliationJson)) { throw "runtime reconciliation produced no JSON evidence" }
   $null = $reconciliationJson | ConvertFrom-Json
@@ -88,10 +100,20 @@ try {
     if ((Get-Content -Raw (Join-Path $targetData ("objects/" + $entry.Path))).Trim() -ne $entry.Value) { throw "object marker did not survive backup and restore" }
   }
   Write-Host "Backup, blank-target restore, and runtime reconciliation smoke passed."
+} catch {
+  $primaryError = $_
+  throw
 } finally {
-  Stop-Project $sourceProject
-  Stop-Project $targetProject
+  $cleanupErrors = @()
+  foreach ($project in @($sourceProject, $targetProject)) {
+    try { Stop-Project $project } catch { $cleanupErrors += $_ }
+  }
   if (Test-Path -LiteralPath $work) { Remove-Item -LiteralPath $work -Recurse -Force }
   $env:DLS_SECRETS_DIR = $previousSecrets
   $env:DLS_BACKUP_DATA_DIR = $previousData
+  if ($cleanupErrors.Count -gt 0) {
+    $cleanupMessage = ($cleanupErrors | ForEach-Object { $_.Exception.Message }) -join [Environment]::NewLine
+    if ($null -eq $primaryError) { throw $cleanupMessage }
+    Write-Warning "Backup Compose cleanup also failed after the primary error: $cleanupMessage"
+  }
 }

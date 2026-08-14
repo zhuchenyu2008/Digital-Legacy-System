@@ -1,6 +1,7 @@
 import { spawn, spawnSync } from "node:child_process";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { snapshotGeneratedFile } from "./support/generated-file-snapshot.mjs";
 
 const workspace = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const children = [];
@@ -53,6 +54,7 @@ for (const signal of ["SIGINT", "SIGTERM"]) {
 }
 
 let finalExitCode = 1;
+const nextEnvironment = await snapshotGeneratedFile(resolve(workspace, "apps/web/next-env.d.ts"));
 try {
   const api = start(process.execPath, ["tests/e2e/support/contact-api-stub.mjs"]);
   await waitFor("http://127.0.0.1:4311/health", api);
@@ -79,5 +81,6 @@ try {
   });
 } finally {
   cleanup();
+  await nextEnvironment.restore();
 }
 process.exit(finalExitCode);

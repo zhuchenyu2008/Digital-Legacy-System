@@ -59,6 +59,6 @@ fi
 touch "$OBJECT_ROOT/MAINTENANCE"
 trap 'docker "${COMPOSE[@]}" exec --no-TTY postgres rm -f /tmp/dls-restore.dump >/dev/null 2>&1 || true' EXIT
 docker "${COMPOSE[@]}" cp "$BACKUP/database.dump" "postgres:/tmp/dls-restore.dump"
-docker "${COMPOSE[@]}" exec --no-TTY postgres pg_restore --username postgres --dbname dls --clean --if-exists --no-owner --single-transaction --exit-on-error /tmp/dls-restore.dump
+docker "${COMPOSE[@]}" exec --no-TTY postgres pg_restore --username postgres --dbname dls --clean --if-exists --single-transaction --exit-on-error /tmp/dls-restore.dump
 tar -xf "$BACKUP/objects.tar" -C "$OBJECT_ROOT"
 echo "Database and objects restored into a maintenance target. Run verify-restore before normal startup."

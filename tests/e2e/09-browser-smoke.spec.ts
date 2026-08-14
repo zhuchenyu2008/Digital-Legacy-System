@@ -83,12 +83,15 @@ test("runs login, critical decisions, public rendering, and download in supporte
     const page = await loginContext.newPage();
     await page.goto("/login", { waitUntil: "networkidle" });
     await page.locator("#owner-password").fill(cryptoUsers.owner.recoveryPassword);
-    const responsePromise = page.waitForResponse(
-      (response) =>
-        response.url().endsWith("/api/auth/owner/login") && response.request().method() === "POST",
-    );
-    await page.getByRole("button", { name: "管理员登录" }).click();
-    expect((await responsePromise).status()).toBe(200);
+    const [response] = await Promise.all([
+      page.waitForResponse(
+        (candidate) =>
+          candidate.url().endsWith("/api/auth/owner/login") &&
+          candidate.request().method() === "POST",
+      ),
+      page.getByRole("button", { name: "管理员登录" }).click(),
+    ]);
+    expect(response.status()).toBe(200);
     await expect(page).toHaveURL(/\/admin(?:\/|$)/u);
     await page.goto("/legacy", { waitUntil: "networkidle" });
     await expect(page.locator("main")).toBeVisible();

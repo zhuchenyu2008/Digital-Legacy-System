@@ -96,7 +96,7 @@ node --input-type=module -e '
 ' "$DESTINATION/database-state.json" "$DESTINATION/images.jsonl" "$DESTINATION/runtime.json" "$PROJECT" "$git_commit" "$STORAGE_DRIVER"
 rm -f "$DESTINATION/images.jsonl"
 
-"${COMPOSE[@]}" exec --no-TTY postgres pg_dump --username postgres --dbname dls --format custom --no-owner --file /tmp/dls-backup.dump
+"${COMPOSE[@]}" exec --no-TTY postgres pg_dump --username postgres --dbname dls --format custom --file /tmp/dls-backup.dump
 "${COMPOSE[@]}" cp "postgres:/tmp/dls-backup.dump" "$DESTINATION/database.dump"
 tar -cf "$DESTINATION/objects.tar" -C "$BACKUP_OBJECT_ROOT" .
 node "$ROOT/ops/scripts/backup-manifest.ts" validate-tar --archive "$DESTINATION/objects.tar" >/dev/null

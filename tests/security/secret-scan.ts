@@ -1,6 +1,6 @@
 import { spawn } from "node:child_process";
-import { readFile } from "node:fs/promises";
-import { resolve } from "node:path";
+import { readdir, readFile } from "node:fs/promises";
+import { relative, resolve } from "node:path";
 
 export type SecretScanOptions = Readonly<{
   source: string;
@@ -80,13 +80,45 @@ async function gitFiles(root: string): Promise<string[]> {
     .toString("utf8")
     .split("\0")
     .filter((file) => file.length > 0)
-    .filter((file) => !/(?:^|\/)(?:node_modules|dist|\.next|test-results)(?:\/|$)/u.test(file))
-    .filter((file) => !/\.(?:png|jpe?g|gif|webp|ico|zip|wasm|bin|pdf)$/iu.test(file));
+    .filter(scannableFile);
+}
+
+function scannableFile(file: string): boolean {
+  return (
+    !/(?:^|\/)(?:\.git|\.worktrees|\.docker-config|\.acceptance-artifacts|\.e2e-runtime|node_modules|dist|\.next|test-results|playwright-report|coverage|target)(?:\/|$)/u.test(
+      file,
+    ) &&
+    !file.startsWith("ops/secrets/generated/") &&
+    !/\.(?:png|jpe?g|gif|webp|ico|zip|wasm|bin|pdf)$/iu.test(file)
+  );
+}
+
+async function filesystemFiles(root: string): Promise<string[]> {
+  const files: string[] = [];
+  async function walk(directory: string): Promise<void> {
+    for (const entry of await readdir(directory, { withFileTypes: true })) {
+      const absolute = resolve(directory, entry.name);
+      const file = relative(root, absolute).replaceAll("\\", "/");
+      if (!scannableFile(file)) continue;
+      if (entry.isDirectory()) await walk(absolute);
+      else if (entry.isFile()) files.push(file);
+    }
+  }
+  await walk(root);
+  return files.sort();
+}
+
+async function repositoryFiles(root: string): Promise<string[]> {
+  try {
+    return await gitFiles(root);
+  } catch {
+    return filesystemFiles(root);
+  }
 }
 
 async function main(): Promise<void> {
   const root = resolve(process.argv[2] ?? process.cwd());
-  const files = process.argv.length > 3 ? process.argv.slice(3) : await gitFiles(root);
+  const files = process.argv.length > 3 ? process.argv.slice(3) : await repositoryFiles(root);
   if (files.length === 0)
     throw new Error("No repository files were discovered for secret scanning");
   const approvalDocument = JSON.parse(

@@ -1,5 +1,4 @@
-import { createHash } from "node:crypto";
-import { mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 
@@ -40,26 +39,6 @@ run("wasm-bindgen", [wasmInput, "--target", "nodejs", "--out-dir", nodeDir]);
 
 writeFileSync(join(nodeDir, "package.json"), '{\n  "type": "commonjs"\n}\n', "utf8");
 
-function collectFiles(directory) {
-  return readdirSync(directory, { withFileTypes: true })
-    .filter((entry) => entry.isFile())
-    .map((entry) => entry.name)
-    .sort();
-}
-
-function hashes(directory) {
-  return Object.fromEntries(
-    collectFiles(directory).map((name) => {
-      const digest = createHash("sha256").update(readFileSync(join(directory, name))).digest("hex");
-      return [name, digest];
-    }),
-  );
-}
-
-writeFileSync(
-  join(distDir, "SHA256SUMS.json"),
-  `${JSON.stringify({ browser: hashes(browserDir), node: hashes(nodeDir) }, null, 2)}\n`,
-  "utf8",
-);
+await import("./write-checksums.mjs");
 
 console.log(`Generated deterministic VSS bundles under ${dirname(browserDir)}`);

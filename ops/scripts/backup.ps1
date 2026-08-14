@@ -108,7 +108,7 @@ try {
   } | ConvertTo-Json -Depth 8
   [IO.File]::WriteAllText((Join-Path $destinationPath "runtime.json"), "$runtime`n", [Text.UTF8Encoding]::new($false))
 
-  Invoke-Compose exec --no-TTY postgres pg_dump --username postgres --dbname dls --format custom --no-owner --file /tmp/dls-backup.dump
+  Invoke-Compose exec --no-TTY postgres pg_dump --username postgres --dbname dls --format custom --file /tmp/dls-backup.dump
   Invoke-Compose cp "postgres:/tmp/dls-backup.dump" (Join-Path $destinationPath "database.dump")
   & tar -cf (Join-Path $destinationPath "objects.tar") -C $backupObjectPath .
   if ($LASTEXITCODE -ne 0) { throw "object archive failed" }

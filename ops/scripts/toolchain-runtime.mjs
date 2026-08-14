@@ -16,6 +16,14 @@ export function resolveCorepackCli({
   const pathValue = environment.PATH ?? environment.Path ?? environment.path ?? "";
   const candidates = [
     join(dirname(execPath), "node_modules", "corepack", "dist", "corepack.js"),
+    join(
+      dirname(dirname(execPath)),
+      "lib",
+      "node_modules",
+      "corepack",
+      "dist",
+      "corepack.js",
+    ),
     ...pathValue
       .split(delimiter)
       .filter((entry) => entry.length > 0)

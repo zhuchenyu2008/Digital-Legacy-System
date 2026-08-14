@@ -82,6 +82,24 @@ describe("production Compose topology", () => {
     expect(gitignore).toContain("!.env.production.example");
   });
 
+  it("keeps root runtime script workspace imports resolvable in production images", async () => {
+    const runtimeReconcile = await readFile(
+      resolve(root, "ops/scripts/runtime-reconcile.mjs"),
+      "utf8",
+    );
+    const packageManifest = JSON.parse(await readFile(resolve(root, "package.json"), "utf8")) as {
+      dependencies?: Record<string, string>;
+    };
+    const workspaceImports = [...runtimeReconcile.matchAll(/from ["'](@dls\/[^"']+)["']/gu)].map(
+      ([, packageName]) => packageName,
+    );
+    const undeclaredImports = workspaceImports.filter(
+      (packageName) => !(packageName in (packageManifest.dependencies ?? {})),
+    );
+
+    expect(undeclaredImports).toEqual([]);
+  });
+
   it("generates matched key capabilities and runs every release safety gate", async () => {
     const secretGenerator = await readFile(
       resolve(root, "ops/scripts/generate-development-secrets.mjs"),
@@ -105,8 +123,9 @@ describe("production Compose topology", () => {
     expect(dockerfile).toContain("runtime-reconcile.mjs");
     expect(dockerfile).toContain("verify-audit.mjs");
     expect(dockerfile).toContain("migration-status.mjs");
+    expect(dockerfile).toContain("node packages/vss-wasm/scripts/write-checksums.mjs");
     expect(dockerfile).toMatch(
-      /FROM \$\{CADDY_IMAGE\} AS caddy[\s\S]*mkdir -p \/data \/config[\s\S]*chown -R 1000:1000 \/data \/config/u,
+      /FROM \$\{CADDY_RUNTIME_IMAGE\} AS caddy[\s\S]*mkdir -p \/data \/config[\s\S]*chown -R 1000:1000 \/data \/config/u,
     );
 
     for (const script of scripts.slice(0, 2)) {
@@ -115,7 +134,7 @@ describe("production Compose topology", () => {
       expect(script).toMatch(/migrat/iu);
       expect(script).toMatch(/health\/ready|deep health/iu);
       expect(script).toMatch(/verify-audit/iu);
-      expect(script).toContain("node ops/scripts/verify-audit.mjs");
+      expect(script).toContain("--entrypoint node migrator ops/scripts/verify-audit.mjs");
       expect(script).not.toContain("node_modules/tsx");
       expect(script).toContain("runtime-reconcile.mjs");
       expect(script).toMatch(
@@ -126,7 +145,7 @@ describe("production Compose topology", () => {
     for (const script of scripts.slice(2)) {
       expect(script).toMatch(/compatib/iu);
       expect(script).toMatch(/restore/iu);
-      expect(script).toContain("node ops/scripts/migration-status.mjs");
+      expect(script).toContain("--entrypoint node migrator ops/scripts/migration-status.mjs");
       expect(script).not.toContain("node_modules/tsx");
       expect(script).not.toMatch(/migration.*down|migrat(?:e|or)[^\r\n]*down/iu);
     }

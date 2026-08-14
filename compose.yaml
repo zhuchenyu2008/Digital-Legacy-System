@@ -3,7 +3,8 @@ name: dls-local-v1
 x-build-args: &build-args
   NODE_IMAGE: node:24.18.0-bookworm-slim@sha256:6f7b03f7c2c8e2e784dcf9295400527b9b1270fd37b7e9a7285cf83b6951452d
   GO_IMAGE: golang:1.24.8-bookworm@sha256:4ed690d6649d63c312b99a6120025ec79ce3b542968a37da53d6236c7c61a848
-  CADDY_IMAGE: caddy:2.11.4-alpine@sha256:5f5c8640aae01df9654968d946d8f1a56c497f1dd5c5cda4cf95ab7c14d58648
+  CADDY_BUILD_IMAGE: golang:1.26.6-alpine3.24@sha256:af8d6740070b8906d12eae1c3e3ea0957fb63f492051ea05e354c38ef9fe88df
+  CADDY_RUNTIME_IMAGE: alpine:3.24.1@sha256:28bd5fe8b56d1bd048e5babf5b10710ebe0bae67db86916198a6eec434943f8b
 
 x-application-environment: &application-environment
   NODE_ENV: production
@@ -100,6 +101,8 @@ services:
     command:
       - |
         export DATABASE_URL="postgresql://dls_migrator:$$(cat /run/secrets/migrator_db_password)@postgres:5432/dls"
+        export PGBOSS_DATABASE_URL="$$DATABASE_URL"
+        node apps/worker/node_modules/pg-boss/dist/cli.js migrate
         exec node --input-type=module --eval '
           import { runMigrationCli } from "./packages/persistence/dist/migrations/cli.js";
           const databaseUrl = process.env.DATABASE_URL;
@@ -367,13 +370,26 @@ services:
     environment:
       <<: *application-environment
       ACCEPTANCE_BASE_URL: http://caddy:8080
+      COREPACK_HOME: /tmp/corepack
       DATABASE_URL: postgresql://dls_api@postgres:5432/dls
+      NODE_ENV: test
+      RUNNING_IN_CONTAINER: "false"
     command: ["node", "ops/scripts/container-acceptance.mjs"]
     volumes:
       - ./docs/acceptance:/workspace/docs/acceptance
     tmpfs:
       - /tmp:size=256m,mode=1777
       - /workspace/node_modules/.vite-temp:size=32m,uid=1000,gid=1000,mode=1777
+      - /workspace/apps/api/node_modules/.vite-temp:size=8m,uid=1000,gid=1000,mode=1777
+      - /workspace/apps/web/node_modules/.vite-temp:size=8m,uid=1000,gid=1000,mode=1777
+      - /workspace/apps/worker/node_modules/.vite-temp:size=8m,uid=1000,gid=1000,mode=1777
+      - /workspace/packages/contracts/node_modules/.vite-temp:size=8m,uid=1000,gid=1000,mode=1777
+      - /workspace/packages/crypto/node_modules/.vite-temp:size=8m,uid=1000,gid=1000,mode=1777
+      - /workspace/packages/domain/node_modules/.vite-temp:size=8m,uid=1000,gid=1000,mode=1777
+      - /workspace/packages/email-templates/node_modules/.vite-temp:size=8m,uid=1000,gid=1000,mode=1777
+      - /workspace/packages/persistence/node_modules/.vite-temp:size=8m,uid=1000,gid=1000,mode=1777
+      - /workspace/packages/storage/node_modules/.vite-temp:size=8m,uid=1000,gid=1000,mode=1777
+      - /workspace/packages/vss-wasm/node_modules/.vite-temp:size=8m,uid=1000,gid=1000,mode=1777
     depends_on:
       postgres:
         condition: service_healthy
@@ -391,7 +407,7 @@ services:
       - no-new-privileges:true
 
   storage-tests:
-    profiles: ["test", "s3"]
+    profiles: ["s3"]
     build:
       context: .
       target: test

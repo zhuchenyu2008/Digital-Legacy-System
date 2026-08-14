@@ -1,8 +1,6 @@
 import { runAuditVerificationCli } from "../../packages/persistence/dist/cli/verify-audit.js";
+import { resolveMigratorDatabaseUrl } from "./migrator-database-url.mjs";
 
-const databaseUrl = process.env.DATABASE_URL;
-if (!databaseUrl) {
-  throw new Error("DATABASE_URL is required");
-}
+const databaseUrl = await resolveMigratorDatabaseUrl();
 
 await runAuditVerificationCli({ argv: process.argv.slice(2), databaseUrl });

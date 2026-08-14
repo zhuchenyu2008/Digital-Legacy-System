@@ -1,5 +1,8 @@
 import { readFile } from "node:fs/promises";
-import { countUndispatchedOutbox, createPgPool } from "@dls/persistence";
+import {
+  countUndispatchedOutbox,
+  createPgPool,
+} from "../../packages/persistence/dist/index.js";
 import { createStorage, reconcileStorageReferences } from "@dls/storage";
 
 async function secret(name) {

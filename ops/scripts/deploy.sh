@@ -48,11 +48,9 @@ for ((attempt=1; attempt<=HEALTH_ATTEMPTS; attempt+=1)); do
 done
 (( healthy == 1 )) || { echo "deep health check failed" >&2; exit 1; }
 
-"${COMPOSE[@]}" --profile ops run --rm --entrypoint /bin/sh migrator -ec '
-  export DATABASE_URL="postgresql://dls_migrator:$(cat /run/secrets/migrator_db_password)@postgres:5432/dls"
-  node ops/scripts/verify-audit.mjs --stream private
-  node ops/scripts/verify-audit.mjs --stream public
-'
+for stream in private public; do
+  "${COMPOSE[@]}" --profile ops run --rm --no-TTY --entrypoint node migrator ops/scripts/verify-audit.mjs --stream "$stream"
+done
 "${COMPOSE[@]}" exec --no-TTY worker node ops/scripts/runtime-reconcile.mjs
 printf '%s' "$VERSION" > .current-version
 echo "Deployed immutable version $VERSION after backup, migration, deep health, audit, and storage consistency gates."

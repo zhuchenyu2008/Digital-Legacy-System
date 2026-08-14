@@ -20,10 +20,18 @@ describe("Linux container acceptance", () => {
     );
     const manifest = JSON.parse(result.stdout) as {
       evidencePath: string;
+      evidenceFormatCommand: readonly string[];
       gates: readonly Readonly<{ name: string; command: readonly string[] }>[];
     };
 
     expect(manifest.evidencePath).toBe("docs/acceptance/linux-container-evidence.json");
+    expect(manifest.evidenceFormatCommand).toEqual([
+      "node",
+      "node_modules/@biomejs/biome/bin/biome",
+      "format",
+      "--write",
+      "docs/acceptance/linux-container-evidence.json",
+    ]);
     expect(manifest.gates.map((gate) => gate.name)).toEqual([
       "versions",
       "format",
@@ -39,7 +47,7 @@ describe("Linux container acceptance", () => {
       "evidence-parity",
     ]);
     expect(manifest.gates.find((gate) => gate.name === "format")?.command.join(" ")).toContain(
-      "typescript/bin/tsc -b",
+      "node ops/scripts/typecheck-readonly.mjs",
     );
     expect(manifest.gates.flatMap((gate) => gate.command).join(" ")).not.toMatch(/\bdocker\b/iu);
     expect(manifest.gates.find((gate) => gate.name === "build")?.command).toEqual([
@@ -64,6 +72,16 @@ describe("Linux container acceptance", () => {
         "packages/vss-wasm/dist/SHA256SUMS.json",
       ]),
     );
+
+    const readonlyTypecheck = JSON.parse(
+      (
+        await run(process.execPath, ["ops/scripts/typecheck-readonly.mjs"], {
+          cwd: root,
+          encoding: "utf8",
+        })
+      ).stdout,
+    ) as { checkedProjects?: number };
+    expect(readonlyTypecheck.checkedProjects).toBeGreaterThan(0);
 
     const metadata = JSON.parse(
       (
@@ -98,5 +116,5 @@ describe("Linux container acceptance", () => {
         encoding: "utf8",
       }),
     ).rejects.toThrow(/evidence|hash|command failed/iu);
-  });
+  }, 30_000);
 });

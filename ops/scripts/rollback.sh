@@ -41,10 +41,7 @@ cd "$DEPLOYMENT_DIR"
 COMPOSE=(docker compose --file compose.yaml --file compose.prod.yaml --env-file "$ENV_FILE")
 "${COMPOSE[@]}" config --quiet
 "${COMPOSE[@]}" up --detach postgres
-status="$("${COMPOSE[@]}" --profile ops run --rm --entrypoint /bin/sh migrator -ec '
-  export DATABASE_URL="postgresql://dls_migrator:$(cat /run/secrets/migrator_db_password)@postgres:5432/dls"
-  node ops/scripts/migration-status.mjs
-')"
+status="$("${COMPOSE[@]}" --profile ops run --rm --no-TTY --entrypoint node migrator ops/scripts/migration-status.mjs)"
 current_schema="$(node --input-type=module -e 'const value=JSON.parse(process.argv[1]); process.stdout.write(String(value.at(-1)?.version ?? 0));' "$status")"
 node --input-type=module -e '
   import {readFileSync} from "node:fs";

@@ -5,8 +5,10 @@ import {
   approveRecovery,
   completePasswordReset,
   createRewrapSession,
+  InMemorySessionStore,
   type RecoveryCryptography,
   requestRecovery,
+  SessionService,
   startRecovery,
 } from "../../packages/application/src/index.js";
 import { createPgPool, PgTransactionManager } from "../../packages/persistence/src/index.js";
@@ -261,6 +263,9 @@ describe("threshold password recovery with PostgreSQL", () => {
       await cleanup(pool);
       await seed(pool);
       const transaction = new PgTransactionManager(pool);
+      const sessionService = new SessionService(new InMemorySessionStore(), {
+        pepper: new Uint8Array(32).fill(11),
+      });
       let startToken = "";
       await requestRecovery(
         { requestId: "00000000-0000-4000-8000-000000000531" },
@@ -343,6 +348,7 @@ describe("threshold password recovery with PostgreSQL", () => {
         },
         {
           transaction,
+          sessionService,
           tokenPepper,
           recoveryCryptography,
           passwordHasher: async () => "new-owner-auth-hash",

@@ -1,4 +1,6 @@
 import { readFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { inspectZip } from "@dls/storage";
 import { combinePedersen, verifyPedersenShare } from "@dls/vss-wasm";
 import { describe, expect, it } from "vitest";
@@ -391,15 +393,15 @@ describe("full-stack E2E fixture boundaries", () => {
   });
 
   it("allocates isolated storage-state files for each accepted contact", () => {
-    expect(contactStateFile(0, { DLS_E2E_CONTACT_STATE_DIR: "D:/tmp/dls-e2e/contacts" })).toBe(
-      "D:/tmp/dls-e2e/contacts/contact-1.json",
+    const contactStateDirectory = join(tmpdir(), "dls-e2e", "contacts");
+    const environment = { DLS_E2E_CONTACT_STATE_DIR: contactStateDirectory };
+    expect(contactStateFile(0, environment)).toBe(
+      join(contactStateDirectory, "contact-1.json").replaceAll("\\", "/"),
     );
-    expect(contactStateFile(2, { DLS_E2E_CONTACT_STATE_DIR: "D:/tmp/dls-e2e/contacts" })).toBe(
-      "D:/tmp/dls-e2e/contacts/contact-3.json",
+    expect(contactStateFile(2, environment)).toBe(
+      join(contactStateDirectory, "contact-3.json").replaceAll("\\", "/"),
     );
-    expect(() =>
-      contactStateFile(-1, { DLS_E2E_CONTACT_STATE_DIR: "D:/tmp/dls-e2e/contacts" }),
-    ).toThrow(/index/u);
+    expect(() => contactStateFile(-1, environment)).toThrow(/index/u);
   });
 
   it("selects the authenticated contact identities by their stable e-mail addresses", () => {

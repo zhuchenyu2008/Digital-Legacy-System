@@ -59,12 +59,10 @@ try {
   }
   if (-not $healthy) { throw "Deep health check failed after deployment" }
 
-  $auditCommand = @'
-export DATABASE_URL="postgresql://dls_migrator:$(cat /run/secrets/migrator_db_password)@postgres:5432/dls"
-node ops/scripts/verify-audit.mjs --stream private
-node ops/scripts/verify-audit.mjs --stream public
-'@
-  Invoke-Docker --profile ops run --rm --entrypoint /bin/sh migrator -ec $auditCommand
+  foreach ($stream in @("private", "public")) {
+    & docker @composeArgs --profile ops run --rm --no-TTY --entrypoint node migrator ops/scripts/verify-audit.mjs --stream $stream
+    if ($LASTEXITCODE -ne 0) { throw "private or public audit verification failed" }
+  }
 
   Invoke-Docker exec --no-TTY worker node ops/scripts/runtime-reconcile.mjs
 

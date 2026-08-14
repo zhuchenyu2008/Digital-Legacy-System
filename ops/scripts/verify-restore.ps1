@@ -43,11 +43,8 @@ try {
 } finally {
   Remove-Item -LiteralPath $actualInventory -Force -ErrorAction SilentlyContinue
 }
-$auditCommand = @'
-export DATABASE_URL="postgresql://dls_migrator:$(cat /run/secrets/migrator_db_password)@postgres:5432/dls"
-node ops/scripts/verify-audit.mjs --stream private
-node ops/scripts/verify-audit.mjs --stream public
-'@
-& docker @compose --profile ops run --rm --entrypoint /bin/sh migrator -ec $auditCommand
-if ($LASTEXITCODE -ne 0) { throw "private or public audit verification failed" }
+foreach ($stream in @("private", "public")) {
+  & docker @compose --profile ops run --rm --no-TTY --entrypoint node migrator ops/scripts/verify-audit.mjs --stream $stream
+  if ($LASTEXITCODE -ne 0) { throw "private or public audit verification failed" }
+}
 Write-Output "Backup artifacts, schema migrations, restored objects, publications, private/public audit, and outbox job state are consistent. Keep maintenance mode until operator approval."

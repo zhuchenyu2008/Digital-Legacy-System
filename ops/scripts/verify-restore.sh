@@ -41,9 +41,7 @@ node --input-type=module -e '
   const actual=JSON.parse(readFileSync(process.argv[2],"utf8"));
   if(runtime.schemaVersion!==actual.schemaVersion) throw new Error("restored schema migration version does not match backup runtime");
 ' "$BACKUP/runtime.json" "$actual_inventory"
-docker "${COMPOSE[@]}" --profile ops run --rm --entrypoint /bin/sh migrator -ec '
-  export DATABASE_URL="postgresql://dls_migrator:$(cat /run/secrets/migrator_db_password)@postgres:5432/dls"
-  node ops/scripts/verify-audit.mjs --stream private
-  node ops/scripts/verify-audit.mjs --stream public
-'
+for stream in private public; do
+  docker "${COMPOSE[@]}" --profile ops run --rm --no-TTY --entrypoint node migrator ops/scripts/verify-audit.mjs --stream "$stream"
+done
 echo "Backup artifacts, schema migrations, restored objects, publications, private/public audit, and outbox job state are consistent. Keep maintenance mode until operator approval."

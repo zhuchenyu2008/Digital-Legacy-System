@@ -10,7 +10,7 @@ scans:
     path: pnpm-lock.yaml
   - target: images
     images:
-      - dls-local-v1-api
-      - dls-local-v1-worker
-      - dls-local-v1-web
-      - dls-local-v1-caddy
+      - dls-e2e-security-<run-id>-api
+      - dls-e2e-security-<run-id>-worker
+      - dls-e2e-security-<run-id>-web
+      - dls-e2e-security-<run-id>-caddy

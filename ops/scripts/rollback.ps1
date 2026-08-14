@@ -42,11 +42,7 @@ try {
   $env:DLS_CADDY_IMAGE_DIGEST = [string]$manifest.imageDigests.caddy
   Invoke-Docker config --quiet
   Invoke-Docker up --detach postgres
-  $statusCommand = @'
-export DATABASE_URL="postgresql://dls_migrator:$(cat /run/secrets/migrator_db_password)@postgres:5432/dls"
-node ops/scripts/migration-status.mjs
-'@
-  $statusText = & docker @composeArgs --profile ops run --rm --entrypoint /bin/sh migrator -ec $statusCommand
+  $statusText = & docker @composeArgs --profile ops run --rm --no-TTY --entrypoint node migrator ops/scripts/migration-status.mjs
   if ($LASTEXITCODE -ne 0) { throw "Unable to read current schema version" }
   $status = $statusText | Out-String | ConvertFrom-Json
   $currentSchema = [int](($status | Sort-Object version | Select-Object -Last 1).version)

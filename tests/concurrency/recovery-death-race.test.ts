@@ -4,8 +4,10 @@ import { afterAll, describe, expect, it } from "vitest";
 import {
   approveRecovery,
   completePasswordReset,
+  InMemorySessionStore,
   type RecoveryCryptography,
   RecoveryError,
+  SessionService,
   startDeathWorkflow,
   type TransactionContext,
   type TransactionManager,
@@ -397,6 +399,9 @@ describe("password recovery and death-start races", () => {
   it("commits exactly one of password-reset completion or death start", async () => {
     const state = await fixture("REWRAP_PENDING");
     const [completionTransaction, deathTransaction] = synchronizedManagers(concurrencyPool);
+    const sessionService = new SessionService(new InMemorySessionStore(), {
+      pepper: new Uint8Array(32).fill(11),
+    });
     try {
       const results = await Promise.allSettled([
         completePasswordReset(
@@ -409,6 +414,7 @@ describe("password recovery and death-start races", () => {
           },
           {
             transaction: completionTransaction,
+            sessionService,
             tokenPepper,
             recoveryCryptography,
             passwordHasher: async () => "new-owner-hash",

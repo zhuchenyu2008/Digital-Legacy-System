@@ -108,27 +108,27 @@ git commit -m "test: establish real full stack e2e fixtures"
 - Create: `tests/e2e/07-upload-restart-resume.spec.ts`
 - Create: `tests/e2e/08-role-and-error-boundaries.spec.ts`
 
-- [ ] **Step 1: Bootstrap and arm from a blank system**
+- [x] **Step 1: Bootstrap and arm from a blank system**
 
 Create owner/VK, invite at least three contacts through Mailpit, accept consent/create contact keys, upload/encrypt/activate ZIP, generate both VSS share sets, test SMTP, accept irreversible risk, and assert `ARMED` plus audit integrity.
 
-- [ ] **Step 2: Check-in and both death-workflow terminal paths**
+- [x] **Step 2: Check-in and both death-workflow terminal paths**
 
 Use isolated simulation time to trigger death confirmation. First run has one contact choose alive and verifies immediate cancellation/rescheduled timer/disclosure mail. Second reaches threshold and owner cancels with MP before deadline. Third reaches threshold, advances past publish lock, verifies owner cannot cancel, waits for publication, renders sanitized will, downloads/range-resumes ZIP, and compares plaintext digest/content.
 
-- [ ] **Step 3: Recover owner password**
+- [x] **Step 3: Recover owner password**
 
 Request/start through primary email, have recovery threshold contacts approve with real shares, consume the 8-digit primary-email code and ephemeral sealed VK, rewrap under a new MP, assert old MP/sessions fail, new MP logs in/checks in, and death timer was never paused before success.
 
-- [ ] **Step 4: Rotate contacts/packages and restart services**
+- [x] **Step 4: Rotate contacts/packages and restart services**
 
 Change contact password without changing CPK/share usability; remove/reinvite contact and require new share generation; interrupt a filesystem upload and resume/abort; restart API/worker/PostgreSQL and verify idempotent continuation; activate a new package and prove old ciphertext cleanup cannot touch current object.
 
-- [ ] **Step 5: Verify role/error boundaries**
+- [x] **Step 5: Verify role/error boundaries**
 
 Cross-use owner/contact cookies, replay tokens/codes/idempotency keys, navigate closed/unknown resources, and ensure no private-data flash or enumeration. Test mobile Chromium and desktop Chromium for every critical decision; run Firefox/WebKit smoke for login/public/download.
 
-- [ ] **Step 6: Run and commit**
+- [x] **Step 6: Run and commit**
 
 ```powershell
 pnpm.cmd test:e2e
@@ -155,19 +155,19 @@ git commit -m "test: cover complete digital legacy journeys"
 - Create: `ops/scripts/security-scan.ps1`
 - Create: `ops/scripts/security-scan.sh`
 
-- [ ] **Step 1: Write attack-focused failing tests**
+- [x] **Step 1: Write attack-focused failing tests**
 
 Exercise SQL/JSON/header/log injection, stored/reflected Markdown XSS, prototype pollution keys, unknown/mass-assigned fields, CSRF/simple form, Origin/Fetch-Site, CORS preflight, Host/forwarded-header poisoning, SMTP/URL SSRF, open redirect, Unicode email/name ambiguities, object/path traversal, ZIP parser corpus, Range abuse, cookie swapping, session fixation, token brute-force/expiry/replay, request races, and public object enumeration.
 
-- [ ] **Step 2: Add bounded property tests**
+- [x] **Step 2: Add bounded property tests**
 
 Generate at least 10,000 random malformed protocol/envelope/share/frame/range/path inputs with deterministic seeds. Assert parsers never hang/crash/allocate beyond configured budgets, accepted encodings round-trip canonically, and any one-bit mutation of authenticated data is rejected.
 
-- [ ] **Step 3: Add source/lock/image scanning**
+- [x] **Step 3: Add source/lock/image scanning**
 
 `secret-scan.ts` rejects committed private-key/credential patterns and known generated test secrets outside approved fixtures. Security scripts run `pnpm audit --audit-level high`, Cargo/RustSec audit in the pinned Rust builder, and `aquasec/trivy:0.73.0` against filesystem, lockfiles, and built images. Pin Trivy by image digest when first resolved and commit the digest. Allowlist entries require advisory/CVE, rationale, compensating control, owner, creation date, and expiry <=30 days.
 
-- [ ] **Step 4: Run the full gate and commit**
+- [x] **Step 4: Run the full gate and commit**
 
 ```powershell
 pnpm.cmd test:security
@@ -195,23 +195,23 @@ git commit -m "test: add adversarial security gates"
 - Create: `docs/operations/linux-deployment.md`
 - Create: `docs/operations/upgrade-rollback.md`
 
-- [ ] **Step 1: Write failing production topology tests**
+- [x] **Step 1: Write failing production topology tests**
 
 Assert image references use immutable application version/digest, only 80/443 are published, Caddy redirects HTTP and manages TLS, PostgreSQL/API/worker are internal, containers run non-root with dropped capabilities/read-only rootfs/tmpfs where possible, restart/health/resource/log rotation are configured, secret files are mounted to the correct process only, default storage uses `${DLS_DATA_DIR}` host paths, and MinIO is absent.
 
-- [ ] **Step 2: Implement secret generation and configuration validation**
+- [x] **Step 2: Implement secret generation and configuration validation**
 
 Scripts resolve and validate an explicit destination below the caller-supplied deployment directory, create files with restrictive permissions, generate independent database/session/pepper/release/recovery/ingress secrets, never print values, and refuse overwrite without an explicit rotate command. Production example documents filesystem default and optional S3 variables.
 
-- [ ] **Step 3: Implement versioned deploy/rollback**
+- [x] **Step 3: Implement versioned deploy/rollback**
 
 Deploy checks disk space/config/backups, pulls/builds an explicit version, migrates under advisory lock, starts services, waits for deep health, runs smoke/audit/storage consistency checks, and then marks the version current. Rollback may switch application image only when schema compatibility permits; otherwise it stops and points to the documented database restore procedure.
 
-- [ ] **Step 4: Document Windows and Linux procedures**
+- [x] **Step 4: Document Windows and Linux procedures**
 
 Windows guide covers Docker Desktop WSL2, CRLF/path/volume/firewall issues, default Compose, optional S3 profile, logs, Mailpit, tests, and clean shutdown without volume deletion. Linux guide covers supported x86_64/arm64 host, Docker/Compose, DNS/TLS, `/srv/dls` permissions, SMTP, default filesystem volumes, optional S3, upgrades, monitoring, and external-review blockers.
 
-- [ ] **Step 5: Verify and commit**
+- [x] **Step 5: Verify and commit**
 
 ```powershell
 docker compose -f compose.yaml -f compose.prod.yaml config --quiet
@@ -239,23 +239,23 @@ git commit -m "ops: add linux docker deployment lifecycle"
 - Create: `docs/operations/backup-restore.md`
 - Create: `docs/operations/filesystem-s3-migration.md`
 
-- [ ] **Step 1: Write failing consistency/restore tests**
+- [x] **Step 1: Write failing consistency/restore tests**
 
 Seed private ciphertext, staged workflow material, public publication, audit chains, and jobs. Backup, destroy only an explicitly named disposable Compose project/volumes, restore into blank database/object roots, and assert row counts, object bytes/digests, active references, public download, stage-key decryptability, audit chains, migrations, and job reconciliation match.
 
-- [ ] **Step 2: Implement an operator-driven consistent backup**
+- [x] **Step 2: Implement an operator-driven consistent backup**
 
 Enter maintenance mode, stop new commands, drain/stop worker at a safe point, record migration/image/key-version manifest, `pg_dump` in custom format, archive default filesystem object roots without following links, hash every artifact, then resume. On S3, inventory/copy versioned objects through `StoragePort`; never embed cloud credentials in the archive. Encrypting backup media is an operator responsibility documented explicitly.
 
-- [ ] **Step 3: Implement blank-target restore and verifier**
+- [x] **Step 3: Implement blank-target restore and verifier**
 
 Restore refuses nonblank targets unless a separate destructive approval flag is supplied. It restores DB/objects, applies only compatible migrations, starts read-only verification, checks manifest/object/audit/publication/job consistency, then permits normal startup. Any mismatch leaves maintenance mode enabled.
 
-- [ ] **Step 4: Implement optional filesystem↔S3 migration**
+- [x] **Step 4: Implement optional filesystem↔S3 migration**
 
 Under maintenance mode, inventory all DB-referenced and staging objects, copy with byte/hash verification and resumable journal, re-run shared storage contract/read-range checks, atomically switch `STORAGE_DRIVER`, and retain the source until a separately authorized cleanup. Reject live switching with unresolved/missing/conflicting objects.
 
-- [ ] **Step 5: Verify and commit**
+- [x] **Step 5: Verify and commit**
 
 ```powershell
 pnpm.cmd exec vitest run tests/integration/storage-migration.test.ts tests/deployment/backup-restore.test.ts
@@ -280,19 +280,19 @@ git commit -m "ops: verify backup restore and storage migration"
 - Create: `docs/operations/production-readiness.md`
 - Create: `docs/acceptance/local-v1-evidence.md`
 
-- [ ] **Step 1: Implement fail-fast but evidence-preserving acceptance scripts**
+- [x] **Step 1: Implement fail-fast but evidence-preserving acceptance scripts**
 
 Both scripts run, in this order: version/pin checks; format/lint/type; unit; migrations up/down/up; integration/concurrency; Rust/WASM crypto; both storage adapters; email; production builds; default Compose smoke; simulations; visual/a11y; full E2E; security/property/dependency/image scans; publication crash matrix; production Compose validation; backup/blank restore; audit/storage/publication reconciliation. Each child command's exit code/duration is captured; a required skip is failure.
 
-- [ ] **Step 2: Generate a deterministic evidence document**
+- [x] **Step 2: Generate a deterministic evidence document**
 
 `write-evidence.ts` records Git commit/dirty status, OS/architecture, exact tool/image/migration/protocol versions, command results, test counts, artifact SHA-256, Beijing start/end timestamps, visual/a11y/security summaries, restore result, and unresolved external blockers. It redacts environment and secret-shaped values.
 
-- [ ] **Step 3: Add operational runbooks**
+- [x] **Step 3: Add operational runbooks**
 
 Incident response covers suspected password/key/script/database/storage/mail compromise, publish-stage failure, lost stage key, audit mismatch, disk exhaustion, and unintended public exposure. Monitoring defines health/job/dead-letter/disk/DB/audit/storage/TLS/backup signals without secret payloads. Production readiness has explicit independent cryptographic/legal/manual penetration/restore approvals and cannot be self-checked by automated tests.
 
-- [ ] **Step 4: Run the complete Windows gate**
+- [x] **Step 4: Run the complete Windows gate**
 
 ```powershell
 pwsh -File ops/scripts/acceptance.ps1
@@ -300,7 +300,7 @@ pwsh -File ops/scripts/acceptance.ps1
 
 Expected: exit 0, `docs/acceptance/local-v1-evidence.md` has no failed/skipped required gate, and `git diff --exit-code` reports only the newly generated evidence expected by the script.
 
-- [ ] **Step 5: Run the Linux-container equivalent**
+- [x] **Step 5: Run the Linux-container equivalent**
 
 ```powershell
 docker compose --profile test up --build --abort-on-container-exit acceptance
@@ -308,13 +308,13 @@ docker compose --profile test up --build --abort-on-container-exit acceptance
 
 Expected: acceptance container exits 0 and writes a Linux evidence artifact with matching protocol/vector/application hashes.
 
-- [ ] **Step 6: Commit final runbooks and evidence**
+- [x] **Step 6: Commit final runbooks and evidence**
 
 ```powershell
 git add ops/scripts/acceptance.ps1 ops/scripts/acceptance.sh ops/scripts/write-evidence.ts tests/deployment/cross-platform-scripts.test.ts docs/operations/incident-response.md docs/operations/monitoring-alerts.md docs/operations/production-readiness.md docs/acceptance/local-v1-evidence.md
 git commit -m "test: complete local v1 acceptance gate"
 ```
 
-- [ ] **Step 7: Perform the final verification-before-completion check**
+- [x] **Step 7: Perform the final verification-before-completion check**
 
 Run `git status --short`, verify the user's pre-existing documentation changes are still separate, inspect the final evidence, and do not claim production readiness. The correct completion claim is “complete local V1 passes all automated acceptance gates; named independent reviews and operator approvals remain production blockers.”

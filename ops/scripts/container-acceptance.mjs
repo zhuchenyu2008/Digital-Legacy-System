@@ -1,11 +1,18 @@
 import { spawn } from "node:child_process";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { arch, platform } from "node:os";
 import { fileURLToPath } from "node:url";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const evidencePath = "docs/acceptance/linux-container-evidence.json";
+const evidenceFormatCommand = [
+  "node",
+  "node_modules/@biomejs/biome/bin/biome",
+  "format",
+  "--write",
+  evidencePath,
+];
 const staticDeploymentTests = [
   "tests/deployment/acceptance-script.test.ts",
   "tests/deployment/backup-restore.test.ts",
@@ -23,7 +30,7 @@ const gates = [
     command: [
       "bash",
       "-c",
-      "corepack pnpm check && node node_modules/typescript/bin/tsc -b",
+      "corepack pnpm check && node ops/scripts/typecheck-readonly.mjs",
     ],
   },
   { name: "unit", command: ["corepack", "pnpm", "test:unit"] },
@@ -73,7 +80,7 @@ const gates = [
   },
 ];
 
-const manifest = { evidencePath, gates };
+const manifest = { evidencePath, evidenceFormatCommand, gates };
 if (process.argv.includes("--describe")) {
   process.stdout.write(`${JSON.stringify(manifest)}\n`);
   process.exit(0);
@@ -109,6 +116,7 @@ const output = resolve(
 );
 const logDirectory = "/tmp/dls-container-acceptance";
 await mkdir(logDirectory, { recursive: true });
+await rm(output, { force: true });
 const startedAt = new Date().toISOString();
 const results = [];
 let blocked = false;
@@ -161,5 +169,10 @@ const evidence = {
 };
 await mkdir(dirname(output), { recursive: true });
 await writeFile(output, `${JSON.stringify(evidence, null, 2)}\n`, "utf8");
-process.stdout.write(`${JSON.stringify({ evidence: output, passed: !blocked })}\n`);
-if (blocked) process.exitCode = 1;
+const evidenceFormatExitCode = await run(
+  ["node", "node_modules/@biomejs/biome/bin/biome", "format", "--write", output],
+  `${logDirectory}/evidence-format.log`,
+);
+const passed = !blocked && evidenceFormatExitCode === 0;
+process.stdout.write(`${JSON.stringify({ evidence: output, passed })}\n`);
+if (!passed) process.exitCode = 1;

@@ -55,7 +55,7 @@ try {
   }
   Set-Content -LiteralPath (Join-Path $objectPath "MAINTENANCE") -Value "restore" -NoNewline
   Invoke-Compose cp (Join-Path $backupPath "database.dump") "postgres:/tmp/dls-restore.dump"
-  Invoke-Compose exec --no-TTY postgres pg_restore --username postgres --dbname dls --clean --if-exists --no-owner --single-transaction --exit-on-error /tmp/dls-restore.dump
+  Invoke-Compose exec --no-TTY postgres pg_restore --username postgres --dbname dls --clean --if-exists --single-transaction --exit-on-error /tmp/dls-restore.dump
   & tar -xf $archive -C $objectPath
   if ($LASTEXITCODE -ne 0) { throw "object restore failed" }
 } finally {

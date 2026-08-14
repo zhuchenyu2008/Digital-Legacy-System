@@ -47,8 +47,9 @@ compose() {
 }
 
 compose "$SOURCE_PROJECT" --profile ops build migrator
-compose "$SOURCE_PROJECT" up --detach postgres
+compose "$SOURCE_PROJECT" up --detach --wait postgres
 compose "$SOURCE_PROJECT" --profile ops run --rm migrator
+compose "$SOURCE_PROJECT" --profile ops run --rm --no-TTY --entrypoint node migrator ops/scripts/seed-backup-restore-job.mjs
 compose "$SOURCE_PROJECT" exec --no-TTY postgres psql --username postgres --dbname dls --set ON_ERROR_STOP=1 --command \
   'CREATE TABLE IF NOT EXISTS backup_restore_marker (id integer PRIMARY KEY); INSERT INTO backup_restore_marker (id) VALUES (1) ON CONFLICT DO NOTHING;'
 mkdir -p "$SOURCE_DATA/objects/private" "$SOURCE_DATA/objects/staging" "$SOURCE_DATA/objects/public"
@@ -59,10 +60,10 @@ bash "$ROOT/ops/scripts/backup.sh" --project "$SOURCE_PROJECT" --destination "$B
 
 export DLS_BACKUP_DATA_DIR="$TARGET_DATA"
 compose "$TARGET_PROJECT" --profile ops build migrator worker
-compose "$TARGET_PROJECT" up --detach postgres
+compose "$TARGET_PROJECT" up --detach --wait postgres
 bash "$ROOT/ops/scripts/restore.sh" --backup "$BACKUP" --project "$TARGET_PROJECT" --object-root "$TARGET_DATA/objects" --compose-file "$ROOT/compose.yaml" --compose-prod-file "$OVERRIDE"
 bash "$ROOT/ops/scripts/verify-restore.sh" --backup "$BACKUP" --project "$TARGET_PROJECT" --object-root "$TARGET_DATA/objects" --compose-file "$ROOT/compose.yaml" --compose-prod-file "$OVERRIDE"
-reconciliation_output="$(compose "$TARGET_PROJECT" run --rm worker node ops/scripts/runtime-reconcile.mjs)"
+reconciliation_output="$(compose "$TARGET_PROJECT" run --rm --no-TTY --entrypoint node worker ops/scripts/runtime-reconcile.mjs)"
 printf '%s\n' "$reconciliation_output" | tail -n 1 > "$RECONCILIATION"
 node --input-type=module -e 'const value=JSON.parse(process.argv[1]); if(value.undispatchedOutbox!==0||value.failedJobs!==0) throw new Error("runtime reconciliation is not clean");' "$(cat "$RECONCILIATION")"
 marker="$(compose "$TARGET_PROJECT" exec --no-TTY postgres psql --username postgres --dbname dls --tuples-only --no-align --command 'SELECT count(*) FROM backup_restore_marker WHERE id = 1;')"

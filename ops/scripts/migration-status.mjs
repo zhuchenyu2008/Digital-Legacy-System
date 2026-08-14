@@ -1,8 +1,6 @@
 import { runMigrationCli } from "../../packages/persistence/dist/migrations/cli.js";
+import { resolveMigratorDatabaseUrl } from "./migrator-database-url.mjs";
 
-const databaseUrl = process.env.DATABASE_URL;
-if (!databaseUrl) {
-  throw new Error("DATABASE_URL is required");
-}
+const databaseUrl = await resolveMigratorDatabaseUrl();
 
 await runMigrationCli({ argv: ["status"], databaseUrl });

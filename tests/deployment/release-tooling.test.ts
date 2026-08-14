@@ -29,6 +29,26 @@ describe("release tooling pins and browser coverage", () => {
     }
   });
 
+  it("resolves Corepack from the standard Node installation prefix", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "dls-toolchain-prefix-"));
+    try {
+      const prefix = join(directory, "usr", "local");
+      const corepackCli = join(prefix, "lib", "node_modules", "corepack", "dist", "corepack.js");
+      await mkdir(resolve(corepackCli, ".."), { recursive: true });
+      await writeFile(corepackCli, "// fixture\n", "utf8");
+      const { resolveCorepackCli } = await import("../../ops/scripts/toolchain-runtime.mjs");
+
+      expect(
+        resolveCorepackCli({
+          execPath: join(prefix, "bin", "node"),
+          environment: { PATH: join(prefix, "bin") },
+        }),
+      ).toBe(corepackCli);
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
+
   it("verifies exact toolchain, migration, protocol, and image pins", async () => {
     const metadata = await readFile(resolve(root, "ops/scripts/release-metadata.mjs"), "utf8");
     expect(metadata).toContain('"--verify"');
@@ -76,6 +96,35 @@ describe("release tooling pins and browser coverage", () => {
     );
   });
 
+  it("rebuilds Caddy 2.11.4 with patched Go dependencies in a minimal pinned runtime", async () => {
+    const dockerfile = await readFile(resolve(root, "Dockerfile"), "utf8");
+    const compose = await readFile(resolve(root, "compose.yaml"), "utf8");
+    const caddyModule = await readFile(resolve(root, "ops/caddy/builder/go.mod"), "utf8");
+
+    expect(dockerfile).toContain(
+      "ARG CADDY_BUILD_IMAGE=golang:1.26.6-alpine3.24@sha256:af8d6740070b8906d12eae1c3e3ea0957fb63f492051ea05e354c38ef9fe88df",
+    );
+    expect(dockerfile).toContain(
+      "ARG CADDY_RUNTIME_IMAGE=alpine:3.24.1@sha256:28bd5fe8b56d1bd048e5babf5b10710ebe0bae67db86916198a6eec434943f8b",
+    );
+    expect(caddyModule).toContain("github.com/caddyserver/caddy/v2 v2.11.4");
+    expect(caddyModule).toContain("golang.org/x/net v0.56.0");
+    expect(caddyModule).toContain("golang.org/x/text v0.39.0");
+    expect(caddyModule).toContain("google.golang.org/grpc v1.82.1");
+    expect(dockerfile).toContain("-X github.com/caddyserver/caddy/v2.CustomVersion=v2.11.4");
+    expect(dockerfile).toMatch(
+      /for attempt in 1 2 3; do[\s\S]*go mod download[\s\S]*attempt.*-eq 3[\s\S]*exit 1/iu,
+    );
+    const runtimeStage = `FROM \${CADDY_RUNTIME_IMAGE} AS caddy`;
+    expect(dockerfile).toContain(runtimeStage);
+    expect(dockerfile).not.toContain(`FROM \${CADDY_IMAGE} AS caddy`);
+    const caddyRuntime = dockerfile.slice(dockerfile.indexOf(runtimeStage));
+    expect(caddyRuntime).toMatch(/apk add --no-cache[^\r\n]*ca-certificates[^\r\n]*tzdata/u);
+    expect(caddyRuntime).not.toMatch(/apk add --no-cache[^\r\n]*(?:curl|c-ares)/u);
+    expect(compose).toContain("CADDY_BUILD_IMAGE: golang:1.26.6-alpine3.24@sha256:");
+    expect(compose).toContain("CADDY_RUNTIME_IMAGE: alpine:3.24.1@sha256:");
+  });
+
   it("defines mobile Chromium plus Firefox and WebKit smoke projects", async () => {
     const config = await readFile(resolve(root, "tests/e2e/playwright.config.ts"), "utf8");
 
@@ -100,14 +149,23 @@ describe("release tooling pins and browser coverage", () => {
       expect(script).toMatch(/\bfs\b/iu);
       expect(script).toMatch(/\bimage\b/iu);
       expect(script).toContain("--target rust-audit");
-      for (const image of [
-        "dls-local-v1-api",
-        "dls-local-v1-worker",
-        "dls-local-v1-web",
-        "dls-local-v1-caddy",
-      ]) {
-        expect(script).toContain(image);
+      expect(script).toMatch(/dls-e2e-security-/u);
+      expect(script).not.toMatch(/--project-name\s+["']?dls-local-v1\b/u);
+      for (const service of ["api", "worker", "web", "caddy"]) {
+        expect(script).toMatch(new RegExp(`(?:project|PROJECT)[}-]?-${service}`, "u"));
       }
+    }
+  });
+
+  it("runs maintenance CLIs directly without cross-shell quoting", async () => {
+    for (const [file, cli] of [
+      ["verify-restore.ps1", "verify-audit.mjs"],
+      ["deploy.ps1", "verify-audit.mjs"],
+      ["rollback.ps1", "migration-status.mjs"],
+    ] as const) {
+      const script = await readFile(resolve(root, "ops/scripts", file), "utf8");
+      expect(script).toContain(`--entrypoint node migrator ops/scripts/${cli}`);
+      expect(script).not.toMatch(/--entrypoint \/bin\/sh[^\r\n]*migrator/iu);
     }
   });
 });

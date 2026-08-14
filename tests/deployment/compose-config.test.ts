@@ -11,9 +11,11 @@ type ComposeService = {
   ports?: Array<string | { published?: string | number }>;
   healthcheck?: unknown;
   read_only?: boolean;
+  command?: string | string[];
   environment?: Record<string, string | null> | string[];
   image?: string;
   secrets?: Array<string | { source?: string }>;
+  tmpfs?: string[];
 };
 
 type ComposeConfig = {
@@ -67,6 +69,38 @@ describe("Docker Compose topology", () => {
     expect(s3.services["minio-init"]?.profiles).toEqual(["s3"]);
   });
 
+  test("activates Linux acceptance without pulling in S3-only services", () => {
+    const services = composeConfig(["test"]).services;
+    expect(services.acceptance?.profiles).toEqual(["test"]);
+    expect(services.acceptance?.environment).toMatchObject({
+      COREPACK_HOME: "/tmp/corepack",
+      NODE_ENV: "test",
+      RUNNING_IN_CONTAINER: "false",
+    });
+    const acceptanceTmpfs = services.acceptance?.tmpfs ?? [];
+    for (const projectRoot of [
+      "apps/api",
+      "apps/web",
+      "apps/worker",
+      "packages/contracts",
+      "packages/crypto",
+      "packages/domain",
+      "packages/email-templates",
+      "packages/persistence",
+      "packages/storage",
+      "packages/vss-wasm",
+    ]) {
+      expect(
+        acceptanceTmpfs.some((entry) =>
+          entry.startsWith(`/workspace/${projectRoot}/node_modules/.vite-temp:`),
+        ),
+      ).toBe(true);
+    }
+    expect(services["storage-tests"]).toBeUndefined();
+    expect(services.minio).toBeUndefined();
+    expect(services["minio-init"]).toBeUndefined();
+  });
+
   test("provides a least-privilege migration job without starting it by default", () => {
     const migrator = composeConfig(["ops"]).services.migrator;
     expect(migrator?.profiles).toEqual(expect.arrayContaining(["ops", "test"]));
@@ -79,6 +113,14 @@ describe("Docker Compose topology", () => {
           : secret.source === "migrator_db_password",
       ),
     ).toBe(true);
+    const command = Array.isArray(migrator?.command)
+      ? migrator.command.join("\n")
+      : (migrator?.command ?? "");
+    const pgBossMigration = command.indexOf("pg-boss/dist/cli.js migrate");
+    const applicationMigration = command.indexOf("runMigrationCli");
+    expect(command).toContain("PGBOSS_DATABASE_URL");
+    expect(pgBossMigration).toBeGreaterThan(-1);
+    expect(applicationMigration).toBeGreaterThan(pgBossMigration);
 
     const roleBootstrap = readFileSync(
       resolve(workspaceRoot, "ops/postgres/init/001-roles.sh"),

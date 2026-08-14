@@ -3,11 +3,11 @@ set -eu
 
 ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
 RUN_ID=$(node --input-type=module -e 'process.stdout.write(crypto.randomUUID().replaceAll("-", "").slice(0, 12))')
-PROJECT="dls-acceptance-storage-s3-${RUN_ID}"
+PROJECT="dls-e2e-storage-s3-${RUN_ID}"
 SECRETS="$ROOT/.acceptance-artifacts/storage-s3-secrets-${RUN_ID}"
 
 assert_project() {
-  printf '%s' "$1" | grep -Eq '^dls-acceptance-storage-s3-[0-9a-f]{12}$' || {
+  printf '%s' "$1" | grep -Eq '^dls-e2e-storage-s3-[0-9a-f]{12}$' || {
     printf 'Refusing to operate on a non-disposable S3 acceptance project.\n' >&2
     exit 1
   }

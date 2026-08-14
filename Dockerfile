@@ -2,7 +2,8 @@
 
 ARG NODE_IMAGE=node:24.18.0-bookworm-slim@sha256:6f7b03f7c2c8e2e784dcf9295400527b9b1270fd37b7e9a7285cf83b6951452d
 ARG GO_IMAGE=golang:1.24.8-bookworm@sha256:4ed690d6649d63c312b99a6120025ec79ce3b542968a37da53d6236c7c61a848
-ARG CADDY_IMAGE=caddy:2.11.4-alpine@sha256:5f5c8640aae01df9654968d946d8f1a56c497f1dd5c5cda4cf95ab7c14d58648
+ARG CADDY_BUILD_IMAGE=golang:1.26.6-alpine3.24@sha256:af8d6740070b8906d12eae1c3e3ea0957fb63f492051ea05e354c38ef9fe88df
+ARG CADDY_RUNTIME_IMAGE=alpine:3.24.1@sha256:28bd5fe8b56d1bd048e5babf5b10710ebe0bae67db86916198a6eec434943f8b
 ARG RUST_IMAGE=rust:1.97.1-bookworm@sha256:14bc9c5966e7b3a385794b3d5389a8765668342025fbcc7b2e3d2866ac4bd8c3
 
 FROM ${RUST_IMAGE} AS rust-test
@@ -60,6 +61,7 @@ FROM development-dependencies AS build
 COPY . .
 COPY --from=rust-wasm /workspace/packages/vss-wasm/dist ./packages/vss-wasm/dist
 RUN printf '{\n  "type": "commonjs"\n}\n' > packages/vss-wasm/dist/node/package.json
+RUN node packages/vss-wasm/scripts/write-checksums.mjs
 RUN pnpm run build
 
 FROM dependency-manifests AS production-dependencies
@@ -74,7 +76,17 @@ RUN mkdir -p \
     /var/lib/dls/objects/private \
     /var/lib/dls/objects/staging \
     /var/lib/dls/objects/public \
-  && chown -R node:node /workspace /var/lib/dls
+  && chown -R node:node /workspace /var/lib/dls \
+  && rm -rf \
+    /usr/local/lib/node_modules/npm \
+    /usr/local/lib/node_modules/corepack \
+    /opt/yarn-v1.22.22 \
+  && rm -f \
+    /usr/local/bin/npm \
+    /usr/local/bin/npx \
+    /usr/local/bin/corepack \
+    /usr/local/bin/yarn \
+    /usr/local/bin/yarnpkg
 
 COPY --from=production-dependencies --chown=node:node /workspace/ ./
 COPY --from=build --chown=node:node /workspace/packages/application/dist ./packages/application/dist
@@ -86,6 +98,7 @@ COPY --from=build --chown=node:node /workspace/packages/persistence/dist ./packa
 COPY --from=build --chown=node:node /workspace/packages/storage/dist ./packages/storage/dist
 COPY --from=build --chown=node:node /workspace/packages/test-fixtures/dist ./packages/test-fixtures/dist
 COPY --from=build --chown=node:node /workspace/packages/vss-wasm/dist ./packages/vss-wasm/dist
+COPY --from=build --chown=node:node /workspace/ops/scripts/migrator-database-url.mjs ./ops/scripts/migrator-database-url.mjs
 COPY --from=build --chown=node:node /workspace/ops/scripts/migration-status.mjs ./ops/scripts/migration-status.mjs
 COPY --from=build --chown=node:node /workspace/ops/scripts/runtime-reconcile.mjs ./ops/scripts/runtime-reconcile.mjs
 COPY --from=build --chown=node:node /workspace/ops/scripts/verify-audit.mjs ./ops/scripts/verify-audit.mjs
@@ -110,14 +123,31 @@ FROM build AS test
 USER node
 CMD ["pnpm", "acceptance"]
 
-FROM ${CADDY_IMAGE} AS caddy
+FROM ${CADDY_BUILD_IMAGE} AS caddy-build
+
+WORKDIR /src/caddy
+COPY ops/caddy/builder/go.mod ./
+RUN for attempt in 1 2 3; do \
+    if go mod download; then exit 0; fi; \
+    if [ "$attempt" -eq 3 ]; then exit 1; fi; \
+    sleep "$((attempt * 5))"; \
+  done
+RUN CGO_ENABLED=0 go build \
+    -mod=mod \
+    -trimpath \
+    -buildvcs=false \
+    -ldflags="-s -w -X github.com/caddyserver/caddy/v2.CustomVersion=v2.11.4" \
+    -o /out/caddy \
+    github.com/caddyserver/caddy/v2/cmd/caddy
+
+FROM ${CADDY_RUNTIME_IMAGE} AS caddy
 
 USER root
-RUN mkdir -p /data /config \
+RUN apk add --no-cache ca-certificates tzdata \
+  && mkdir -p /data /config \
   && chown -R 1000:1000 /data /config \
-  && cp /usr/bin/caddy /usr/local/bin/caddy-unprivileged \
-  && chmod 0755 /usr/local/bin/caddy-unprivileged \
-  && chown 1000:1000 /usr/local/bin/caddy-unprivileged
+  && mkdir -p /etc/caddy
+COPY --from=caddy-build --chown=1000:1000 /out/caddy /usr/local/bin/caddy-unprivileged
 
 USER 1000:1000
 ENTRYPOINT ["/usr/local/bin/caddy-unprivileged"]

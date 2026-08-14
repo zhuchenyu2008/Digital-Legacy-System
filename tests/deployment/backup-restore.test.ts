@@ -279,7 +279,7 @@ describe("backup and restore operator boundaries", () => {
     for (const script of [backup, restore, verify]) {
       expect(script).not.toContain("node_modules/tsx");
     }
-    expect(verify).toContain("node ops/scripts/verify-audit.mjs");
+    expect(verify).toContain("ops/scripts/verify-audit.mjs");
   });
 
   it("has equivalent POSIX backup, restore, and verification entry points", async () => {
@@ -299,10 +299,11 @@ describe("backup and restore operator boundaries", () => {
     expect(restore.indexOf("rm -rf --")).toBeGreaterThan(restore.indexOf("database_objects="));
     expect(restore).toMatch(/pg_restore/iu);
     expect(verify).toContain("verify-objects");
-    expect(verify).toContain("node ops/scripts/verify-audit.mjs");
+    expect(verify).toContain("ops/scripts/verify-audit.mjs");
     for (const file of ["backup.ps1", "backup.sh", "restore.ps1", "restore.sh"]) {
       const text = await readFile(resolve(root, "ops/scripts", file), "utf8");
       expect(text).not.toContain("--no-privileges");
+      expect(text).not.toContain("--no-owner");
       expect(text).not.toContain("node_modules/tsx");
     }
   });
@@ -318,8 +319,12 @@ describe("backup and restore operator boundaries", () => {
     expect(powershell).toContain("backup-restore-smoke.ps1");
     expect(posix).toContain("backup-restore-smoke.sh");
     for (const smoke of [powershellSmoke, posixSmoke]) {
-      expect(smoke).toContain("runtime-reconcile.mjs");
+      expect(smoke).toContain("seed-backup-restore-job.mjs");
+      expect(smoke).toContain(
+        "run --rm --no-TTY --entrypoint node worker ops/scripts/runtime-reconcile.mjs",
+      );
       expect(smoke).toContain("backup-restore-reconciliation.json");
+      expect(smoke.match(/up --detach --wait postgres/gu)).toHaveLength(2);
     }
   });
 });

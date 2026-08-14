@@ -21,6 +21,7 @@ coverage
 ops/secrets/generated
 .env
 .env.*
+!.env.production.example
 playwright-report
 test-results
 blob-report

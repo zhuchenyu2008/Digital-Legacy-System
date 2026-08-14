@@ -92,6 +92,25 @@ describe("cross-platform operational scripts", () => {
     expect(posix).toContain("bash ops/scripts/backup-restore-smoke.sh");
   });
 
+  it("starts and always removes an isolated PostgreSQL fixture before database gates", async () => {
+    const powershell = await readFile(resolve(root, "ops/scripts/acceptance.ps1"), "utf8");
+    const posix = await readFile(resolve(root, "ops/scripts/acceptance.sh"), "utf8");
+
+    expect(powershell).toContain("dls-e2e-acceptance-postgres-");
+    expect(powershell).toMatch(/Start-AcceptancePostgres/iu);
+    expect(powershell).toMatch(/finally\s*\{[^}]*Stop-AcceptancePostgres/isu);
+    expect(powershell.indexOf("Start-AcceptancePostgres")).toBeLessThan(
+      powershell.indexOf('Invoke-Gate "migration-up-down-up"'),
+    );
+
+    expect(posix).toContain("dls-e2e-acceptance-postgres-");
+    expect(posix).toMatch(/start_acceptance_postgres/iu);
+    expect(posix).toMatch(/trap\s+stop_acceptance_postgres\s+EXIT/iu);
+    expect(posix.indexOf("start_acceptance_postgres")).toBeLessThan(
+      posix.indexOf('run_gate "migration-up-down-up"'),
+    );
+  });
+
   it("includes the three operational readiness runbooks", async () => {
     for (const file of [
       "incident-response.md",
@@ -138,6 +157,59 @@ describe("cross-platform operational scripts", () => {
     const acceptancePosix = await readFile(resolve(root, "ops/scripts/acceptance.sh"), "utf8");
     expect(acceptancePowerShell).toContain("compose-smoke.ps1 -DeleteVolumes");
     expect(acceptancePosix).toContain("compose-smoke.sh --delete-volumes");
+    expect(s3PowerShell).toContain("dls-e2e-storage-s3-$runId");
+    expect(s3Posix).toMatch(/dls-e2e-storage-s3-\$\{RUN_ID\}/u);
+    expect(s3PowerShell).toMatch(/function Invoke-DockerComposeCleanup/iu);
+    expect(s3PowerShell).toMatch(/\$ErrorActionPreference\s*=\s*"Continue"/iu);
+    expect(s3PowerShell).toMatch(/if \(\$cleanupExitCode -ne 0\)/iu);
+  });
+
+  it("builds and removes security scan images under a unique disposable project", async () => {
+    const powershell = await readFile(resolve(root, "ops/scripts/security-scan.ps1"), "utf8");
+    const posix = await readFile(resolve(root, "ops/scripts/security-scan.sh"), "utf8");
+
+    for (const script of [powershell, posix]) {
+      expect(script).toMatch(/dls-e2e-security-/u);
+      expect(script).not.toMatch(/--project-name\s+["']?dls-local-v1\b/u);
+      expect(script).toMatch(/(?:docker\s+image\s+rm|docker\s+rmi)/u);
+      expect(script).toMatch(
+        /(?:trivyCacheVolume|TRIVY_CACHE_VOLUME)[^\r\n]*project[^\r\n]*trivy-cache/iu,
+      );
+      expect(script).toMatch(/docker\s+volume\s+rm/u);
+      expect(script).toMatch(/caddy[^\r\n]*version/iu);
+      expect(script).toContain("v2.11.4");
+    }
+  });
+
+  it("strips build-only package managers from every production Node runtime", async () => {
+    const dockerfile = await readFile(resolve(root, "Dockerfile"), "utf8");
+    const runtimeStart = dockerfile.indexOf("AS application-runtime");
+    const runtimeEnd = dockerfile.indexOf("FROM application-runtime AS api");
+    const runtime = dockerfile.slice(runtimeStart, runtimeEnd);
+
+    expect(runtimeStart).toBeGreaterThanOrEqual(0);
+    expect(runtimeEnd).toBeGreaterThan(runtimeStart);
+    expect(runtime).toMatch(/\/usr\/local\/lib\/node_modules\/npm/u);
+    expect(runtime).toMatch(/\/usr\/local\/lib\/node_modules\/corepack/u);
+    expect(runtime).toMatch(/\/opt\/yarn-v1\.22\.22/u);
+    expect(runtime).toMatch(/\/usr\/local\/bin\/(?:npm|npx|corepack|yarn|yarnpkg)/u);
+    expect(runtime.indexOf("/usr/local/lib/node_modules/npm")).toBeLessThan(
+      runtime.indexOf("USER node"),
+    );
+  });
+
+  it("exposes live S3 contract variables through the package test configuration", async () => {
+    const s3Contract = await readFile(
+      resolve(root, "packages/storage/src/s3/s3-storage.test.ts"),
+      "utf8",
+    );
+    const storageVitest = await readFile(
+      resolve(root, "packages/storage/vitest.config.ts"),
+      "utf8",
+    );
+    expect(s3Contract).toContain("import.meta");
+    expect(s3Contract).not.toContain("process.env");
+    expect(storageVitest).toMatch(/envPrefix:\s*\[[^\]]*"DLS_"[^\]]*"S3_"/su);
   });
 
   it("renders per-gate test counts and artifact digests into acceptance evidence", async () => {

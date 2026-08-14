@@ -11,6 +11,47 @@ RECORDS="$ARTIFACT_DIRECTORY/gates.jsonl"
 : > "$RECORDS"
 FAILED=0
 BLOCKED=0
+ACCEPTANCE_POSTGRES_CONTAINER="dls-e2e-acceptance-postgres-$(node -e 'process.stdout.write(crypto.randomUUID().replaceAll("-", ""))')"
+ACCEPTANCE_POSTGRES_IMAGE="postgres:18.4-bookworm@sha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382"
+export DATABASE_URL="postgresql://postgres:test@127.0.0.1:55432/dls"
+
+start_acceptance_postgres() {
+  docker run --detach --name "$ACCEPTANCE_POSTGRES_CONTAINER" \
+    --publish 127.0.0.1:55432:5432 \
+    --env POSTGRES_DB=dls \
+    --env POSTGRES_USER=postgres \
+    --env POSTGRES_PASSWORD=test \
+    --health-cmd 'pg_isready --username postgres --dbname dls' \
+    --health-interval 1s \
+    --health-timeout 5s \
+    --health-retries 60 \
+    "$ACCEPTANCE_POSTGRES_IMAGE"
+
+  local attempt status health
+  for attempt in $(seq 1 90); do
+    status="$(docker inspect --format '{{.State.Status}}' "$ACCEPTANCE_POSTGRES_CONTAINER" 2>/dev/null || true)"
+    health="$(docker inspect --format '{{.State.Health.Status}}' "$ACCEPTANCE_POSTGRES_CONTAINER" 2>/dev/null || true)"
+    if [[ "$health" == healthy ]]; then return 0; fi
+    if [[ "$status" == exited || "$status" == dead ]]; then
+      docker logs "$ACCEPTANCE_POSTGRES_CONTAINER" 2>&1 || true
+      return 1
+    fi
+    sleep 1
+  done
+
+  docker logs "$ACCEPTANCE_POSTGRES_CONTAINER" 2>&1 || true
+  return 1
+}
+
+stop_acceptance_postgres() {
+  docker rm --force "$ACCEPTANCE_POSTGRES_CONTAINER" >/dev/null 2>&1 || true
+}
+
+run_migration_gate() {
+  start_acceptance_postgres && corepack pnpm test:migrations
+}
+
+trap stop_acceptance_postgres EXIT
 
 record() {
   node --input-type=module -e 'import {appendFile} from "node:fs/promises"; const [file,name,command,status,exitCode,durationMs,startedAt,endedAt,outputFile]=process.argv.slice(1); await appendFile(file,JSON.stringify({name,command,status,exitCode:exitCode==="null"?null:Number(exitCode),durationMs:Number(durationMs),startedAt,endedAt,outputFile})+"\n");' "$RECORDS" "$1" "$2" "$3" "$4" "$5" "$6" "$7" "$8"
@@ -57,7 +98,7 @@ run_gate() {
 run_gate "versions" "node ops/scripts/release-metadata.mjs --verify" node ops/scripts/release-metadata.mjs --verify
 run_gate "format" "corepack pnpm check; corepack pnpm typecheck" bash -c 'corepack pnpm check && corepack pnpm typecheck'
 run_gate "unit" "corepack pnpm test:unit" corepack pnpm test:unit
-run_gate "migration-up-down-up" "corepack pnpm test:migrations" corepack pnpm test:migrations
+run_gate "migration-up-down-up" "start disposable PostgreSQL; corepack pnpm test:migrations" run_migration_gate
 run_gate "integration" "corepack pnpm test:integration" corepack pnpm test:integration
 run_gate "concurrency" "corepack pnpm test:concurrency" corepack pnpm test:concurrency
 run_gate "crypto" "corepack pnpm test:crypto; docker build --target rust-test" bash -c 'corepack pnpm test:crypto && docker build --target rust-test --tag dls-rust-test .'
