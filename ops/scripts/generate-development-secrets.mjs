@@ -27,6 +27,13 @@ for (let index = 0; index < args.length; index += 1) {
 const directory = resolve(option("--directory") ?? process.env.DLS_SECRETS_DIR ?? defaultDirectory);
 const rotate = args.includes("--rotate");
 if (directory === parse(directory).root) throw new Error("Secret directory must not be a filesystem root");
+const configuredFileMode = process.env.DLS_SECRETS_FILE_MODE;
+// Acceptance Compose runs non-root containers against file-backed secrets.
+const fileMode =
+  configuredFileMode === undefined ? 0o600 : configuredFileMode === "0444" ? 0o444 : undefined;
+if (fileMode === undefined) {
+  throw new Error("DLS_SECRETS_FILE_MODE must be 0444 when explicitly set");
+}
 const created = [];
 
 mkdirSync(directory, { recursive: true, mode: 0o700 });
@@ -35,8 +42,12 @@ chmodSync(directory, 0o700);
 function writeSecret(name, value) {
   const path = resolve(directory, name);
   if (existsSync(path) && !rotate) return;
-  writeFileSync(path, value, { encoding: "utf8", flag: rotate ? "w" : "wx", mode: 0o600 });
-  chmodSync(path, 0o600);
+  writeFileSync(path, value, {
+    encoding: "utf8",
+    flag: rotate ? "w" : "wx",
+    mode: fileMode,
+  });
+  chmodSync(path, fileMode);
   created.push(name);
 }
 

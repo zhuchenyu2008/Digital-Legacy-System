@@ -68,6 +68,8 @@ mkdir -p "$secret_directory" "$docker_config_directory"
 
 export DOCKER_CONFIG=$docker_config_directory
 export DLS_SECRETS_DIR=$secret_directory
+# File-backed Compose secrets preserve source permissions; smoke containers run as non-root.
+export DLS_SECRETS_FILE_MODE=0444
 export DLS_HTTP_PORT=${DLS_HTTP_PORT:-18080}
 
 node "$repository_root/ops/scripts/generate-development-secrets.mjs"

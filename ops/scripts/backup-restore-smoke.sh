@@ -36,6 +36,8 @@ rm -rf "$WORK"
 rm -f "$RECONCILIATION"
 mkdir -p "$SECRETS" "$SOURCE_DATA" "$TARGET_DATA" "$BACKUP"
 export DLS_SECRETS_DIR="$SECRETS"
+# File-backed Compose secrets preserve source permissions; smoke containers run as non-root.
+export DLS_SECRETS_FILE_MODE=0444
 export DLS_BACKUP_DATA_DIR="$SOURCE_DATA"
 node "$ROOT/ops/scripts/generate-development-secrets.mjs"
 
