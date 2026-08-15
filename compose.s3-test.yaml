@@ -17,6 +17,7 @@ services:
     entrypoint: ["pnpm"]
     command: ["--filter", "@dls/storage", "test"]
     environment:
+      COREPACK_HOME: /tmp/corepack
       DLS_S3_TEST: "1"
       S3_ENDPOINT: http://minio:9000
       S3_REGION: ${DLS_S3_REGION:-us-east-1}
