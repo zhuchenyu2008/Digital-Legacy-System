@@ -14,6 +14,7 @@ import {
 import { ApiBody, ApiOperation, ApiResponse, ApiTags } from "@nestjs/swagger";
 import type { FastifyReply, FastifyRequest } from "fastify";
 import { CsrfGuard } from "../security/csrf.guard.js";
+import { ContactRateLimitGuard } from "../security/rate-limit.guard.js";
 import { ContactSessionGuard } from "../security/session.guard.js";
 import { setSessionCookies } from "../security/session-cookies.js";
 import {
@@ -31,6 +32,7 @@ export class ContactAuthController {
 
   @Post("login")
   @HttpCode(HttpStatus.OK)
+  @UseGuards(ContactRateLimitGuard)
   @ApiBody({ type: ContactLoginDto })
   @ApiOperation({ summary: "Login an emergency contact" })
   @ApiResponse({ status: 200, description: "Contact session created" })
@@ -78,7 +80,7 @@ export class ContactPasswordController {
   public constructor(@Inject(CONTACT_RUNTIME) private readonly runtime: ContactRuntime) {}
 
   @Post("complete")
-  @UseGuards(ContactSessionGuard, CsrfGuard)
+  @UseGuards(ContactRateLimitGuard, ContactSessionGuard, CsrfGuard)
   @HttpCode(HttpStatus.OK)
   @ApiBody({ type: ChangeContactPasswordDto })
   @ApiOperation({ summary: "Rotate the contact password and wrapped private key" })

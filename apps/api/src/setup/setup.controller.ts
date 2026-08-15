@@ -10,9 +10,11 @@ import {
   Post,
   Req,
   Res,
+  UseGuards,
 } from "@nestjs/common";
 import { ApiBody, ApiOperation, ApiResponse, ApiTags } from "@nestjs/swagger";
 import type { FastifyReply, FastifyRequest } from "fastify";
+import { TokenRateLimitGuard } from "../security/rate-limit.guard.js";
 import { setSessionCookies } from "../security/session-cookies.js";
 import { CreateOwnerDto, parseCreateOwner } from "./setup.dto.js";
 import { SETUP_RUNTIME, type SetupRuntime } from "./setup.runtime.js";
@@ -31,6 +33,7 @@ export class SetupController {
 
   @Post("owner")
   @HttpCode(HttpStatus.CREATED)
+  @UseGuards(TokenRateLimitGuard)
   @ApiOperation({ summary: "Create the singleton owner exactly once" })
   @ApiBody({ type: CreateOwnerDto })
   @ApiResponse({ status: 201, description: "Owner created and signed in" })

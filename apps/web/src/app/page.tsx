@@ -14,14 +14,14 @@ const deathNav = [
 export default async function HomePage() {
   const response = await serverApiRequest<PublicStatusData>("/public/status");
   const status = response.data ?? { state: response.status >= 500 ? "UNAVAILABLE" : "NORMAL" };
-  const deathConfirming = status.state === "DEATH_CONFIRMING";
+  const workflowInProgress = status.state === "IN_PROGRESS";
 
   return (
     <div className={`dls-public-home dls-public-home--${status.state.toLowerCase()}`}>
-      <header className={deathConfirming ? "dls-public-death-header" : undefined}>
+      <header className={workflowInProgress ? "dls-public-death-header" : undefined}>
         <div className="dls-public-header-inner">
           <Wordmark />
-          {deathConfirming ? (
+          {workflowInProgress ? (
             <>
               <nav aria-label="公开状态导航">
                 {deathNav.map((item) => (
@@ -59,7 +59,7 @@ export default async function HomePage() {
         <PublicStatus status={status} />
       </main>
       <nav className="dls-public-mobile-nav" aria-label="公开页面导航">
-        {(deathConfirming
+        {(workflowInProgress
           ? deathNav
           : [
               { href: "/", label: "首页" },
@@ -74,8 +74,8 @@ export default async function HomePage() {
                 [
                   "home",
                   "contacts",
-                  index === 2 && deathConfirming ? "file" : "audit",
-                  index === 3 && deathConfirming ? "settings" : "user",
+                  index === 2 && workflowInProgress ? "file" : "audit",
+                  index === 3 && workflowInProgress ? "settings" : "user",
                 ][index] ?? "home"
               }
             />

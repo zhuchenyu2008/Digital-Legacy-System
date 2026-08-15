@@ -52,15 +52,18 @@ export class PostgresOwnerSystemHealthRuntime implements OwnerSystemHealthRuntim
   readonly #pool: Queryable;
   readonly #storage: StorageFactoryConfig;
   readonly #storageCheck: StorageCheck;
+  readonly #workerHeartbeatStaleMs: number;
 
   public constructor(
     pool: Queryable,
     storage: StorageFactoryConfig,
     storageCheck: StorageCheck = () => defaultStorageCheck(storage),
+    workerHeartbeatStaleMs = getApiRuntimeConfig().workerHeartbeatStaleMs,
   ) {
     this.#pool = pool;
     this.#storage = storage;
     this.#storageCheck = storageCheck;
+    this.#workerHeartbeatStaleMs = workerHeartbeatStaleMs;
   }
 
   public async read(): Promise<OwnerSystemHealth> {
@@ -83,7 +86,7 @@ export class PostgresOwnerSystemHealthRuntime implements OwnerSystemHealthRuntim
       };
     }
 
-    const [outbox, notification, audit, storageAvailable] = await Promise.all([
+    const [outbox, notification, audit, storageAvailable, workerHeartbeat] = await Promise.all([
       this.#pool
         .query(
           `SELECT count(*)::int AS count FROM app.domain_outbox
@@ -104,17 +107,38 @@ export class PostgresOwnerSystemHealthRuntime implements OwnerSystemHealthRuntim
         )
         .catch(() => ({ rows: [] })),
       this.#storageCheck().catch(() => false),
+      this.#pool
+        .query(
+          `SELECT last_seen_at::text AS last_seen_at,
+                  EXTRACT(EPOCH FROM (clock_timestamp() - last_seen_at)) * 1000 AS age_ms
+           FROM app.worker_heartbeats WHERE service = 'worker'`,
+        )
+        .catch(() => ({ rows: [] })),
     ]);
 
     const notificationRow = notification.rows[0];
     const auditRow = audit.rows[0];
+    const heartbeatRow = workerHeartbeat.rows[0] as
+      | { last_seen_at?: unknown; age_ms?: unknown }
+      | undefined;
+    const heartbeatAge = Number(heartbeatRow?.age_ms);
+    const workerStatus: HealthCategoryStatus =
+      heartbeatRow === undefined || !Number.isFinite(heartbeatAge)
+        ? "unknown"
+        : heartbeatAge <= this.#workerHeartbeatStaleMs
+          ? "ok"
+          : "degraded";
     const notificationResult = String(notificationRow?.result ?? "");
     return {
       serverNow,
       categories: [
         { code: "database", status: "ok" },
         { code: "storage", status: storageAvailable ? "ok" : "unknown", backend },
-        { code: "worker", status: "unknown", lastSeenAt: null },
+        {
+          code: "worker",
+          status: workerStatus,
+          lastSeenAt: timestamp(heartbeatRow?.last_seen_at),
+        },
         {
           code: "deadlineScanner",
           status: "unknown",

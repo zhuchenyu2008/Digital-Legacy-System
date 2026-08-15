@@ -1,49 +1,16 @@
 import Link from "next/link";
 import { StatusBadge } from "../../components/ui/status-badge";
-import { DeathConfirming } from "./death-confirming";
-import { PublicCountdown } from "./public-countdown";
-import { RecoveryStatus } from "./recovery-status";
 export type PublicStatusData = Readonly<{
-  state:
-    | "NORMAL"
-    | "DEATH_CONFIRMING"
-    | "PASSWORD_RECOVERY"
-    | "RELEASE_PENDING"
-    | "PUBLISHING"
-    | "RELEASED"
-    | "UNAVAILABLE";
-  approvedCount?: number | undefined;
-  requiredCount?: number | undefined;
-  releaseAt?: string | null | undefined;
+  state: "NORMAL" | "IN_PROGRESS" | "PUBLISHING" | "RELEASED" | "UNAVAILABLE";
   serverNow?: string | undefined;
 }>;
 export function PublicStatus({ status }: Readonly<{ status: PublicStatusData }>) {
-  if (status.state === "DEATH_CONFIRMING")
+  if (status.state === "IN_PROGRESS")
     return (
-      <DeathConfirming
-        approvedCount={status.approvedCount ?? 0}
-        requiredCount={status.requiredCount ?? 1}
-      />
-    );
-  if (status.state === "PASSWORD_RECOVERY")
-    return (
-      <RecoveryStatus
-        approvedCount={status.approvedCount ?? 0}
-        requiredCount={status.requiredCount ?? 1}
-      />
-    );
-  if (status.state === "RELEASE_PENDING")
-    return (
-      <section className="dls-public-stage dls-public-critical">
-        <StatusBadge tone="critical">发布待定</StatusBadge>
-        <h1>最终发布等待期</h1>
-        <p>确认门限已经达到。管理员仍可在服务端锁定发布前使用主密码终止。</p>
-        {status.releaseAt ? (
-          <PublicCountdown deadline={status.releaseAt} serverNow={status.serverNow} />
-        ) : null}
-        <Link className="dls-button dls-button--secondary" href="/login">
-          管理员登录
-        </Link>
+      <section className="dls-public-stage">
+        <StatusBadge tone="critical">处理中</StatusBadge>
+        <h1>系统正在处理流程</h1>
+        <p>系统正在执行受保护的内部流程。公开页面不会展示审批进度、恢复类型或内部时间点。</p>
       </section>
     );
   if (status.state === "PUBLISHING")

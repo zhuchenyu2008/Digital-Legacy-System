@@ -9,9 +9,7 @@ describe("workflow and public legacy experiences", () => {
   test("renders every public projection without contact identities or private errors", () => {
     for (const state of [
       "NORMAL",
-      "DEATH_CONFIRMING",
-      "PASSWORD_RECOVERY",
-      "RELEASE_PENDING",
+      "IN_PROGRESS",
       "PUBLISHING",
       "RELEASED",
       "UNAVAILABLE",
@@ -20,26 +18,19 @@ describe("workflow and public legacy experiences", () => {
         <PublicStatus
           status={{
             state,
-            approvedCount: 2,
-            requiredCount: 3,
-            releaseAt: "2026-08-10T00:00:00.000Z",
           }}
         />,
       );
       expect(html).toContain(
         state === "NORMAL"
           ? "系统正常运行"
-          : state === "DEATH_CONFIRMING"
-            ? "生存状态确认中"
-            : state === "PASSWORD_RECOVERY"
-              ? "密码恢复处理中"
-              : state === "RELEASE_PENDING"
-                ? "最终发布等待期"
-                : state === "PUBLISHING"
-                  ? "正在生成公开内容"
-                  : state === "RELEASED"
-                    ? "数字遗产已发布"
-                    : "状态暂时不可用",
+          : state === "IN_PROGRESS"
+            ? "系统正在处理流程"
+            : state === "PUBLISHING"
+              ? "正在生成公开内容"
+              : state === "RELEASED"
+                ? "数字遗产已发布"
+                : "状态暂时不可用",
       );
       expect(html).not.toContain("example.com");
       expect(html).not.toContain("contactId");

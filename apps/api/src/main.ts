@@ -8,13 +8,16 @@ import { NestFactory } from "@nestjs/core";
 import { FastifyAdapter, type NestFastifyApplication } from "@nestjs/platform-fastify";
 import { AppModule } from "./app.module.js";
 import { registerBinaryBodyParser } from "./bootstrap/binary-body-parser.js";
+import { getApiRuntimeConfig } from "./config/api-runtime-config.js";
 import { loadApiKeyCapabilities } from "./config/key-capabilities.js";
 import { loadApiConfig } from "./config/load-config.js";
 
 async function bootstrap(): Promise<void> {
   const config = loadApiConfig();
+  const apiRuntime = getApiRuntimeConfig();
   await loadApiKeyCapabilities();
   const adapter = new FastifyAdapter({
+    trustProxy: apiRuntime.trustedProxyCidrs.length > 0 ? [...apiRuntime.trustedProxyCidrs] : false,
     genReqId: (request: IncomingMessage) =>
       request.headers["x-request-id"]?.toString() ?? randomUUID(),
   });

@@ -17,6 +17,7 @@ import { ApiBody, ApiOperation, ApiParam, ApiResponse, ApiTags } from "@nestjs/s
 import type { FastifyReply, FastifyRequest } from "fastify";
 import { CsrfGuard } from "../security/csrf.guard.js";
 import { OriginGuard } from "../security/origin.guard.js";
+import { TokenRateLimitGuard } from "../security/rate-limit.guard.js";
 import {
   ContactSessionGuard,
   OwnerSessionGuard,
@@ -171,6 +172,7 @@ export class ContactInvitationsController {
   }
 
   @Post("contact-invitations/resolve")
+  @UseGuards(TokenRateLimitGuard)
   @ApiBody({ type: ResolveContactInvitationDto })
   @ApiOperation({ summary: "Resolve an invitation token supplied in the request body" })
   public async resolve(@Body() body: ResolveContactInvitationDto) {
@@ -182,6 +184,7 @@ export class ContactInvitationsController {
   }
 
   @Post("contact-invitations/accept")
+  @UseGuards(TokenRateLimitGuard)
   @ApiBody({ type: AcceptContactInvitationDto })
   @ApiOperation({ summary: "Accept an invitation with consent and a wrapped private key" })
   public async accept(

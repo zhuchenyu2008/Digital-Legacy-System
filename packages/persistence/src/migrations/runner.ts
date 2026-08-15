@@ -32,6 +32,7 @@ export const REQUIRED_TABLES = [
   "app.publications",
   "app.email_template_overrides",
   "app.rate_limit_buckets",
+  "app.worker_heartbeats",
   "audit.private_events",
   "audit.public_events",
 ] as const;

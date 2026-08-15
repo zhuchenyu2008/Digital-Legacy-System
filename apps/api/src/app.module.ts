@@ -1,9 +1,17 @@
+import { createPgPool } from "@dls/persistence";
 import { Module } from "@nestjs/common";
 import { AuditModule } from "./audit/audit.module.js";
+import { getApiRuntimeConfig } from "./config/api-runtime-config.js";
+import { getPublicRuntimeConfig } from "./config/public-runtime-config.js";
 import { getSimulationRuntimeConfig } from "./config/simulation-runtime-config.js";
 import { ContactModule } from "./contacts/contact.module.js";
 import { EmailTemplatesModule } from "./email-templates/email-templates.module.js";
 import { HealthController } from "./health/health.controller.js";
+import {
+  createStorageHealthProbe,
+  PostgresHealthProbe,
+  WorkerHeartbeatHealthProbe,
+} from "./health/health.probes.js";
 import {
   DATABASE_HEALTH_PROBE,
   type HealthProbe,
@@ -25,8 +33,6 @@ import { ShareGenerationModule } from "./shares/share-generation.module.js";
 import { SimulationModule } from "./simulation/simulation.module.js";
 import { VaultModule } from "./vault/vault.module.js";
 import { WorkflowsModule } from "./workflows/workflows.module.js";
-
-const startupProbe: HealthProbe = Object.freeze({ check: async () => undefined });
 
 export function applicationImports(environment?: Record<string, string | undefined>) {
   const simulation = getSimulationRuntimeConfig(environment);
@@ -50,9 +56,25 @@ export function applicationImports(environment?: Record<string, string | undefin
   imports: applicationImports(),
   controllers: [HealthController, OwnerSystemHealthController],
   providers: [
-    { provide: DATABASE_HEALTH_PROBE, useValue: startupProbe },
-    { provide: STORAGE_HEALTH_PROBE, useValue: startupProbe },
-    { provide: WORKER_HEARTBEAT_HEALTH_PROBE, useValue: startupProbe },
+    {
+      provide: DATABASE_HEALTH_PROBE,
+      useFactory: () =>
+        new PostgresHealthProbe(
+          createPgPool({ connectionString: getApiRuntimeConfig().databaseUrl }),
+        ),
+    },
+    {
+      provide: STORAGE_HEALTH_PROBE,
+      useFactory: () => createStorageHealthProbe(getPublicRuntimeConfig().storage),
+    },
+    {
+      provide: WORKER_HEARTBEAT_HEALTH_PROBE,
+      useFactory: () =>
+        new WorkerHeartbeatHealthProbe(
+          createPgPool({ connectionString: getApiRuntimeConfig().databaseUrl }),
+          getApiRuntimeConfig().workerHeartbeatStaleMs,
+        ),
+    },
     { provide: OWNER_SYSTEM_HEALTH_RUNTIME, useFactory: createOwnerSystemHealthRuntime },
     {
       provide: HealthService,

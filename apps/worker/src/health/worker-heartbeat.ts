@@ -1,4 +1,5 @@
 import { Injectable } from "@nestjs/common";
+import type { Pool } from "pg";
 
 export type WorkerHeartbeatRecord = Readonly<{
   service: "worker";
@@ -18,6 +19,22 @@ export class InMemoryWorkerHeartbeatPort implements WorkerHeartbeatPort {
 
   public async writeHeartbeat(record: WorkerHeartbeatRecord): Promise<void> {
     this.latest = record;
+  }
+}
+
+export class PostgresWorkerHeartbeatPort implements WorkerHeartbeatPort {
+  public constructor(private readonly database: Pick<Pool, "query">) {}
+
+  public async writeHeartbeat(record: WorkerHeartbeatRecord): Promise<void> {
+    await this.database.query(
+      `INSERT INTO app.worker_heartbeats (service, last_seen_at, version)
+       VALUES ($1, $2, $3)
+       ON CONFLICT (service) DO UPDATE
+       SET last_seen_at = EXCLUDED.last_seen_at,
+           version = EXCLUDED.version,
+           updated_at = clock_timestamp()`,
+      [record.service, record.observedAt, record.version],
+    );
   }
 }
 

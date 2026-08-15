@@ -21,3 +21,33 @@ Compose mounts capabilities by ownership: API receives the release public key pl
 For direct host development, export only the variables listed for that process in [stage-key-capabilities.md](../../docs/operations/stage-key-capabilities.md). Docker Compose reads the files directly. Never commit generated values, paste them into logs, or reuse development secrets in production.
 
 Production deployments must use independently generated, access-controlled secret mounts and the documented rotation procedure rather than development files or `.env` values.
+
+## 生产密钥离线/异地备份
+
+数据库与 object backup 不包含 `/run/secrets` 中的生产密钥。为避免“数据库和对象都在、但无法解密”的单点故障，使用独立的 32 字节备份密钥对 secret 文件目录做加密封装，并把备份密钥和封装文件放到不同的离线/异地保管位置（例如两个不同的硬件密钥库或 KMS 管理域）。
+
+生成备份密钥（只在离线密钥库中保存，不要和 bundle 放在同一台机器）：
+
+```sh
+openssl rand -base64 32 > /offline/dls-secrets-backup.key
+```
+
+执行备份：
+
+```sh
+node ops/scripts/secrets-backup.mjs backup \
+  --source /srv/dls/secrets \
+  --output /offline/dls-secrets-2026-08-15.bundle.enc \
+  --key-file /offline/dls-secrets-backup.key
+```
+
+恢复前先完成双人复核，目标目录必须是空目录；恢复后再用数据库/object backup 的校验与 `verify-restore` 检查启动。
+
+```sh
+node ops/scripts/secrets-backup.mjs restore \
+  --bundle /offline/dls-secrets-2026-08-15.bundle.enc \
+  --target /srv/dls/rebuilt-secrets \
+  --key-file /offline/dls-secrets-backup.key
+```
+
+bundle 只输出文件数量、哈希和 key fingerprint，不输出任何 secret 内容。每次生产备份都应记录 bundle 的 SHA-256、保管位置、审批人和恢复演练日期；至少每季度做一次“机器全丢”演练。

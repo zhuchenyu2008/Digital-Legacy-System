@@ -15,6 +15,7 @@ import {
 import { ApiBody, ApiOperation, ApiResponse, ApiTags } from "@nestjs/swagger";
 import type { FastifyReply, FastifyRequest } from "fastify";
 import { CsrfGuard } from "../security/csrf.guard.js";
+import { OwnerRateLimitGuard } from "../security/rate-limit.guard.js";
 import { OwnerSessionGuard, type SecurityRequest } from "../security/session.guard.js";
 import { clearSessionCookies, setSessionCookies } from "../security/session-cookies.js";
 import {
@@ -34,6 +35,7 @@ export class OwnerAuthController {
 
   @Post("owner/login")
   @HttpCode(HttpStatus.OK)
+  @UseGuards(OwnerRateLimitGuard)
   @ApiOperation({ summary: "Login the singleton owner and record a check-in" })
   @ApiBody({ type: OwnerLoginDto })
   @ApiResponse({ status: 200, description: "Owner session created" })
@@ -98,7 +100,7 @@ export class OwnerAuthController {
   }
 
   @Post("owner/password-change")
-  @UseGuards(OwnerSessionGuard, CsrfGuard)
+  @UseGuards(OwnerRateLimitGuard, OwnerSessionGuard, CsrfGuard)
   @ApiBody({ type: ChangeOwnerPasswordDto })
   @ApiOperation({ summary: "Change the owner password and rotate the session" })
   public async changePassword(

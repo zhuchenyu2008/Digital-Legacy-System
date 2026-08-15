@@ -13,6 +13,14 @@ export type ApiRuntimeConfig = Readonly<{
   mailTransportUrl: string;
   mailFrom: string;
   smtpConfigured: boolean;
+  trustedProxyCidrs: readonly string[];
+  rateLimits: Readonly<{
+    owner: Readonly<{ windowMs: number; maxAttempts: number }>;
+    contact: Readonly<{ windowMs: number; maxAttempts: number }>;
+    recovery: Readonly<{ windowMs: number; maxAttempts: number }>;
+    token: Readonly<{ windowMs: number; maxAttempts: number }>;
+  }>;
+  workerHeartbeatStaleMs: number;
 }>;
 
 const DEFAULT_DATABASE_URL = "postgresql://postgres:test@127.0.0.1:55432/dls";
@@ -22,6 +30,25 @@ function secret(value: string | undefined, fallback: string): Uint8Array {
   return Uint8Array.from(
     Buffer.from(value ?? Buffer.from(fallback, "utf8").toString("base64"), "base64"),
   );
+}
+
+function positiveInteger(value: string | undefined, fallback: number): number {
+  const parsed = Number(value ?? fallback);
+  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function rateLimit(
+  environment: Record<string, string | undefined>,
+  prefix: string,
+  defaults: Readonly<{ windowMs: number; maxAttempts: number }>,
+) {
+  return Object.freeze({
+    windowMs: positiveInteger(environment[`RATE_LIMIT_${prefix}_WINDOW_MS`], defaults.windowMs),
+    maxAttempts: positiveInteger(
+      environment[`RATE_LIMIT_${prefix}_MAX_ATTEMPTS`],
+      defaults.maxAttempts,
+    ),
+  });
 }
 
 export function getApiRuntimeConfig(
@@ -66,6 +93,12 @@ export function getApiRuntimeConfig(
   );
   const contactConsentVersion = environment.CONTACT_CONSENT_VERSION ?? "2026-08-01";
   const contactConsentSha256 = environment.CONTACT_CONSENT_SHA256 ?? "00".repeat(32);
+  const trustedProxyCidrs = Object.freeze(
+    (environment.TRUSTED_PROXY_CIDRS ?? environment.DLS_TRUSTED_PROXY_CIDRS ?? "")
+      .split(",")
+      .map((value) => value.trim())
+      .filter((value) => value.length > 0),
+  );
   if (nodeEnv === "production") {
     for (const [variable, encoded, value] of [
       ["SESSION_SECRET", environment.SESSION_SECRET, sessionSecret],
@@ -118,5 +151,13 @@ export function getApiRuntimeConfig(
     smtpConfigured:
       typeof environment.MAIL_TRANSPORT_URL === "string" &&
       environment.MAIL_TRANSPORT_URL.trim().length > 0,
+    trustedProxyCidrs,
+    rateLimits: Object.freeze({
+      owner: rateLimit(environment, "OWNER", { windowMs: 60_000, maxAttempts: 10 }),
+      contact: rateLimit(environment, "CONTACT", { windowMs: 60_000, maxAttempts: 10 }),
+      recovery: rateLimit(environment, "RECOVERY", { windowMs: 60_000, maxAttempts: 5 }),
+      token: rateLimit(environment, "TOKEN", { windowMs: 60_000, maxAttempts: 20 }),
+    }),
+    workerHeartbeatStaleMs: positiveInteger(environment.WORKER_HEARTBEAT_STALE_MS, 90_000),
   });
 }

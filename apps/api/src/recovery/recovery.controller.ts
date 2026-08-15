@@ -24,6 +24,7 @@ import {
 import type { FastifyRequest } from "fastify";
 import { CsrfGuard } from "../security/csrf.guard.js";
 import { OriginGuard } from "../security/origin.guard.js";
+import { RecoveryRateLimitGuard } from "../security/rate-limit.guard.js";
 import { ContactSessionGuard, type SecurityRequest } from "../security/session.guard.js";
 import {
   ApproveRecoveryDto,
@@ -48,7 +49,7 @@ function rethrow(error: unknown): never {
 
 @ApiTags("Owner password recovery")
 @Controller("auth/owner/password-recovery")
-@UseGuards(OriginGuard)
+@UseGuards(OriginGuard, RecoveryRateLimitGuard)
 export class OwnerRecoveryController {
   public constructor(@Inject(RECOVERY_RUNTIME) private readonly runtime: RecoveryRuntime) {}
 
@@ -122,7 +123,7 @@ export class OwnerRecoveryController {
 
 @ApiTags("Contact password recovery actions")
 @Controller("contact/workflows")
-@UseGuards(ContactSessionGuard, OriginGuard, CsrfGuard)
+@UseGuards(ContactSessionGuard, OriginGuard, RecoveryRateLimitGuard, CsrfGuard)
 export class ContactRecoveryController {
   public constructor(@Inject(RECOVERY_RUNTIME) private readonly runtime: RecoveryRuntime) {}
 

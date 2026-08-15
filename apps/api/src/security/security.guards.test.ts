@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { ContactPasswordController } from "../contacts/contact-auth.controller.js";
 import { CsrfGuard } from "./csrf.guard.js";
 import { OriginGuard } from "./origin.guard.js";
-import { RateLimiter } from "./rate-limit.guard.js";
+import { ContactRateLimitGuard, RateLimiter } from "./rate-limit.guard.js";
 import { readRequestContext } from "./request-context.js";
 import { ContactSessionGuard, readSessionToken } from "./session.guard.js";
 
@@ -73,6 +73,6 @@ describe("HTTP security boundaries", () => {
   it("requires a contact session and CSRF token before rotating a contact password", () => {
     expect(
       Reflect.getMetadata(GUARDS_METADATA, ContactPasswordController.prototype.complete),
-    ).toEqual([ContactSessionGuard, CsrfGuard]);
+    ).toEqual([ContactRateLimitGuard, ContactSessionGuard, CsrfGuard]);
   });
 });

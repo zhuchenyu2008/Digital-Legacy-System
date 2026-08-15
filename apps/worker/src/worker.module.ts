@@ -1,6 +1,8 @@
+import { createPgPool } from "@dls/persistence";
 import { Module } from "@nestjs/common";
+import { loadWorkerConfig } from "./config/load-config.js";
 import {
-  InMemoryWorkerHeartbeatPort,
+  PostgresWorkerHeartbeatPort,
   WORKER_HEARTBEAT_PORT,
   WorkerHeartbeat,
 } from "./health/worker-heartbeat.js";
@@ -36,12 +38,17 @@ import {
 
 @Module({
   providers: [
-    InMemoryWorkerHeartbeatPort,
-    { provide: WORKER_HEARTBEAT_PORT, useExisting: InMemoryWorkerHeartbeatPort },
+    {
+      provide: WORKER_HEARTBEAT_PORT,
+      useFactory: () =>
+        new PostgresWorkerHeartbeatPort(
+          createPgPool({ connectionString: loadWorkerConfig().databaseUrl }),
+        ),
+    },
     {
       provide: WorkerHeartbeat,
       inject: [WORKER_HEARTBEAT_PORT],
-      useFactory: (port: InMemoryWorkerHeartbeatPort) => new WorkerHeartbeat(port),
+      useFactory: (port: PostgresWorkerHeartbeatPort) => new WorkerHeartbeat(port),
     },
     { provide: CheckinEvaluateHandler, useFactory: createCheckinEvaluateHandler },
     { provide: NotificationDeliverHandler, useFactory: createNotificationDeliverHandler },
