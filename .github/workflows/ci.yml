@@ -38,6 +38,15 @@ jobs:
       - name: Run complete acceptance
         run: pnpm acceptance
 
+      - name: Upload acceptance diagnostics
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: acceptance-artifacts-${{ github.run_id }}-${{ github.run_attempt }}
+          path: .acceptance-artifacts/**
+          if-no-files-found: warn
+          retention-days: 7
+
   production-images:
     name: Production image build
     needs: acceptance
