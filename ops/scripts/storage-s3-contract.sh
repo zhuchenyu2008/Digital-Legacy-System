@@ -17,6 +17,9 @@ cleanup() {
   status=$?
   trap - EXIT INT TERM
   assert_project "$PROJECT"
+  if [ "$status" -ne 0 ]; then
+    docker compose --project-name "$PROJECT" --profile s3 --profile test logs --no-color minio minio-init 2>&1 || true
+  fi
   docker compose --project-name "$PROJECT" --profile s3 --profile test down --remove-orphans --volumes >/dev/null 2>&1 || true
   rm -rf "$SECRETS"
   exit "$status"
