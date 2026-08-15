@@ -146,6 +146,8 @@ export default async function globalSetup(_config: FullConfig): Promise<void> {
   const environment: NodeJS.ProcessEnv = {
     ...process.env,
     DLS_SECRETS_DIR: secretDirectory,
+    // Compose secrets are bind-mounted into non-root containers during E2E.
+    DLS_SECRETS_FILE_MODE: "0444",
     DOCKER_CONFIG: dockerConfigDirectory,
   };
   validateMailpitTransport("smtp://mailpit:1025");
