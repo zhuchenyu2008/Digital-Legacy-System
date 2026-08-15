@@ -1164,6 +1164,7 @@ body {
   .dls-package-list { display: block; }
   .dls-legacy-topbar { display: none; }
   .dls-legacy-content { width: 100%; }
+  .dls-legacy-grid { margin-top: 33px; }
   .dls-legacy-title-row { order: 1; }
   .dls-legacy-intro { order: 2; }
   .dls-legacy-hero > .dls-robots { order: 3; }
