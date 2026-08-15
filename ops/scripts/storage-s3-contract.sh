@@ -6,6 +6,16 @@ RUN_ID=$(node --input-type=module -e 'process.stdout.write(crypto.randomUUID().r
 PROJECT="dls-e2e-storage-s3-${RUN_ID}"
 SECRETS="$ROOT/.acceptance-artifacts/storage-s3-secrets-${RUN_ID}"
 
+compose() {
+  docker compose \
+    --project-name "$PROJECT" \
+    --file "$ROOT/compose.yaml" \
+    --file "$ROOT/compose.s3-test.yaml" \
+    --profile s3 \
+    --profile test \
+    "$@"
+}
+
 assert_project() {
   printf '%s' "$1" | grep -Eq '^dls-e2e-storage-s3-[0-9a-f]{12}$' || {
     printf 'Refusing to operate on a non-disposable S3 acceptance project.\n' >&2
@@ -18,9 +28,9 @@ cleanup() {
   trap - EXIT INT TERM
   assert_project "$PROJECT"
   if [ "$status" -ne 0 ]; then
-    docker compose --project-name "$PROJECT" --profile s3 --profile test logs --no-color minio minio-init 2>&1 || true
+    compose logs --no-color minio minio-init 2>&1 || true
   fi
-  docker compose --project-name "$PROJECT" --profile s3 --profile test down --remove-orphans --volumes >/dev/null 2>&1 || true
+  compose down --remove-orphans --volumes >/dev/null 2>&1 || true
   rm -rf "$SECRETS"
   exit "$status"
 }
@@ -30,4 +40,6 @@ mkdir -p "$SECRETS"
 export DLS_SECRETS_DIR=$SECRETS
 assert_project "$PROJECT"
 node "$ROOT/ops/scripts/generate-development-secrets.mjs"
-docker compose --project-name "$PROJECT" --profile s3 --profile test run --rm storage-tests
+export DLS_S3_ACCESS_KEY="$(cat "$SECRETS/minio-access-key")"
+export DLS_S3_SECRET_KEY="$(cat "$SECRETS/minio-secret-key")"
+compose run --rm storage-tests
