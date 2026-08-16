@@ -17,13 +17,14 @@ function option(name, required = true) {
   return value;
 }
 
-const registry = option("--registry");
+const registryInput = option("--registry");
 const tag = option("--tag");
 const output = resolve(option("--output"));
 const push = args.includes("--push");
-if (!/^[A-Za-z0-9._/-]+$/u.test(registry) || !/^[A-Za-z0-9._-]+$/u.test(tag)) {
+if (!/^[A-Za-z0-9._/-]+$/u.test(registryInput) || !/^[A-Za-z0-9._-]+$/u.test(tag)) {
   throw new Error("registry and tag contain unsafe characters");
 }
+const registry = registryInput.toLowerCase();
 if (!push && !args.includes("--load")) throw new Error("choose --push or --load");
 
 const temporary = await mkdtemp(join(tmpdir(), "dls-release-images-"));
