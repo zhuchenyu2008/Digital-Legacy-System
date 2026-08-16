@@ -12,7 +12,7 @@ const ASSIGNED_SECRET =
 const PEM_SECRET = /-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/u;
 const AWS_ACCESS_KEY = /\bAKIA[0-9A-Z]{16}\b/u;
 const RUNTIME_EXPRESSION =
-  /^(?:[A-Za-z_$][A-Za-z0-9_$]*)(?:\.[A-Za-z_$][A-Za-z0-9_$]*)*(?:[()[\]?.:]|$)/u;
+  /^(?:[A-Za-z_$][A-Za-z0-9_$]*)(?:\.[A-Za-z_$][A-Za-z0-9_$]*)*(?:[()[\]?.:<]|$)/u;
 
 function approved(value: string, options: SecretScanOptions): boolean {
   return options.approved.some((candidate) => candidate.length >= 8 && candidate === value);

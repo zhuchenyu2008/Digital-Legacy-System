@@ -62,9 +62,9 @@ export async function encryptPackageManifestV1(
   assertContext(input.context);
   const key = assertKey(input.key);
   const aad = manifestAad(input.context);
+  await sodium.ready;
   const nonce = new Uint8Array(sodium.randombytes_buf(NONCE_BYTES));
   const plaintext = new TextEncoder().encode(JSON.stringify(input.manifest));
-  await sodium.ready;
   try {
     const ciphertext = new Uint8Array(
       sodium.crypto_aead_xchacha20poly1305_ietf_encrypt(plaintext, aad, null, nonce, key),
@@ -96,9 +96,9 @@ export async function decryptPackageManifestV1(
   }
   const key = assertKey(input.key);
   const aad = manifestAad(input.context);
+  await sodium.ready;
   const expectedHash = new Uint8Array(sodium.crypto_hash_sha256(aad));
   const suppliedHash = new Uint8Array(input.encrypted.aadHash);
-  await sodium.ready;
   try {
     if (suppliedHash.length !== expectedHash.length || !sodium.memcmp(suppliedHash, expectedHash)) {
       throw new Error("package manifest AAD mismatch");

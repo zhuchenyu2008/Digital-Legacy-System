@@ -1,0 +1,29 @@
+services:
+  minio:
+    entrypoint: ["minio"]
+    command: ["server", "/data", "--address", ":9000", "--console-address", ":9001"]
+    environment:
+      MINIO_ROOT_USER: ${DLS_S3_ACCESS_KEY:?DLS_S3_ACCESS_KEY is required}
+      MINIO_ROOT_PASSWORD: ${DLS_S3_SECRET_KEY:?DLS_S3_SECRET_KEY is required}
+
+  minio-init:
+    entrypoint: ["node"]
+    command: ["ops/scripts/init-minio-buckets.mjs"]
+    environment:
+      AWS_ACCESS_KEY_ID: ${DLS_S3_ACCESS_KEY:?DLS_S3_ACCESS_KEY is required}
+      AWS_SECRET_ACCESS_KEY: ${DLS_S3_SECRET_KEY:?DLS_S3_SECRET_KEY is required}
+
+  storage-tests:
+    entrypoint: ["pnpm"]
+    command: ["--filter", "@dls/storage", "test"]
+    environment:
+      COREPACK_HOME: /tmp/corepack
+      DLS_S3_TEST: "1"
+      S3_ENDPOINT: http://minio:9000
+      S3_REGION: ${DLS_S3_REGION:-us-east-1}
+      S3_PRIVATE_BUCKET: ${DLS_S3_PRIVATE_BUCKET:-dls-private}
+      S3_STAGING_BUCKET: ${DLS_S3_STAGING_BUCKET:-dls-staging}
+      S3_PUBLIC_BUCKET: ${DLS_S3_PUBLIC_BUCKET:-dls-public}
+      S3_FORCE_PATH_STYLE: "true"
+      S3_ACCESS_KEY_ID: ${DLS_S3_ACCESS_KEY:?DLS_S3_ACCESS_KEY is required}
+      S3_SECRET_ACCESS_KEY: ${DLS_S3_SECRET_KEY:?DLS_S3_SECRET_KEY is required}

@@ -14,7 +14,7 @@ const deathNav = [
 export default async function HomePage() {
   const response = await serverApiRequest<PublicStatusData>("/public/status");
   const status = response.data ?? { state: response.status >= 500 ? "UNAVAILABLE" : "NORMAL" };
-  const workflowInProgress = status.state === "IN_PROGRESS";
+  const workflowInProgress = status.state === "IN_PROGRESS" || status.state === "DEATH_CONFIRMING";
 
   return (
     <div className={`dls-public-home dls-public-home--${status.state.toLowerCase()}`}>

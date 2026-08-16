@@ -1,10 +1,20 @@
 import Link from "next/link";
 import { StatusBadge } from "../../components/ui/status-badge";
+import { DeathConfirming } from "./death-confirming";
 export type PublicStatusData = Readonly<{
-  state: "NORMAL" | "IN_PROGRESS" | "PUBLISHING" | "RELEASED" | "UNAVAILABLE";
+  state: "NORMAL" | "IN_PROGRESS" | "DEATH_CONFIRMING" | "PUBLISHING" | "RELEASED" | "UNAVAILABLE";
+  approvedCount?: number | undefined;
+  requiredCount?: number | undefined;
   serverNow?: string | undefined;
 }>;
 export function PublicStatus({ status }: Readonly<{ status: PublicStatusData }>) {
+  if (status.state === "DEATH_CONFIRMING")
+    return (
+      <DeathConfirming
+        approvedCount={status.approvedCount ?? 0}
+        requiredCount={status.requiredCount ?? 1}
+      />
+    );
   if (status.state === "IN_PROGRESS")
     return (
       <section className="dls-public-stage">
