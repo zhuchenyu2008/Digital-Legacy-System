@@ -1,6 +1,8 @@
 import { beijingDateAt, computeCheckinDeadline, parseInstant } from "@dls/domain";
 import type { TransactionManager } from "../ports/transaction-manager.js";
 import { cancelActiveRecovery } from "../recovery/recovery-common.js";
+import { cancelActiveDeathWorkflow } from "../workflows/cancel-active-death-workflow.js";
+import { scheduleCheckinReminders } from "./check-in-reminders.js";
 import { OwnerLoginError, type OwnerServerPasswordVerifier } from "./login-owner.js";
 import { OWNER_ACTOR_ID } from "./owner-identity.js";
 
@@ -53,7 +55,13 @@ export async function checkInOwner(
         throw new OwnerLoginError("OWNER_LOGIN_INVALID", "owner credentials are invalid");
       }
       const now = await tx.clock.now();
-      const workflowCancellation = await cancelActiveRecovery(tx, now, "OWNER_AUTHENTICATED");
+      const recoveryCancellation = await cancelActiveRecovery(tx, now, "OWNER_AUTHENTICATED");
+      const deathCancellation = await cancelActiveDeathWorkflow(
+        tx,
+        now,
+        "OWNER_EXPLICIT_CHECKIN",
+        idFactory,
+      );
       const day = beijingDateAt(now);
       const existing = await tx.repositories.checkIns.findOneBy?.("beijing_date", day, {
         forUpdate: true,
@@ -78,6 +86,12 @@ export async function checkInOwner(
           actor_ref: command.ownerId || OWNER_ACTOR_ID,
           request_id: command.requestId,
         });
+        const reminderFields = await scheduleCheckinReminders(tx, {
+          scheduleId: String(schedule.id),
+          aggregateVersion: Number(schedule.schedule_version ?? 0) + 1,
+          now,
+          deadlineAt,
+        });
         await tx.repositories.checkinSchedules.updateVersioned(
           schedule.id,
           Number(schedule.version ?? 0),
@@ -86,6 +100,7 @@ export async function checkInOwner(
             schedule_version: Number(schedule.schedule_version ?? 0) + 1,
             deadline_at: deadlineAt,
             status: "ACTIVE",
+            ...reminderFields,
           },
         );
         await tx.outbox.enqueue({
@@ -119,7 +134,9 @@ export async function checkInOwner(
           existing === null || existing === undefined
             ? deadlineAt
             : parseInstant(String(schedule.deadline_at)),
-        workflowCancellation,
+        workflowCancellation: deathCancellation.cancelled
+          ? deathCancellation
+          : recoveryCancellation,
       };
     },
     { isolation: "serializable" },

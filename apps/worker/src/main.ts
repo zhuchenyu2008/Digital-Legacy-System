@@ -14,6 +14,7 @@ import { loadWorkerConfig } from "./config/load-config.js";
 import { WorkerHeartbeat } from "./health/worker-heartbeat.js";
 import { CheckinEvaluateHandler } from "./jobs/checkin-evaluate.handler.js";
 import { NotificationDeliverHandler } from "./jobs/notification-deliver.handler.js";
+import { NotificationMaterializeHandler } from "./jobs/notification-materialize.handler.js";
 import { OutboxDispatchHandler } from "./jobs/outbox-dispatch.handler.js";
 import { PackageObjectDeleteHandler } from "./jobs/package-object-delete.handler.js";
 import { ProcessReleaseFragmentHandler } from "./jobs/process-release-fragment.handler.js";
@@ -36,12 +37,14 @@ async function bootstrap(): Promise<void> {
   const publicationFinalize = app.get(PublicationFinalizeHandler);
   const recoveryExpire = app.get(RecoveryExpireHandler);
   const notificationDeliver = app.get(NotificationDeliverHandler);
+  const notificationMaterialize = app.get(NotificationMaterializeHandler);
   const outboxDispatch = app.get(OutboxDispatchHandler);
   const packageObjectDelete = app.get(PackageObjectDeleteHandler);
   const workflowAdvance = app.get(WorkflowAdvanceHandler);
   await registerJobHandlers(boss as unknown as WorkerBoss, {
     [JOB_NAMES.CHECKIN_EVALUATE]: (job) => checkinEvaluate.handle(job),
     [JOB_NAMES.NOTIFICATION_DELIVER]: (job) => notificationDeliver.handle(job),
+    [JOB_NAMES.NOTIFICATION_MATERIALIZE]: (job) => notificationMaterialize.handle(job),
     [JOB_NAMES.OUTBOX_DISPATCH]: (job) => outboxDispatch.handle(job),
     [JOB_NAMES.PACKAGE_OBJECT_DELETE]: (job) => packageObjectDelete.handle(job),
     [JOB_NAMES.PROCESS_RELEASE_FRAGMENT]: (job) => processReleaseFragment.handle(job),

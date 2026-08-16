@@ -27,7 +27,10 @@ export class PgBossScheduler implements JobScheduler {
     }
     return this.#boss.send(jobName, payload, {
       singletonKey:
-        options?.singletonKey ?? `${jobName}:${payload.aggregateId}:${payload.aggregateVersion}`,
+        options?.singletonKey ??
+        (payload.eventId === undefined
+          ? `${jobName}:${payload.aggregateId}:${payload.aggregateVersion}`
+          : `${jobName}:${payload.eventId}`),
       retryLimit: options?.retryLimit ?? 7,
     });
   }

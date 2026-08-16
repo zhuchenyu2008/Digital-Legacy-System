@@ -14,6 +14,10 @@ import {
   createNotificationDeliverHandler,
   NotificationDeliverHandler,
 } from "./jobs/notification-deliver.handler.js";
+import {
+  createNotificationMaterializeHandler,
+  NotificationMaterializeHandler,
+} from "./jobs/notification-materialize.handler.js";
 import { OutboxDispatchHandler } from "./jobs/outbox-dispatch.handler.js";
 import {
   createPackageObjectDeleteHandler,
@@ -52,6 +56,7 @@ import {
     },
     { provide: CheckinEvaluateHandler, useFactory: createCheckinEvaluateHandler },
     { provide: NotificationDeliverHandler, useFactory: createNotificationDeliverHandler },
+    { provide: NotificationMaterializeHandler, useFactory: createNotificationMaterializeHandler },
     OutboxDispatchHandler,
     { provide: PackageObjectDeleteHandler, useFactory: createPackageObjectDeleteHandler },
     { provide: ProcessReleaseFragmentHandler, useFactory: createProcessReleaseFragmentHandler },
@@ -63,6 +68,7 @@ import {
     WorkerHeartbeat,
     CheckinEvaluateHandler,
     NotificationDeliverHandler,
+    NotificationMaterializeHandler,
     OutboxDispatchHandler,
     PackageObjectDeleteHandler,
     ProcessReleaseFragmentHandler,

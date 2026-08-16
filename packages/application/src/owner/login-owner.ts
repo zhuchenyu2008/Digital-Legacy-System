@@ -3,6 +3,8 @@ import type { IssuedSession } from "../auth/session.js";
 import type { SessionService } from "../auth/session-service.js";
 import type { TransactionManager } from "../ports/transaction-manager.js";
 import { cancelActiveRecovery } from "../recovery/recovery-common.js";
+import { cancelActiveDeathWorkflow } from "../workflows/cancel-active-death-workflow.js";
+import { scheduleCheckinReminders } from "./check-in-reminders.js";
 import { OWNER_ACTOR_ID } from "./owner-identity.js";
 
 export type OwnerLoginCommand = Readonly<{
@@ -86,7 +88,13 @@ export async function loginOwner(
       }
 
       const now = await tx.clock.now();
-      const workflowCancellation = await cancelActiveRecovery(tx, now, "OWNER_AUTHENTICATED");
+      const recoveryCancellation = await cancelActiveRecovery(tx, now, "OWNER_AUTHENTICATED");
+      const deathCancellation = await cancelActiveDeathWorkflow(
+        tx,
+        now,
+        "OWNER_AUTHENTICATED",
+        idFactory,
+      );
       const day = beijingDateAt(now);
       const existing = await tx.repositories.checkIns.findOneBy?.("beijing_date", day, {
         forUpdate: true,
@@ -111,6 +119,12 @@ export async function loginOwner(
           actor_ref: ownerId,
           request_id: command.requestId,
         });
+        const reminderFields = await scheduleCheckinReminders(tx, {
+          scheduleId: String(schedule.id),
+          aggregateVersion: Number(schedule.schedule_version ?? 0) + 1,
+          now,
+          deadlineAt,
+        });
         await tx.repositories.checkinSchedules.updateVersioned(
           schedule.id,
           Number(schedule.version ?? 0),
@@ -119,10 +133,7 @@ export async function loginOwner(
             schedule_version: Number(schedule.schedule_version ?? 0) + 1,
             deadline_at: deadlineAt,
             status: "ACTIVE",
-            reminder_24h_at: null,
-            reminder_12h_at: null,
-            reminder_5h_at: null,
-            reminder_1h_at: null,
+            ...reminderFields,
           },
         );
         await tx.outbox.enqueue({
@@ -164,7 +175,9 @@ export async function loginOwner(
           existing === null || existing === undefined
             ? deadlineAt
             : instant(schedule.deadline_at, "deadline"),
-        workflowCancellation,
+        workflowCancellation: deathCancellation.cancelled
+          ? deathCancellation
+          : recoveryCancellation,
       };
     },
     { isolation: "serializable" },

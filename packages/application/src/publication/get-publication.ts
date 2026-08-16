@@ -22,6 +22,8 @@ export async function getPublication(
       throw new Error("publications repository is unavailable");
     const row = await publications.findFirst();
     if (row === null) return null;
+    const workflow = await tx.repositories.workflows.findById(String(row.workflow_id));
+    if (workflow === null || workflow.state !== "RELEASED") return null;
     return {
       ownerDisplayName: String(row.owner_display_name),
       publishedAt: String(row.published_at),

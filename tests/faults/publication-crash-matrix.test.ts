@@ -366,7 +366,9 @@ describe("publication crash matrix contract", () => {
     if (committed) {
       expect(state.publications()).toHaveLength(1);
       expect(state.publicEvents()).toHaveLength(5);
-      expect(state.outbox()).toHaveLength(1);
+      // Publication notifications are emitted only after public promotion and
+      // the RELEASED transition commit, never from the metadata-only phase.
+      expect(state.outbox()).toHaveLength(0);
     } else {
       expect(state.publications()).toHaveLength(0);
       expect(state.publicEvents()).toHaveLength(0);

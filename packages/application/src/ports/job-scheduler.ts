@@ -1,6 +1,10 @@
 export type JobPayload = Readonly<{
   aggregateId: string;
   aggregateVersion: number;
+  eventId?: string;
+  eventType?: string;
+  contactId?: string;
+  offsetMs?: number;
 }>;
 
 export interface JobScheduler {

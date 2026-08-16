@@ -38,16 +38,25 @@ export async function reconcileDueDeadlines(
     database,
     `INSERT INTO app.domain_outbox
        (event_type, aggregate_type, aggregate_id, payload, idempotency_key, available_at)
-     SELECT $1, 'workflow', workflow.id,
+     SELECT CASE WHEN workflow.publish_locked_at IS NOT NULL
+                 THEN 'PUBLICATION_FINALIZE_REQUESTED'
+                 ELSE $1 END,
+            'workflow', workflow.id,
             jsonb_build_object('aggregateId', workflow.id::text,
                                'aggregateVersion', workflow.version),
-            'deadline-scan:release:' || workflow.id::text || ':' || workflow.version::text,
+            CASE WHEN workflow.publish_locked_at IS NOT NULL
+                 THEN 'deadline-scan:publication-finalize:' || workflow.id::text || ':' || workflow.version::text || ':' ||
+                      floor(extract(epoch FROM clock_timestamp()) / 60)::text
+                 ELSE 'deadline-scan:release:' || workflow.id::text || ':' || workflow.version::text
+            END,
             clock_timestamp()
      FROM app.workflows AS workflow
      WHERE workflow.kind = 'DEATH_CONFIRMATION'
        AND workflow.state = 'RELEASE_PENDING'
-       AND workflow.publish_locked_at IS NULL
-       AND workflow.release_at <= clock_timestamp()
+       AND (
+         (workflow.publish_locked_at IS NULL AND workflow.release_at <= clock_timestamp())
+         OR workflow.publish_locked_at IS NOT NULL
+       )
      ON CONFLICT (idempotency_key) DO NOTHING`,
     "WORKFLOW_ADVANCE_REQUESTED",
   );

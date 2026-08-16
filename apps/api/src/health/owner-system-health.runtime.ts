@@ -90,36 +90,52 @@ export class PostgresOwnerSystemHealthRuntime implements OwnerSystemHealthRuntim
       };
     }
 
-    const [outbox, notification, deadlineHeartbeat, storageAvailable, workerHeartbeat] =
-      await Promise.all([
-        this.#pool
-          .query(
-            `SELECT count(*)::int AS count FROM app.domain_outbox
+    const [
+      outbox,
+      notification,
+      deadlineHeartbeat,
+      storageAvailable,
+      workerHeartbeat,
+      publicationStall,
+    ] = await Promise.all([
+      this.#pool
+        .query(
+          `SELECT count(*)::int AS count FROM app.domain_outbox
            WHERE published_at IS NULL AND available_at <= clock_timestamp()`,
-          )
-          .catch(() => ({ rows: [{ count: 0 }] })),
-        this.#pool
-          .query(
-            `SELECT finished_at::text AS finished_at, result
+        )
+        .catch(() => ({ rows: [{ count: 0 }] })),
+      this.#pool
+        .query(
+          `SELECT finished_at::text AS finished_at, result
            FROM app.notification_attempts ORDER BY finished_at DESC LIMIT 1`,
-          )
-          .catch(() => ({ rows: [] })),
-        this.#pool
-          .query(
-            `SELECT last_seen_at::text AS last_seen_at,
+        )
+        .catch(() => ({ rows: [] })),
+      this.#pool
+        .query(
+          `SELECT last_seen_at::text AS last_seen_at,
                     EXTRACT(EPOCH FROM (clock_timestamp() - last_seen_at)) * 1000 AS age_ms
              FROM app.worker_heartbeats WHERE service = 'deadline-scanner'`,
-          )
-          .catch(() => ({ rows: [] })),
-        this.#storageCheck().catch(() => false),
-        this.#pool
-          .query(
-            `SELECT last_seen_at::text AS last_seen_at,
+        )
+        .catch(() => ({ rows: [] })),
+      this.#storageCheck().catch(() => false),
+      this.#pool
+        .query(
+          `SELECT last_seen_at::text AS last_seen_at,
                   EXTRACT(EPOCH FROM (clock_timestamp() - last_seen_at)) * 1000 AS age_ms
            FROM app.worker_heartbeats WHERE service = 'worker'`,
-          )
-          .catch(() => ({ rows: [] })),
-      ]);
+        )
+        .catch(() => ({ rows: [] })),
+      this.#pool
+        .query(
+          `SELECT count(*)::int AS count
+             FROM app.workflows
+             WHERE kind = 'DEATH_CONFIRMATION'
+               AND state = 'RELEASE_PENDING'
+               AND publish_locked_at IS NOT NULL
+               AND publish_locked_at < clock_timestamp() - interval '5 minutes'`,
+        )
+        .catch(() => ({ rows: [{ count: 0 }] })),
+    ]);
 
     const notificationRow = notification.rows[0];
     const deadlineRow = deadlineHeartbeat.rows[0] as
@@ -129,10 +145,11 @@ export class PostgresOwnerSystemHealthRuntime implements OwnerSystemHealthRuntim
       | { last_seen_at?: unknown; age_ms?: unknown }
       | undefined;
     const heartbeatAge = Number(heartbeatRow?.age_ms);
+    const stalledPublications = Number(publicationStall.rows[0]?.count ?? 0);
     const workerStatus: HealthCategoryStatus =
       heartbeatRow === undefined || !Number.isFinite(heartbeatAge)
         ? "unknown"
-        : heartbeatAge <= this.#workerHeartbeatStaleMs
+        : heartbeatAge <= this.#workerHeartbeatStaleMs && stalledPublications === 0
           ? "ok"
           : "degraded";
     const deadlineAge = Number(deadlineRow?.age_ms);
@@ -169,7 +186,7 @@ export class PostgresOwnerSystemHealthRuntime implements OwnerSystemHealthRuntim
           lastSeenAt: timestamp(notificationRow?.finished_at),
         },
       ],
-      pendingJobs: Number(outbox.rows[0]?.count ?? 0),
+      pendingJobs: Number(outbox.rows[0]?.count ?? 0) + stalledPublications,
     };
   }
 }

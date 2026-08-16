@@ -103,53 +103,7 @@ export class PostgresContactRuntime implements ContactRuntime {
       tokenPepper: this.#tokenPepper,
       fieldProtector: this.#protector,
       emailLookupHmac: (email) => this.#protector.lookupCandidates(email),
-      queueInvitationNotification: async (input, tx) => {
-        const owner = await tx.repositories.ownerProfile.findById(true);
-        if (owner === null) throw new Error("Owner profile is unavailable");
-        const ownerName = await this.#protector.unprotect(
-          {
-            ciphertext: Uint8Array.from(owner.display_name_ciphertext as ArrayLike<number>),
-            nonce: Uint8Array.from(owner.display_name_nonce as ArrayLike<number>),
-            keyVersion: Number(owner.display_name_key_version),
-          },
-          "owner-display-name",
-        );
-        const actionUrl = new URL("/contact-invitations", this.#config.publicBaseUrl);
-        actionUrl.hash = new URLSearchParams({ invite: input.token }).toString();
-        const created = await createNotificationInTransaction(
-          {
-            eventId: crypto.randomUUID(),
-            aggregateId: input.contactId,
-            aggregateType: "contact",
-            templateCode: "CONTACT_INVITATION",
-            templateContext: {
-              owner_name: ownerName,
-              contact_name: input.contactName,
-              expires_at: input.expiresAt,
-              action_url: actionUrl.href,
-            },
-            recipient: {
-              type: "CONTACT",
-              email: input.recipientEmail,
-              ref: input.contactId,
-            },
-            idempotencyKey: `contact-invitation-notification:${input.invitationId}`,
-          },
-          tx,
-          {
-            cipher: this.#notificationCipher,
-            renderer: {
-              render: (code, context) => {
-                if (!TEMPLATE_CODES.includes(code as TemplateCode)) {
-                  throw new Error("Unknown email template code");
-                }
-                return renderTemplate(code as TemplateCode, context);
-              },
-            },
-          },
-        );
-        return created.notificationId;
-      },
+      queueInvitationNotification: (input, tx) => this.#queueInvitationNotification(input, tx),
     });
   }
 
@@ -204,6 +158,7 @@ export class PostgresContactRuntime implements ContactRuntime {
     return resendContactInvitation(command, {
       transaction: this.#transaction,
       tokenPepper: this.#tokenPepper,
+      queueInvitationNotification: (input, tx) => this.#queueInvitationNotification(input, tx),
     });
   }
 
@@ -222,7 +177,125 @@ export class PostgresContactRuntime implements ContactRuntime {
       tokenPepper: this.#tokenPepper,
       passwordVerifier: (password, hash) =>
         verifyServerPassword(password, this.#ownerPasswordPepper, hash),
+      queuePasswordChangeNotification: (input, tx) =>
+        this.#queuePasswordChangeNotification(input, tx),
     });
+  }
+
+  async #queueInvitationNotification(
+    input: Readonly<{
+      contactId: string;
+      invitationId: string;
+      contactName: string;
+      recipientEmail: string;
+      token: string;
+      expiresAt: string;
+    }>,
+    tx: import("@dls/application").TransactionContext,
+  ): Promise<string> {
+    const owner = await tx.repositories.ownerProfile.findById(true);
+    const contact = await tx.repositories.contacts.findById(input.contactId);
+    if (owner === null || contact === null)
+      throw new Error("Contact invitation recipient is unavailable");
+    const ownerName = await this.#unprotectOwnerName(owner);
+    const contactName = await this.#unprotectContactName(contact);
+    const recipientEmail = await this.#unprotectContactEmail(contact);
+    const actionUrl = new URL("/contact-invitations", this.#config.publicBaseUrl);
+    actionUrl.hash = new URLSearchParams({ invite: input.token }).toString();
+    const created = await createNotificationInTransaction(
+      {
+        eventId: crypto.randomUUID(),
+        aggregateId: input.contactId,
+        aggregateType: "contact",
+        templateCode: "CONTACT_INVITATION",
+        templateContext: {
+          owner_name: ownerName,
+          contact_name: contactName,
+          expires_at: input.expiresAt,
+          action_url: actionUrl.href,
+        },
+        recipient: { type: "CONTACT", email: recipientEmail, ref: input.contactId },
+        idempotencyKey: `contact-invitation-notification:${input.invitationId}`,
+      },
+      tx,
+      { cipher: this.#notificationCipher, renderer: this.#templateRenderer() },
+    );
+    return created.notificationId;
+  }
+
+  async #queuePasswordChangeNotification(
+    input: Readonly<{ contactId: string; tokenId: string; token: string; expiresAt: string }>,
+    tx: import("@dls/application").TransactionContext,
+  ): Promise<string> {
+    const owner = await tx.repositories.ownerProfile.findById(true);
+    const contact = await tx.repositories.contacts.findById(input.contactId);
+    if (owner === null || contact === null)
+      throw new Error("Password invitation recipient is unavailable");
+    const ownerName = await this.#unprotectOwnerName(owner);
+    const recipientEmail = await this.#unprotectContactEmail(contact);
+    const actionUrl = new URL("/contact/password-change", this.#config.publicBaseUrl);
+    actionUrl.hash = new URLSearchParams({ token: input.token }).toString();
+    const created = await createNotificationInTransaction(
+      {
+        eventId: crypto.randomUUID(),
+        aggregateId: input.contactId,
+        aggregateType: "contact",
+        templateCode: "CONTACT_PASSWORD_CHANGE",
+        templateContext: {
+          owner_name: ownerName,
+          expires_at: input.expiresAt,
+          action_url: actionUrl.href,
+        },
+        recipient: { type: "CONTACT", email: recipientEmail, ref: input.contactId },
+        idempotencyKey: `contact-password-change-notification:${input.tokenId}`,
+      },
+      tx,
+      { cipher: this.#notificationCipher, renderer: this.#templateRenderer() },
+    );
+    return created.notificationId;
+  }
+
+  #templateRenderer() {
+    return {
+      render: (code: string, context: Readonly<Record<string, unknown>>) => {
+        if (!TEMPLATE_CODES.includes(code as TemplateCode))
+          throw new Error("Unknown email template code");
+        return renderTemplate(code as TemplateCode, context);
+      },
+    };
+  }
+
+  #unprotectOwnerName(owner: import("@dls/application").RepositoryRow) {
+    return this.#protector.unprotect(
+      {
+        ciphertext: Uint8Array.from(owner.display_name_ciphertext as ArrayLike<number>),
+        nonce: Uint8Array.from(owner.display_name_nonce as ArrayLike<number>),
+        keyVersion: Number(owner.display_name_key_version),
+      },
+      "owner-display-name",
+    );
+  }
+
+  #unprotectContactName(contact: import("@dls/application").RepositoryRow) {
+    return this.#protector.unprotect(
+      {
+        ciphertext: Uint8Array.from(contact.display_name_ciphertext as ArrayLike<number>),
+        nonce: Uint8Array.from(contact.display_name_nonce as ArrayLike<number>),
+        keyVersion: Number(contact.display_name_key_version),
+      },
+      "contact-display-name",
+    );
+  }
+
+  #unprotectContactEmail(contact: import("@dls/application").RepositoryRow) {
+    return this.#protector.unprotect(
+      {
+        ciphertext: Uint8Array.from(contact.email_ciphertext as ArrayLike<number>),
+        nonce: Uint8Array.from(contact.email_nonce as ArrayLike<number>),
+        keyVersion: Number(contact.email_key_version),
+      },
+      "contact-email",
+    );
   }
 
   public accept(command: AcceptContactInvitationCommand) {

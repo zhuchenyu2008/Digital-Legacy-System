@@ -17,7 +17,10 @@ export async function openPublicDownload(
     if (tx.repositories.publications?.findFirst === undefined) {
       throw new Error("publications repository is unavailable");
     }
-    return tx.repositories.publications.findFirst();
+    const publication = await tx.repositories.publications.findFirst();
+    if (publication === null) return null;
+    const workflow = await tx.repositories.workflows.findById(String(publication.workflow_id));
+    return workflow?.state === "RELEASED" ? publication : null;
   });
   if (publication === null) throw new Error("publication was not found");
   const totalBytes = Number(publication.zip_size);

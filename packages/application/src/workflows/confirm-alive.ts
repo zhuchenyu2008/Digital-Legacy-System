@@ -1,4 +1,5 @@
 import { beijingDateAt, computeCheckinDeadline } from "@dls/domain";
+import { scheduleCheckinReminders } from "../owner/check-in-reminders.js";
 import type { TransactionManager } from "../ports/transaction-manager.js";
 import {
   assertContactCanAct,
@@ -134,6 +135,12 @@ export async function confirmAlive(
         if (schedule === undefined) throw new Error("check-in schedule is unavailable");
         const thresholdDays = Number(schedule.threshold_days);
         const nextDeadlineAt = computeCheckinDeadline(now, thresholdDays);
+        const reminderFields = await scheduleCheckinReminders(tx, {
+          scheduleId: String(schedule.id),
+          aggregateVersion: Number(schedule.schedule_version) + 1,
+          now,
+          deadlineAt: nextDeadlineAt,
+        });
         const checkInId = idFactory();
         await tx.repositories.checkIns.insert({
           id: checkInId,
@@ -154,6 +161,7 @@ export async function confirmAlive(
             last_check_in_id: checkInId,
             deadline_at: nextDeadlineAt,
             status: "ACTIVE",
+            ...reminderFields,
           },
         );
         await tx.audit.append({

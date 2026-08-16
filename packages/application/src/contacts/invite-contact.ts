@@ -48,6 +48,16 @@ export type ResendContactInvitationCommand = Readonly<{
   requestId: string;
 }>;
 
+export type ResendInvitationNotificationInput = Readonly<{
+  ownerId: string;
+  contactId: string;
+  invitationId: string;
+  contactName: string;
+  recipientEmail: string;
+  token: string;
+  expiresAt: string;
+}>;
+
 const ACTIVE_WORKFLOW_STATES = [
   "AWAITING_CONFIRMATIONS",
   "GRACE_PERIOD",
@@ -200,6 +210,10 @@ export async function resendContactInvitation(
     tokenPepper: Uint8Array;
     tokenFactory?: () => Uint8Array;
     idFactory?: () => string;
+    queueInvitationNotification?: (
+      input: ResendInvitationNotificationInput,
+      tx: TransactionContext,
+    ) => Promise<string>;
   }>,
 ): Promise<InviteContactResult> {
   const idFactory = dependencies.idFactory ?? (() => crypto.randomUUID());
@@ -251,6 +265,21 @@ export async function resendContactInvitation(
         idempotencyKey: `contact-invitation:${invitationId}`,
         availableAt: now,
       });
+      if (dependencies.queueInvitationNotification !== undefined) {
+        const notificationId = await dependencies.queueInvitationNotification(
+          {
+            ownerId: command.ownerId,
+            contactId: command.contactId,
+            invitationId,
+            contactName: String(contact.display_name ?? command.contactId),
+            recipientEmail: String(contact.email ?? ""),
+            token,
+            expiresAt,
+          },
+          tx,
+        );
+        await invitations.updateById?.(invitationId, { notification_id: notificationId });
+      }
       return { contactId: command.contactId, invitationId, token, expiresAt };
     },
     { isolation: "serializable" },

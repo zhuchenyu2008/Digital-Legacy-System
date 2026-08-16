@@ -8,6 +8,16 @@ export type RequestContactPasswordChangeResult = Readonly<{
   expiresAt: string;
 }>;
 
+export type PasswordChangeNotificationInput = Readonly<{
+  ownerId: string;
+  contactId: string;
+  tokenId: string;
+  recipientEmail: string;
+  ownerName: string;
+  token: string;
+  expiresAt: string;
+}>;
+
 export async function requestContactPasswordChange(
   command: Readonly<{ ownerId: string; contactId: string; password: string; requestId: string }>,
   dependencies: Readonly<{
@@ -16,6 +26,10 @@ export async function requestContactPasswordChange(
     passwordVerifier: (password: string, encodedHash: string) => Promise<boolean>;
     tokenFactory?: () => Uint8Array;
     idFactory?: () => string;
+    queuePasswordChangeNotification?: (
+      input: PasswordChangeNotificationInput,
+      tx: import("../ports/transaction-manager.js").TransactionContext,
+    ) => Promise<string>;
   }>,
 ): Promise<RequestContactPasswordChangeResult> {
   const idFactory = dependencies.idFactory ?? (() => crypto.randomUUID());
@@ -71,6 +85,20 @@ export async function requestContactPasswordChange(
       idempotencyKey: `contact-password-change:${tokenId}`,
       availableAt: now,
     });
+    if (dependencies.queuePasswordChangeNotification !== undefined) {
+      await dependencies.queuePasswordChangeNotification(
+        {
+          ownerId: command.ownerId,
+          contactId: command.contactId,
+          tokenId,
+          recipientEmail: String(contact.email ?? ""),
+          ownerName: command.ownerId,
+          token,
+          expiresAt,
+        },
+        tx,
+      );
+    }
     return { contactId: command.contactId, token, expiresAt };
   });
 }

@@ -47,8 +47,10 @@ export class PostgresPublicRuntime implements PublicRuntime {
     return this.transaction.run(async (tx) => {
       const serverNow = await tx.clock.now();
       const publication = await tx.repositories.publications?.findFirst?.();
-      if (publication !== null && publication !== undefined)
-        return { state: "RELEASED", serverNow };
+      if (publication !== null && publication !== undefined) {
+        const workflow = await tx.repositories.workflows.findById(String(publication.workflow_id));
+        if (workflow?.state === "RELEASED") return { state: "RELEASED", serverNow };
+      }
       const workflows = (await tx.repositories.workflows.findMany?.()) ?? [];
       const active = [...workflows]
         .reverse()

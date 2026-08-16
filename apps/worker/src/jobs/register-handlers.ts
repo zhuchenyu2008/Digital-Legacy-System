@@ -3,7 +3,14 @@ import { JOB_NAMES, type JobName } from "@dls/persistence";
 export type WorkerJob = Readonly<{
   id: string;
   name: JobName;
-  data: Readonly<{ aggregateId: string; aggregateVersion: number }>;
+  data: Readonly<{
+    aggregateId: string;
+    aggregateVersion: number;
+    eventId?: string;
+    eventType?: string;
+    contactId?: string;
+    offsetMs?: number;
+  }>;
 }>;
 
 export type WorkerJobHandler = (job: WorkerJob) => Promise<void>;

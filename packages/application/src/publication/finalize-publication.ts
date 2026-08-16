@@ -183,6 +183,103 @@ async function promoteCommittedPublication(
   }
 }
 
+async function finalizeCommittedPublication(
+  command: Readonly<{ workflowId: string }>,
+  dependencies: FinalizePublicationDependencies,
+): Promise<FinalizePublicationResult> {
+  return dependencies.transaction.run(
+    async (tx) => {
+      const publications = requiredRepository(tx.repositories.publications, "publications");
+      const publication = await publications.findOneBy?.("workflow_id", command.workflowId, {
+        forUpdate: true,
+      });
+      if (publication === null || publication === undefined) {
+        throw new PublicationError(
+          "DLS-PUBLICATION-PROMOTION",
+          "publication metadata is unavailable",
+          503,
+        );
+      }
+      const workflow = await tx.repositories.workflows.findById(command.workflowId, {
+        forUpdate: true,
+      });
+      if (workflow === null) {
+        throw new PublicationError("DLS-PUBLICATION-NOT-FOUND", "workflow was not found", 404);
+      }
+      if (workflow.state === "RELEASED") {
+        return { status: "ALREADY_PUBLISHED", publicationId: String(publication.id) };
+      }
+      if (
+        workflow.kind !== "DEATH_CONFIRMATION" ||
+        workflow.state !== "RELEASE_PENDING" ||
+        workflow.publish_locked_at === null ||
+        workflow.publish_locked_at === undefined
+      ) {
+        throw new PublicationError("DLS-PUBLICATION-STATE", "workflow is not ready to finalize");
+      }
+      const now = await tx.clock.now();
+      const updated = await tx.repositories.workflows.updateVersioned(
+        command.workflowId,
+        Number(workflow.version ?? 0),
+        { state: "RELEASED", end_reason: "PUBLISHED", ended_at: now },
+      );
+      const sessions = requiredRepository(
+        tx.repositories.releaseSecretSessions,
+        "release secret sessions",
+      );
+      const session = await sessions.findOneBy?.("workflow_id", command.workflowId, {
+        forUpdate: true,
+      });
+      if (session !== null && session !== undefined && session.status === "ACTIVE") {
+        await sessions.updateVersioned(String(session.id), Number(session.version ?? 0), {
+          status: "CONSUMED",
+          stage_key_envelope: null,
+          stage_key_nonce: null,
+          consumed_at: now,
+        });
+      }
+      await callFault(dependencies, "BEFORE_NOTIFICATION_OUTBOX");
+      const workflowContacts = requiredRepository(
+        tx.repositories.workflowContacts,
+        "workflow contacts",
+      );
+      const contacts = (await workflowContacts.findMany?.("workflow_id", command.workflowId)) ?? [];
+      for (const contact of contacts) {
+        const contactId = String(contact.contact_id);
+        await tx.outbox.enqueue({
+          eventType: "PUBLICATION_RELEASED_NOTIFICATION_REQUESTED",
+          aggregateType: "workflow",
+          aggregateId: command.workflowId,
+          payload: {
+            aggregateId: command.workflowId,
+            aggregateVersion: Number(updated.version ?? Number(workflow.version ?? 0) + 1),
+            contactId,
+            publicSlug: "legacy",
+          },
+          idempotencyKey: `publication-released:${command.workflowId}:${contactId}`,
+          availableAt: now,
+        });
+      }
+      await callFault(dependencies, "AFTER_NOTIFICATION_OUTBOX");
+      await tx.audit.append({
+        eventId: dependencies.idFactory?.() ?? randomUUID(),
+        occurredAt: now,
+        eventType: "DIGITAL_LEGACY_PUBLISHED",
+        actorType: "SYSTEM",
+        aggregateType: "workflow",
+        aggregateId: command.workflowId,
+        result: "SUCCESS",
+        metadata: {
+          publicationId: String(publication.id),
+          zipSha256: digestHex(publication.zip_sha256, "publication ZIP digest"),
+        },
+      });
+      return { status: "PUBLISHED", publicationId: String(publication.id) };
+    },
+    { isolation: "serializable" },
+  );
+}
+
 function assertWorkflowAndPackage(
   workflow: RepositoryRow,
   packageRow: RepositoryRow,
@@ -422,7 +519,13 @@ export async function finalizePublication(
       stagingKey,
       dependencies.storage,
     );
-    return { status: "ALREADY_PUBLISHED", publicationId: initial.existingPublicationId };
+    const finalized = await finalizeCommittedPublication(
+      { workflowId: command.workflowId },
+      dependencies,
+    );
+    return finalized.status === "PUBLISHED"
+      ? { status: "ALREADY_PUBLISHED", publicationId: initial.existingPublicationId }
+      : finalized;
   }
 
   const ownerCiphertext = ownedBytes(
@@ -657,50 +760,8 @@ export async function finalizePublication(
         const publicEvents = requiredRepository(tx.repositories.publicEvents, "public events");
         for (const event of events) await publicEvents.insert(event);
         await callFault(dependencies, "AFTER_PUBLIC_AUDIT_APPEND");
-        await tx.repositories.workflows.updateVersioned(
-          command.workflowId,
-          command.aggregateVersion,
-          {
-            state: "RELEASED",
-            end_reason: "PUBLISHED",
-            ended_at: now,
-          },
-        );
-        await sessions.updateVersioned(String(session.id), Number(session.version), {
-          status: "CONSUMED",
-          stage_key_envelope: null,
-          stage_key_nonce: null,
-          consumed_at: now,
-        });
         await callFault(dependencies, "BEFORE_NOTIFICATION_OUTBOX");
-        const workflowContacts = requiredRepository(
-          tx.repositories.workflowContacts,
-          "workflow contacts",
-        );
-        const contacts =
-          (await workflowContacts.findMany?.("workflow_id", command.workflowId)) ?? [];
-        for (const contact of contacts) {
-          const contactId = String(contact.contact_id);
-          await tx.outbox.enqueue({
-            eventType: "PUBLICATION_RELEASED_NOTIFICATION_REQUESTED",
-            aggregateType: "workflow",
-            aggregateId: command.workflowId,
-            payload: { aggregateId: command.workflowId, contactId, publicSlug: "legacy" },
-            idempotencyKey: `publication-released:${command.workflowId}:${contactId}`,
-            availableAt: now,
-          });
-        }
         await callFault(dependencies, "AFTER_NOTIFICATION_OUTBOX");
-        await tx.audit.append({
-          eventId: dependencies.idFactory?.() ?? randomUUID(),
-          occurredAt: now,
-          eventType: "DIGITAL_LEGACY_PUBLISHED",
-          actorType: "SYSTEM",
-          aggregateType: "workflow",
-          aggregateId: command.workflowId,
-          result: "SUCCESS",
-          metadata: { publicationId, zipSha256, packageVersion: Number(packageRow.version_no) },
-        });
         return { result: { status: "PUBLISHED", publicationId }, publication };
       },
       { isolation: "serializable" },
@@ -710,6 +771,7 @@ export async function finalizePublication(
     await callFault(dependencies, "BEFORE_PUBLIC_PROMOTION");
     await promoteCommittedPublication(committed.publication, stagingKey, dependencies.storage);
     await callFault(dependencies, "AFTER_PUBLIC_PROMOTION");
+    await finalizeCommittedPublication({ workflowId: command.workflowId }, dependencies);
     return committed.result;
   } finally {
     stageKey.fill(0);
