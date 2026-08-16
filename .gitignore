@@ -15,6 +15,7 @@ coverage/
 .compose-smoke-secrets/
 .e2e-runtime/
 .acceptance-artifacts/
+.codex-remote-attachments/
 .pnpm-store/
 ops/secrets/generated/
 
