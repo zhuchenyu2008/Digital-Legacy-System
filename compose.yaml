@@ -146,6 +146,7 @@ services:
     command:
       - |
         export SESSION_SECRET="$$(cat /run/secrets/session_secret)"
+        export FIELD_KEYRING="$$(cat /run/secrets/field_keyring)"
         export SESSION_PEPPER="$$(cat /run/secrets/session_pepper)"
         export SETUP_TOKEN="$$(cat /run/secrets/setup_token)"
         export TOKEN_PEPPER="$$(cat /run/secrets/token_pepper)"
@@ -162,6 +163,7 @@ services:
         exec node apps/api/dist/main.js
     secrets:
       - session_secret
+      - field_keyring
       - session_pepper
       - setup_token
       - token_pepper
@@ -210,6 +212,7 @@ services:
     command:
       - |
         export SESSION_SECRET="$$(cat /run/secrets/session_secret)"
+        export FIELD_KEYRING="$$(cat /run/secrets/field_keyring)"
         export TOKEN_PEPPER="$$(cat /run/secrets/token_pepper)"
         export RELEASE_INGRESS_PUBLIC_KEY="$$(cat /run/secrets/release_ingress_public_key)"
         export RELEASE_INGRESS_PRIVATE_KEY="$$(cat /run/secrets/release_ingress_private_key)"
@@ -222,6 +225,7 @@ services:
         exec node apps/worker/dist/main.js
     secrets:
       - session_secret
+      - field_keyring
       - token_pepper
       - worker_db_password
       - release_ingress_public_key
@@ -478,6 +482,8 @@ secrets:
     file: ${DLS_SECRETS_DIR:-./ops/secrets/generated}/health-db-password
   session_secret:
     file: ${DLS_SECRETS_DIR:-./ops/secrets/generated}/session-secret
+  field_keyring:
+    file: ${DLS_SECRETS_DIR:-./ops/secrets/generated}/field-keyring
   session_pepper:
     file: ${DLS_SECRETS_DIR:-./ops/secrets/generated}/session-pepper
   setup_token:

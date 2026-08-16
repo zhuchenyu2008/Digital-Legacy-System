@@ -45,6 +45,19 @@ if (-not $SkipExternalScanners) {
     $digest = ([regex]::Match($trivy, 'digest:\s*"([^"]+)"')).Groups[1].Value
     if ($digest -notmatch '^sha256:[0-9a-f]{64}$') { throw "Trivy digest is invalid" }
     $scannerImage = "aquasec/trivy:0.73.0@$digest"
+    $trivySkipDirs = @(
+      ".acceptance-artifacts", ".e2e-runtime", "test-results", ".pnpm-store", ".git", ".worktrees",
+      "node_modules", "apps/api/node_modules", "apps/web/node_modules",
+      "apps/worker/node_modules", "apps/api/dist", "apps/web/.next",
+      "apps/worker/dist", "packages/application/node_modules", "packages/application/dist",
+      "packages/contracts/node_modules", "packages/contracts/dist", "packages/crypto/node_modules",
+      "packages/crypto/dist", "packages/domain/node_modules", "packages/domain/dist",
+      "packages/email-templates/node_modules", "packages/email-templates/dist",
+      "packages/persistence/node_modules", "packages/persistence/dist",
+      "packages/storage/node_modules", "packages/storage/dist",
+      "packages/test-fixtures/node_modules", "packages/test-fixtures/dist",
+      "packages/vss-wasm/node_modules", "packages/vss-wasm/dist"
+    ) | ForEach-Object { @("--skip-dirs", $_) }
     Invoke-Gate "build release images" { docker compose --project-name $project build api worker web caddy }
     Invoke-Gate "caddy release identity" {
       $caddyVersion = docker run --rm --entrypoint /usr/local/bin/caddy-unprivileged "$project-caddy" version
@@ -53,11 +66,11 @@ if (-not $SkipExternalScanners) {
       }
     }
     Invoke-Gate "trivy filesystem" {
-      docker run --rm -v "${trivyCacheVolume}:/root/.cache/trivy" -v "${Root}:/workspace:ro" $scannerImage fs --scanners vuln,misconfig,secret --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 /workspace
+      docker run --rm -v "${trivyCacheVolume}:/root/.cache/trivy" -v "${Root}:/workspace:ro" $scannerImage fs --scanners vuln,misconfig,secret @trivySkipDirs --timeout 20m --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 /workspace
     }
     foreach ($image in $releaseImages) {
       Invoke-Gate "trivy image $image" {
-        docker run --rm -v "${trivyCacheVolume}:/root/.cache/trivy" -v "/var/run/docker.sock:/var/run/docker.sock" $scannerImage image --scanners vuln,secret --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 $image
+        docker run --rm -v "${trivyCacheVolume}:/root/.cache/trivy" -v "/var/run/docker.sock:/var/run/docker.sock" $scannerImage image --scanners vuln,secret --timeout 20m --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 $image
       }
     }
   } finally {

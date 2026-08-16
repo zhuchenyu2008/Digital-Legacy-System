@@ -1,4 +1,4 @@
-import { createDecipheriv, createHash, timingSafeEqual } from "node:crypto";
+import { createHash, timingSafeEqual } from "node:crypto";
 import {
   finalizePublication,
   type PublicationCryptography,
@@ -6,7 +6,9 @@ import {
   type StageKeyProvider,
   type TransactionManager,
 } from "@dls/application";
+import type { FieldKeyring } from "@dls/contracts";
 import {
+  AesFieldProtector,
   canonicalizeAad,
   decryptStream,
   encodeBase64Url,
@@ -173,40 +175,18 @@ export const workerPublicationCryptography: PublicationCryptography = {
   },
 };
 
-function decryptOwnerDisplayName(
-  secret: Uint8Array,
-  snapshot: Readonly<{ ciphertext: Uint8Array; nonce: Uint8Array; keyVersion: number }>,
-): string {
-  if (
-    snapshot.keyVersion !== 1 ||
-    snapshot.nonce.length !== 12 ||
-    snapshot.ciphertext.length <= 16
-  ) {
-    throw new Error("owner display name snapshot envelope is invalid");
-  }
-  const key = createHash("sha256").update(secret).digest();
-  const ciphertext = Buffer.from(snapshot.ciphertext);
-  try {
-    const decipher = createDecipheriv("aes-256-gcm", key, snapshot.nonce);
-    decipher.setAAD(Buffer.from("owner-display-name", "utf8"));
-    decipher.setAuthTag(ciphertext.subarray(ciphertext.length - 16));
-    return Buffer.concat([
-      decipher.update(ciphertext.subarray(0, ciphertext.length - 16)),
-      decipher.final(),
-    ]).toString("utf8");
-  } finally {
-    key.fill(0);
-    ciphertext.fill(0);
-  }
-}
-
 export class PublicationFinalizeHandler {
+  readonly #fieldProtector: AesFieldProtector;
+
   public constructor(
     private readonly transaction: TransactionManager,
     private readonly stageKeys: StageKeyProvider,
     private readonly storage: ReturnType<typeof createStorage>,
-    private readonly fieldSecret: Uint8Array,
-  ) {}
+    fieldKeyring: FieldKeyring | Uint8Array,
+    legacySecret?: Uint8Array,
+  ) {
+    this.#fieldProtector = new AesFieldProtector(fieldKeyring, legacySecret);
+  }
 
   public async handle(job: WorkerJob): Promise<void> {
     await finalizePublication(
@@ -218,7 +198,8 @@ export class PublicationFinalizeHandler {
         cryptography: workerPublicationCryptography,
         archiveInspector: new ZipInspector(),
         willRenderer: renderWill,
-        ownerDisplayName: async (snapshot) => decryptOwnerDisplayName(this.fieldSecret, snapshot),
+        ownerDisplayName: (snapshot) =>
+          this.#fieldProtector.unprotect(snapshot, "owner-display-name"),
       },
     );
   }
@@ -240,6 +221,7 @@ export async function createPublicationFinalizeHandler(): Promise<PublicationFin
     new PgTransactionManager(createPgPool({ connectionString: config.databaseUrl })),
     new WorkerStageKeys(capabilities),
     createStorage(storageConfig),
+    config.security.fieldKeyring,
     config.security.sessionSecret,
   );
 }

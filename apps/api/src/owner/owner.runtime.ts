@@ -55,7 +55,10 @@ export class PostgresOwnerRuntime implements OwnerRuntime {
     this.#transaction = transaction;
     this.#sessions = sessions;
     this.#passwordPepper = getApiRuntimeConfig().tokenPepper;
-    this.#fieldProtector = new AesFieldProtector(getApiRuntimeConfig().sessionSecret);
+    this.#fieldProtector = new AesFieldProtector(
+      getApiRuntimeConfig().fieldKeyring,
+      getApiRuntimeConfig().sessionSecret,
+    );
   }
 
   public login(command: OwnerLoginCommand): Promise<OwnerLoginResult> {

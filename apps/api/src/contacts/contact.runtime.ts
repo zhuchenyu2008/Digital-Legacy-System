@@ -81,7 +81,10 @@ export class PostgresContactRuntime implements ContactRuntime {
   readonly #consentVersion: string;
   readonly #consentDocumentSha256: Uint8Array;
   readonly #config = getApiRuntimeConfig();
-  readonly #notificationCipher = new AesNotificationCipher(this.#config.sessionSecret);
+  readonly #notificationCipher = new AesNotificationCipher(
+    this.#config.fieldKeyring,
+    this.#config.sessionSecret,
+  );
 
   public constructor(transaction: PgTransactionManager, sessions: SessionService) {
     this.#transaction = transaction;
@@ -89,7 +92,7 @@ export class PostgresContactRuntime implements ContactRuntime {
     this.#tokenPepper = this.#config.tokenPepper;
     this.#passwordPepper = this.#config.contactPasswordPepper;
     this.#ownerPasswordPepper = this.#config.tokenPepper;
-    this.#protector = new AesFieldProtector(this.#config.sessionSecret);
+    this.#protector = new AesFieldProtector(this.#config.fieldKeyring, this.#config.sessionSecret);
     this.#consentVersion = this.#config.contactConsentVersion;
     this.#consentDocumentSha256 = Buffer.from(this.#config.contactConsentSha256, "hex");
   }
@@ -99,7 +102,7 @@ export class PostgresContactRuntime implements ContactRuntime {
       transaction: this.#transaction,
       tokenPepper: this.#tokenPepper,
       fieldProtector: this.#protector,
-      emailLookupHmac: (email) => this.#protector.lookup(email),
+      emailLookupHmac: (email) => this.#protector.lookupCandidates(email),
       queueInvitationNotification: async (input, tx) => {
         const owner = await tx.repositories.ownerProfile.findById(true);
         if (owner === null) throw new Error("Owner profile is unavailable");
@@ -245,7 +248,7 @@ export class PostgresContactRuntime implements ContactRuntime {
   ) {
     return loginContact(command, {
       transaction: this.#transaction,
-      contactLookupHmac: (displayName) => this.#protector.lookup(displayName),
+      contactLookupHmac: (displayName) => this.#protector.lookupCandidates(displayName),
       passwordVerifier: (password, hash) =>
         verifyServerPassword(password, this.#passwordPepper, hash),
       sessionService: this.#sessions,

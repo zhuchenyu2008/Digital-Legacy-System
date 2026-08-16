@@ -309,8 +309,8 @@ export class PostgresRecoveryRuntime implements RecoveryRuntime {
     private readonly transaction: TransactionManager,
     private readonly sessions: SessionService,
   ) {
-    const protector = new AesFieldProtector(this.#config.sessionSecret);
-    const cipher = new AesNotificationCipher(this.#config.sessionSecret);
+    const protector = new AesFieldProtector(this.#config.fieldKeyring, this.#config.sessionSecret);
+    const cipher = new AesNotificationCipher(this.#config.fieldKeyring, this.#config.sessionSecret);
     const renderer = {
       render: (code: string, context: Readonly<Record<string, unknown>>) => {
         if (!TEMPLATE_CODES.includes(code as TemplateCode)) {

@@ -4,11 +4,12 @@
 
 应用回滚需要由发布流程生成并审核的 compatibility manifest。manifest 的 `version` 必须等于目标版本，`compatibleSchemaVersions` 必须显式包含当前数据库 schema，`imageDigests` 必须给出 api/worker/web/caddy 的完整 SHA-256。
 
+    TARGET_VERSION=<ci-commit-sha-for-rollback>
     bash ops/scripts/rollback.sh \
-      --version 2026.08.10 \
-      --deployment-dir /srv/dls/releases/2026.08.11 \
-      --compatibility-manifest /srv/dls/releases/2026.08.10/compatibility.json \
-      --env-file /srv/dls/releases/2026.08.11/.env.production
+      --version "$TARGET_VERSION" \
+      --deployment-dir "/srv/dls/releases/$TARGET_VERSION" \
+      --compatibility-manifest "/srv/dls/releases/$TARGET_VERSION/compatibility.json" \
+      --env-file "/srv/dls/releases/$TARGET_VERSION/.env.production"
 
 Windows/PowerShell 使用等价参数 `-Version`、`-DeploymentDirectory`、`-CompatibilityManifest`、`-EnvFile` 调用 `ops/scripts/rollback.ps1`。
 

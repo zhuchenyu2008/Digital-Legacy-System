@@ -235,6 +235,8 @@ secrets:
     file: ${DLS_SECRETS_DIR:?DLS_SECRETS_DIR is required}/health-db-password
   session_secret:
     file: ${DLS_SECRETS_DIR:?DLS_SECRETS_DIR is required}/session-secret
+  field_keyring:
+    file: ${DLS_SECRETS_DIR:?DLS_SECRETS_DIR is required}/field-keyring
   session_pepper:
     file: ${DLS_SECRETS_DIR:?DLS_SECRETS_DIR is required}/session-pepper
   setup_token:

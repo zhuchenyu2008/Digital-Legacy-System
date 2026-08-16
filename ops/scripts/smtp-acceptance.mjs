@@ -220,6 +220,10 @@ async function confirm(args) {
   if (evidence.status !== "smtp-accepted-awaiting-inbox-confirmation") {
     throw new Error("SMTP evidence is not awaiting confirmation");
   }
+  const roles = new Set((evidence.recipients ?? []).map((recipient) => recipient.role));
+  if (roles.size !== 2 || !roles.has("primary") || !roles.has("backup")) {
+    throw new Error("SMTP acceptance requires both primary and backup recipients");
+  }
   for (const recipient of evidence.recipients ?? []) {
     const code = option(`--${recipient.role}-code`, args, true).toUpperCase();
     if (digest(code) !== recipient.receiptCodeSha256) {

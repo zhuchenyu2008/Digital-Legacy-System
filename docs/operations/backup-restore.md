@@ -1,6 +1,8 @@
 # 备份与恢复
 
-这是操作员驱动的一致性备份，不代表系统自动完成异地备份。开始前进入维护窗口，确认目标目录不是文件系统根且为空，并确保备份介质具备平台级加密和访问审计。
+这是操作员驱动的一致性备份；生产 systemd timer 还会在独立 failure domain 自动生成并校验加密 secret bundle。开始前进入维护窗口，确认目标目录不是文件系统根且为空，并确保备份介质具备平台级加密和访问审计。
+
+生产安装必须同时配置 `DLS_SECRETS_BACKUP_ROOT`（异地/离线介质）和 `DLS_SECRETS_BACKUP_KEY_FILE`（另一 failure domain）。每次 `dls-backup.service` 会运行 `secrets-backup.mjs backup --production --config-file <production-env>` 与 `verify`；bundle 同时包含完整 secrets 集合和 production env 配置，均为加密内容。`dls-restore-drill.service` 会把最近 bundle 解密到一次性 `DLS_SECRETS_DIR`，只用恢复出的 env、`data-backup-key` 和其它密钥解密普通备份并完成启动校验，演练结束时删除全部临时明文。普通 database/object backup 不含 `/run/secrets`，不能单独用于灾难恢复。
 
 ## 创建备份
 

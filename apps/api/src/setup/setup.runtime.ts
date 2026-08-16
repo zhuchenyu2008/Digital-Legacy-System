@@ -1,4 +1,3 @@
-import { createCipheriv, createDecipheriv, createHash, createHmac, randomBytes } from "node:crypto";
 import type {
   FieldProtector,
   OwnerSetupCommand,
@@ -7,7 +6,7 @@ import type {
   TransactionManager,
 } from "@dls/application";
 import { createOwner, getSetupStatus, type SessionService } from "@dls/application";
-import { hashServerPassword } from "@dls/crypto/node";
+import { AesFieldProtector, hashServerPassword } from "@dls/crypto/node";
 import { createPgPool, PgTransactionManager } from "@dls/persistence";
 import { getApiRuntimeConfig } from "../config/api-runtime-config.js";
 
@@ -18,47 +17,7 @@ export interface SetupRuntime {
   createOwner(command: OwnerSetupCommand): Promise<OwnerSetupResult>;
 }
 
-export class AesFieldProtector implements FieldProtector {
-  readonly #key: Buffer;
-
-  public constructor(secret: Uint8Array) {
-    this.#key = createHash("sha256").update(secret).digest();
-  }
-
-  public async protect(value: string, purpose: string) {
-    const nonce = randomBytes(12);
-    const cipher = createCipheriv("aes-256-gcm", this.#key, nonce);
-    cipher.setAAD(Buffer.from(purpose, "utf8"));
-    const ciphertext = Buffer.concat([
-      cipher.update(value, "utf8"),
-      cipher.final(),
-      cipher.getAuthTag(),
-    ]);
-    const lookupHmac = createHmac("sha256", this.#key).update(value, "utf8").digest();
-    return { ciphertext, nonce, keyVersion: 1, lookupHmac };
-  }
-
-  public async lookup(value: string): Promise<Uint8Array> {
-    return createHmac("sha256", this.#key).update(value, "utf8").digest();
-  }
-
-  public async unprotect(
-    value: Readonly<{ ciphertext: Uint8Array; nonce: Uint8Array; keyVersion: number }>,
-    purpose: string,
-  ): Promise<string> {
-    if (value.keyVersion !== 1 || value.nonce.length !== 12 || value.ciphertext.length <= 16) {
-      throw new Error("Protected field envelope is invalid");
-    }
-    const ciphertext = Buffer.from(value.ciphertext);
-    const decipher = createDecipheriv("aes-256-gcm", this.#key, value.nonce);
-    decipher.setAAD(Buffer.from(purpose, "utf8"));
-    decipher.setAuthTag(ciphertext.subarray(ciphertext.length - 16));
-    return Buffer.concat([
-      decipher.update(ciphertext.subarray(0, ciphertext.length - 16)),
-      decipher.final(),
-    ]).toString("utf8");
-  }
-}
+export { AesFieldProtector } from "@dls/crypto/node";
 
 export function secretBytes(value: string | undefined, fallback: string): Uint8Array {
   return Uint8Array.from(
@@ -78,7 +37,7 @@ export class PostgresSetupRuntime implements SetupRuntime {
     this.#transaction = transaction;
     this.#expectedSetupToken = this.#config.setupToken;
     this.#passwordPepper = this.#config.tokenPepper;
-    this.#protector = new AesFieldProtector(this.#config.sessionSecret);
+    this.#protector = new AesFieldProtector(this.#config.fieldKeyring, this.#config.sessionSecret);
     this.#sessions = sessions;
   }
 

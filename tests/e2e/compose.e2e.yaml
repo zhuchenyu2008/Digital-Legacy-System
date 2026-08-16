@@ -13,6 +13,7 @@ services:
     command:
       - |
         export SESSION_SECRET="$$(cat /run/secrets/session_secret)"
+        export FIELD_KEYRING="$$(cat /run/secrets/field_keyring)"
         export SESSION_PEPPER="$$(cat /run/secrets/session_pepper)"
         export SETUP_TOKEN="$$(cat /run/secrets/setup_token)"
         export TOKEN_PEPPER="$$(cat /run/secrets/token_pepper)"

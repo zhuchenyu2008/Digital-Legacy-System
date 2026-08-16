@@ -361,7 +361,31 @@ describe("immutable publication", () => {
     expect(opened).toMatchObject({ bytes: 5, totalBytes: state.plaintextZip.length });
   });
 
-  it("cleans plaintext staging after a pre-commit failure and leaves no visible record", async () => {
+  it("never exposes plaintext when the final database transaction fails", async () => {
+    const state = fixture();
+    let runs = 0;
+    await expect(
+      finalizePublication(
+        { workflowId: state.workflowId, aggregateVersion: 5 },
+        {
+          ...state.dependencies,
+          transaction: {
+            run: async <T>(work: (tx: TransactionContext) => Promise<T>) => {
+              runs += 1;
+              if (runs === 2) throw new Error("database unavailable");
+              return state.transaction.run(work);
+            },
+          },
+        },
+      ),
+    ).rejects.toThrow("database unavailable");
+    expect([...state.storage.objects.keys()].some((key) => key.startsWith("staging:"))).toBe(false);
+    expect([...state.storage.objects.keys()].some((key) => key.startsWith("public:"))).toBe(false);
+    expect(state.tables.get("publications")).toHaveLength(0);
+    await expect(getPublication(state.transaction)).resolves.toBeNull();
+  });
+
+  it("keeps committed staging recoverable until a retry promotes it publicly", async () => {
     const state = fixture();
     await expect(
       finalizePublication(
@@ -369,13 +393,22 @@ describe("immutable publication", () => {
         {
           ...state.dependencies,
           fault: async (point: string) => {
-            if (point === "AFTER_PUBLIC_PROMOTION") throw new Error("simulated crash");
+            if (point === "BEFORE_PUBLIC_PROMOTION") throw new Error("worker crashed after commit");
           },
         },
       ),
-    ).rejects.toThrow("simulated crash");
+    ).rejects.toThrow("worker crashed after commit");
+    expect(state.tables.get("publications")).toHaveLength(1);
+    expect([...state.storage.objects.keys()].some((key) => key.startsWith("staging:"))).toBe(true);
+    expect([...state.storage.objects.keys()].some((key) => key.startsWith("public:"))).toBe(false);
+
+    await expect(
+      finalizePublication(
+        { workflowId: state.workflowId, aggregateVersion: 5 },
+        state.dependencies,
+      ),
+    ).resolves.toMatchObject({ status: "ALREADY_PUBLISHED" });
     expect([...state.storage.objects.keys()].some((key) => key.startsWith("staging:"))).toBe(false);
-    expect(state.tables.get("publications")).toHaveLength(0);
-    await expect(getPublication(state.transaction)).resolves.toBeNull();
+    expect([...state.storage.objects.keys()].some((key) => key.startsWith("public:"))).toBe(true);
   });
 });

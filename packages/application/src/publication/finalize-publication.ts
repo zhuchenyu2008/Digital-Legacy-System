@@ -17,14 +17,14 @@ export const PUBLICATION_FAULT_POINTS = [
   "AFTER_ZIP_VALIDATION",
   "BEFORE_WILL_RENDER",
   "AFTER_WILL_RENDER",
-  "BEFORE_PUBLIC_PROMOTION",
-  "AFTER_PUBLIC_PROMOTION",
   "BEFORE_DB_TRANSACTION",
   "BEFORE_PUBLIC_AUDIT_APPEND",
   "AFTER_PUBLIC_AUDIT_APPEND",
   "BEFORE_NOTIFICATION_OUTBOX",
   "AFTER_NOTIFICATION_OUTBOX",
   "AFTER_DB_TRANSACTION",
+  "BEFORE_PUBLIC_PROMOTION",
+  "AFTER_PUBLIC_PROMOTION",
 ] as const;
 
 export type PublicationFaultPoint = (typeof PUBLICATION_FAULT_POINTS)[number];
@@ -129,6 +129,58 @@ function digestHex(value: unknown, label: string): string {
   if (typeof value === "string" && /^[0-9a-f]{64}$/u.test(value)) return value;
   if (value instanceof Uint8Array && value.length === 32) return Buffer.from(value).toString("hex");
   throw new PublicationError("DLS-PUBLICATION-METADATA", `${label} is invalid`, 422);
+}
+
+function publicationStagingKey(workflowId: string): string {
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/u.test(workflowId)) {
+    throw new PublicationError("DLS-PUBLICATION-METADATA", "workflow ID is invalid", 422);
+  }
+  return `${workflowId.slice(0, 2)}/${workflowId.slice(2, 4)}/${workflowId}`;
+}
+
+async function promoteCommittedPublication(
+  publication: RepositoryRow,
+  stagingKey: string,
+  storage: ObjectStoragePort,
+): Promise<void> {
+  const publicObjectKey = String(publication.public_object_key);
+  const expectedBytes = positiveInteger(publication.zip_size, "publication ZIP size");
+  const expectedSha256 = digestHex(publication.zip_sha256, "publication ZIP digest");
+  const existing = await storage.head("public", publicObjectKey);
+  if (existing !== null) {
+    if (existing.bytes !== expectedBytes || existing.sha256 !== expectedSha256) {
+      throw new PublicationError(
+        "DLS-PUBLICATION-PROMOTION",
+        "committed public object conflicts with publication metadata",
+        503,
+      );
+    }
+    await storage.delete("staging", stagingKey).catch(() => undefined);
+    return;
+  }
+  const staged = await storage.head("staging", stagingKey);
+  if (staged === null || staged.bytes !== expectedBytes || staged.sha256 !== expectedSha256) {
+    throw new PublicationError(
+      "DLS-PUBLICATION-PROMOTION",
+      "committed publication is awaiting its verified staging object",
+      503,
+    );
+  }
+  await storage.promote({
+    from: "staging",
+    to: "public",
+    sourceKey: stagingKey,
+    destinationKey: publicObjectKey,
+    expectedSha256,
+  });
+  const promoted = await storage.head("public", publicObjectKey);
+  if (promoted === null || promoted.bytes !== expectedBytes || promoted.sha256 !== expectedSha256) {
+    throw new PublicationError(
+      "DLS-PUBLICATION-PROMOTION",
+      "public object integrity check failed",
+      503,
+    );
+  }
 }
 
 function assertWorkflowAndPackage(
@@ -318,7 +370,7 @@ export async function finalizePublication(
     const publications = requiredRepository(tx.repositories.publications, "publications");
     const existing = await publications.findOneBy?.("workflow_id", command.workflowId);
     if (existing !== null && existing !== undefined) {
-      return { existingPublicationId: String(existing.id) } as const;
+      return { existingPublicationId: String(existing.id), existingPublication: existing } as const;
     }
     const workflow = await tx.repositories.workflows.findById(command.workflowId, {
       forUpdate: true,
@@ -356,7 +408,20 @@ export async function finalizePublication(
     }
     return { workflow, packageRow, generation, vault, session } as const;
   });
+  const stagingKey = publicationStagingKey(command.workflowId);
   if ("existingPublicationId" in initial) {
+    if (initial.existingPublication === undefined) {
+      throw new PublicationError(
+        "DLS-PUBLICATION-PROMOTION",
+        "committed publication metadata is unavailable",
+        503,
+      );
+    }
+    await promoteCommittedPublication(
+      initial.existingPublication,
+      stagingKey,
+      dependencies.storage,
+    );
     return { status: "ALREADY_PUBLISHED", publicationId: initial.existingPublicationId };
   }
 
@@ -396,8 +461,7 @@ export async function finalizePublication(
 
   let vaultKey: Uint8Array | undefined;
   let dek: Uint8Array | undefined;
-  const stagingId = randomUUID();
-  const stagingKey = `${stagingId.slice(0, 2)}/${stagingId.slice(2, 4)}/${stagingId}`;
+  let databaseCommitted = false;
   try {
     await callFault(dependencies, "BEFORE_STAGE_VK_UNWRAP");
     vaultKey = await dependencies.cryptography.unwrapReleaseVaultKey({
@@ -530,38 +594,22 @@ export async function finalizePublication(
     await callFault(dependencies, "AFTER_WILL_RENDER");
 
     const publicObjectKey = `legacy/${zipSha256.slice(0, 2)}/${zipSha256}.zip`;
-    await callFault(dependencies, "BEFORE_PUBLIC_PROMOTION");
-    await dependencies.storage.promote({
-      from: "staging",
-      to: "public",
-      sourceKey: stagingKey,
-      destinationKey: publicObjectKey,
-      expectedSha256: zipSha256,
-    });
-    const publicMetadata = await dependencies.storage.head("public", publicObjectKey);
-    if (
-      publicMetadata === null ||
-      publicMetadata.bytes !== plaintextBytes ||
-      publicMetadata.sha256 !== zipSha256
-    ) {
-      throw new PublicationError(
-        "DLS-PUBLICATION-PROMOTION",
-        "public object integrity check failed",
-        503,
-      );
-    }
-    await callFault(dependencies, "AFTER_PUBLIC_PROMOTION");
     await callFault(dependencies, "BEFORE_DB_TRANSACTION");
 
     const publicationId = dependencies.idFactory?.() ?? randomUUID();
     const committed = await dependencies.transaction.run(
-      async (tx): Promise<FinalizePublicationResult> => {
+      async (
+        tx,
+      ): Promise<Readonly<{ result: FinalizePublicationResult; publication: RepositoryRow }>> => {
         const publications = requiredRepository(tx.repositories.publications, "publications");
         const existing = await publications.findOneBy?.("workflow_id", command.workflowId, {
           forUpdate: true,
         });
         if (existing !== null && existing !== undefined) {
-          return { status: "ALREADY_PUBLISHED", publicationId: String(existing.id) };
+          return {
+            result: { status: "ALREADY_PUBLISHED", publicationId: String(existing.id) },
+            publication: existing,
+          };
         }
         const workflow = await tx.repositories.workflows.findById(command.workflowId, {
           forUpdate: true,
@@ -590,7 +638,7 @@ export async function finalizePublication(
         const now = await tx.clock.now();
         const events = publicAuditRows({ publicationId, occurredAt: now, workflow, zipSha256 });
         const finalHash = ownedBytes(events.at(-1)?.event_hash, "public audit final hash", 32);
-        await publications.insert({
+        const publication = await publications.insert({
           id: publicationId,
           workflow_id: command.workflowId,
           package_id: String(packageRow.id),
@@ -653,18 +701,24 @@ export async function finalizePublication(
           result: "SUCCESS",
           metadata: { publicationId, zipSha256, packageVersion: Number(packageRow.version_no) },
         });
-        return { status: "PUBLISHED", publicationId };
+        return { result: { status: "PUBLISHED", publicationId }, publication };
       },
       { isolation: "serializable" },
     );
+    databaseCommitted = true;
     await callFault(dependencies, "AFTER_DB_TRANSACTION");
-    return committed;
+    await callFault(dependencies, "BEFORE_PUBLIC_PROMOTION");
+    await promoteCommittedPublication(committed.publication, stagingKey, dependencies.storage);
+    await callFault(dependencies, "AFTER_PUBLIC_PROMOTION");
+    return committed.result;
   } finally {
     stageKey.fill(0);
     vaultKey?.fill(0);
     dek?.fill(0);
     ownerCiphertext.fill(0);
     ownerNonce.fill(0);
-    await dependencies.storage.delete("staging", stagingKey).catch(() => undefined);
+    if (!databaseCommitted) {
+      await dependencies.storage.delete("staging", stagingKey).catch(() => undefined);
+    }
   }
 }

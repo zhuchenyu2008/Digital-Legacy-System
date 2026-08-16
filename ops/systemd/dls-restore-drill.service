@@ -6,7 +6,7 @@ After=docker.service dls-backup.service
 [Service]
 Type=oneshot
 EnvironmentFile=/etc/dls/automation.env
-ExecStart=/usr/bin/bash ${DLS_REPOSITORY_ROOT}/ops/scripts/scheduled-restore-drill.sh --backup-root ${DLS_BACKUP_ROOT} --drill-root ${DLS_RESTORE_DRILL_ROOT} --env-file ${DLS_ENV_FILE} --status-file ${DLS_DATA_DIR}/operations/restore-drill-status.json --encryption-key-file ${DLS_DATA_BACKUP_KEY_FILE}
+ExecStart=/usr/bin/bash ${DLS_REPOSITORY_ROOT}/ops/scripts/scheduled-restore-drill.sh --backup-root ${DLS_BACKUP_ROOT} --secrets-backup-root ${DLS_SECRETS_BACKUP_ROOT} --secrets-backup-key-file ${DLS_SECRETS_BACKUP_KEY_FILE} --drill-root ${DLS_RESTORE_DRILL_ROOT} --status-file ${DLS_DATA_DIR}/operations/restore-drill-status.json
 Nice=15
 IOSchedulingClass=best-effort
 IOSchedulingPriority=7

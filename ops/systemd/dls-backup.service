@@ -6,7 +6,7 @@ After=docker.service
 [Service]
 Type=oneshot
 EnvironmentFile=/etc/dls/automation.env
-ExecStart=/usr/bin/bash ${DLS_REPOSITORY_ROOT}/ops/scripts/scheduled-backup.sh --project ${DLS_PROJECT} --backup-root ${DLS_BACKUP_ROOT} --data-root ${DLS_DATA_DIR} --object-root ${DLS_OBJECT_ROOT} --secrets-root ${DLS_SECRETS_DIR} --env-file ${DLS_ENV_FILE} --storage-driver ${DLS_STORAGE_DRIVER} --retention-days ${DLS_BACKUP_RETENTION_DAYS} --status-file ${DLS_DATA_DIR}/operations/backup-status.json --encryption-key-file ${DLS_DATA_BACKUP_KEY_FILE}
+ExecStart=/usr/bin/bash ${DLS_REPOSITORY_ROOT}/ops/scripts/scheduled-backup.sh --project ${DLS_PROJECT} --backup-root ${DLS_BACKUP_ROOT} --data-root ${DLS_DATA_DIR} --object-root ${DLS_OBJECT_ROOT} --secrets-root ${DLS_SECRETS_DIR} --secrets-backup-root ${DLS_SECRETS_BACKUP_ROOT} --env-file ${DLS_ENV_FILE} --storage-driver ${DLS_STORAGE_DRIVER} --retention-days ${DLS_BACKUP_RETENTION_DAYS} --status-file ${DLS_DATA_DIR}/operations/backup-status.json --encryption-key-file ${DLS_DATA_BACKUP_KEY_FILE} --secrets-backup-key-file ${DLS_SECRETS_BACKUP_KEY_FILE}
 Nice=10
 IOSchedulingClass=best-effort
 IOSchedulingPriority=7

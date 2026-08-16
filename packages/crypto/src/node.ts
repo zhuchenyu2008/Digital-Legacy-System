@@ -1,3 +1,4 @@
+export * from "./field-protector.js";
 export * from "./keys/contact-key-pair.js";
 export * from "./keys/key-material.js";
 export * from "./keys/key-wrapping.js";

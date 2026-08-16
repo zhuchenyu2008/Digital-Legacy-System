@@ -42,7 +42,10 @@ export class PostgresWorkflowRuntime implements WorkflowRuntime {
   #capabilities: Promise<ApiKeyCapabilities> | undefined;
 
   public constructor(private readonly transaction: TransactionManager) {
-    this.#protector = new AesFieldProtector(getApiRuntimeConfig().sessionSecret);
+    this.#protector = new AesFieldProtector(
+      getApiRuntimeConfig().fieldKeyring,
+      getApiRuntimeConfig().sessionSecret,
+    );
   }
 
   public ownerCurrent() {

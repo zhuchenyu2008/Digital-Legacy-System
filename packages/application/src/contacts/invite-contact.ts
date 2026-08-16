@@ -34,6 +34,14 @@ export type InvitationNotificationInput = Readonly<{
   expiresAt: string;
 }>;
 
+type LookupHmacResult = Uint8Array | readonly Uint8Array[];
+
+function lookupCandidates(value: LookupHmacResult): readonly Uint8Array[] {
+  const candidates = value instanceof Uint8Array ? [value] : value;
+  if (candidates.length === 0) throw new Error("email lookup HMAC is unavailable");
+  return candidates;
+}
+
 export type ResendContactInvitationCommand = Readonly<{
   ownerId: string;
   contactId: string;
@@ -58,7 +66,7 @@ export async function inviteContact(
     tokenFactory?: () => Uint8Array;
     idFactory?: () => string;
     fieldProtector: FieldProtector;
-    emailLookupHmac: (email: string) => Promise<Uint8Array>;
+    emailLookupHmac: (email: string) => Promise<LookupHmacResult>;
     queueInvitationNotification?: (
       input: InvitationNotificationInput,
       tx: TransactionContext,
@@ -68,13 +76,20 @@ export async function inviteContact(
   const displayName = normalizeContactName(command.displayName);
   const email = normalizeEmail(command.email);
   const idFactory = dependencies.idFactory ?? (() => crypto.randomUUID());
-  const emailLookup = await dependencies.emailLookupHmac(email);
+  const emailLookups = lookupCandidates(await dependencies.emailLookupHmac(email));
+  const emailLookup = emailLookups[0];
+  if (emailLookup === undefined) throw new Error("email lookup HMAC is unavailable");
   return dependencies.transaction.run(
     async (tx) => {
       const contacts = tx.repositories.contacts;
-      const existing = await contacts.findOneBy?.("email_lookup_hmac", Buffer.from(emailLookup), {
-        forUpdate: true,
-      });
+      let existing = null;
+      for (const emailLookup of emailLookups) {
+        existing =
+          (await contacts.findOneBy?.("email_lookup_hmac", Buffer.from(emailLookup), {
+            forUpdate: true,
+          })) ?? null;
+        if (existing !== null) break;
+      }
       if (existing !== null && existing !== undefined && existing.status !== "REMOVED") {
         throw new ContactUseCaseError(
           "CONTACT_EMAIL_EXISTS",

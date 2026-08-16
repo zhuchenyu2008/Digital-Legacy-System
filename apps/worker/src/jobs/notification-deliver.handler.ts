@@ -41,7 +41,7 @@ export function createNotificationDeliverHandler(): NotificationDeliverHandler {
   return new NotificationDeliverHandler(
     new PgTransactionManager(pool),
     new StrictEmailTemplateRenderer(),
-    new AesNotificationCipher(config.security.sessionSecret),
+    new AesNotificationCipher(config.security.fieldKeyring, config.security.sessionSecret),
     createNodemailerEmailSender({
       transportUrl: config.mail.transportUrl,
       from: config.mail.from,

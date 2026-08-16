@@ -11,7 +11,7 @@ Set `DLS_SECRETS_DIR` to write to a different directory. The generator creates o
 The generated set contains:
 
 - six independently generated PostgreSQL role passwords;
-- `session-secret` and `token-pepper`;
+- `session-secret`, `token-pepper`, and the independent versioned `field-keyring`;
 - release X25519 ingress public/private keys and `release-stage-kek`;
 - recovery X25519 ingress public/private keys and `recovery-stage-kek`;
 - optional S3 development credentials.
@@ -20,7 +20,9 @@ Compose mounts capabilities by ownership: API receives the release public key pl
 
 For direct host development, export only the variables listed for that process in [stage-key-capabilities.md](../../docs/operations/stage-key-capabilities.md). Docker Compose reads the files directly. Never commit generated values, paste them into logs, or reuse development secrets in production.
 
-Production deployments must use independently generated, access-controlled secret mounts and the documented rotation procedure rather than development files or `.env` values.
+Production deployments must use independently generated, access-controlled secret mounts and the documented rotation procedure rather than development files or `.env` values. The `field-keyring` file is a versioned JSON keyring (`activeVersion`, historical `keys`, and an independent `lookupKey`); rotation appends a new encryption key while retaining old versions until all rows are rewrapped.
+
+只轮换长期字段密钥时使用 `node ops/scripts/generate-development-secrets.mjs --rotate-field-keyring`；它不会替换 `session-secret`，因此旧字段可以在 rewrap 完成前继续通过兼容路径读取。`--rotate` 仍表示开发环境全量轮换，不得在生产字段尚未 rewrap 时使用。
 
 ## 生产密钥离线/异地备份
 
@@ -32,7 +34,7 @@ Production deployments must use independently generated, access-controlled secre
 openssl rand -base64 32 > /offline/dls-secrets-backup.key
 ```
 
-执行备份：
+执行备份（`--production` 会校验完整生产 secret 集合）：
 
 ```sh
 node ops/scripts/secrets-backup.mjs backup \
@@ -40,6 +42,8 @@ node ops/scripts/secrets-backup.mjs backup \
   --output /offline/dls-secrets-2026-08-15.bundle.enc \
   --key-file /offline/dls-secrets-backup.key
 ```
+
+生产制度中，`dls-backup.timer` 每次普通数据库/object backup 都会在独立的 `DLS_SECRETS_BACKUP_ROOT` failure domain 写入并立即 `verify` 一个同名 bundle；bundle 同时封装完整生产 secrets 和 `.env.production` 配置。`dls-restore-drill.timer` 会用离线 key 恢复到一次性 `DLS_SECRETS_DIR`，只使用恢复出的配置和 `data-backup-key` 实际解密普通 backup 后再清理。`DLS_SECRETS_BACKUP_KEY_FILE` 必须位于生产 secrets 和 backup media 之外，不能随机器或普通 backup 一起保存。
 
 恢复前先完成双人复核，目标目录必须是空目录；恢复后再用数据库/object backup 的校验与 `verify-restore` 检查启动。
 

@@ -15,7 +15,7 @@
 ```powershell
 node ops/scripts/generate-development-secrets.mjs
 PowerShell -NoProfile -ExecutionPolicy Bypass -File ops/scripts/backup-restore-smoke.ps1
-node ops/scripts/secrets-backup.mjs backup --source <secrets> --output <offline>/secrets.bundle.enc --key-file <offline>/backup.key
+node ops/scripts/secrets-backup.mjs backup --source <secrets> --config-file <production-env> --output <offline>/secrets.bundle.enc --key-file <offline>/backup.key --production --media-root <offline>
 node ops/scripts/secrets-backup.mjs restore --bundle <offline>/secrets.bundle.enc --target <empty-target> --key-file <offline>/backup.key
 ```
 

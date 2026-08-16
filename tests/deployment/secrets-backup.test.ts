@@ -15,6 +15,7 @@ describe("production secrets backup", () => {
     const target = join(root, "target");
     const media = join(root, "media");
     const offline = join(root, "offline");
+    const config = join(root, ".env.production");
     const output = join(media, "bundle.enc");
     const keyFile = join(offline, "backup.key");
     const secret = "synthetic-secret-value";
@@ -22,6 +23,7 @@ describe("production secrets backup", () => {
       await mkdir(source, { recursive: true });
       await mkdir(offline, { recursive: true });
       await writeFile(join(source, "session-secret"), secret, { encoding: "utf8" });
+      await writeFile(config, "DLS_DOMAIN=example.test\n", { encoding: "utf8" });
       await writeFile(keyFile, `${randomBytes(32).toString("base64")}\n`, { encoding: "utf8" });
       const script = join(process.cwd(), "ops/scripts/secrets-backup.mjs");
       const backup = await execFileAsync(process.execPath, [
@@ -29,6 +31,8 @@ describe("production secrets backup", () => {
         "backup",
         "--source",
         source,
+        "--config-file",
+        config,
         "--output",
         output,
         "--key-file",
@@ -56,6 +60,9 @@ describe("production secrets backup", () => {
       ]);
       expect(restore.stdout).not.toContain(secret);
       await expect(readFile(join(target, "session-secret"), "utf8")).resolves.toBe(secret);
+      await expect(readFile(join(target, "config/.env.production"), "utf8")).resolves.toBe(
+        "DLS_DOMAIN=example.test\n",
+      );
       const manifest = JSON.parse(await readFile(`${output}.manifest.json`, "utf8"));
       expect(manifest).toMatchObject({
         containsPlaintextSecrets: false,
@@ -71,11 +78,13 @@ describe("production secrets backup", () => {
     const root = await mkdtemp(join(tmpdir(), "dls-secrets-boundary-"));
     const source = join(root, "source");
     const media = join(root, "media");
+    const config = join(root, ".env.production");
     const keyFile = join(media, "backup.key");
     try {
       await mkdir(source, { recursive: true });
       await mkdir(media, { recursive: true });
       await writeFile(join(source, "session-secret"), "secret", "utf8");
+      await writeFile(config, "DLS_DOMAIN=example.test\n", "utf8");
       await writeFile(keyFile, `${randomBytes(32).toString("base64")}\n`, "utf8");
       const script = join(process.cwd(), "ops/scripts/secrets-backup.mjs");
       await expect(
@@ -84,6 +93,8 @@ describe("production secrets backup", () => {
           "backup",
           "--source",
           source,
+          "--config-file",
+          config,
           "--output",
           join(media, "bundle.enc"),
           "--key-file",

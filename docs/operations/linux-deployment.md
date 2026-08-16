@@ -18,13 +18,17 @@
 
 ## 发布
 
-    bash ops/scripts/deploy.sh \
-      --version 2026.08.11 \
-      --deployment-dir /srv/dls/releases/2026.08.11 \
-      --backup-dir /srv/dls/backups/2026-08-11 \
-      --env-file /srv/dls/releases/2026.08.11/.env.production
+`VERSION` 必须等于 CI release-image manifest 的 `version`（当前流程使用完整 commit SHA），不能再手填一个与镜像 tag 不同的日期版本。
 
-脚本依次验证磁盘与备份、解析 Compose、拉取不可变镜像、迁移、启动、深度健康、私有/公开审计及运行时存储/outbox/job 对账，最后才写 `.current-version`。Caddy 只发布 80/443；PostgreSQL、API、worker、web 仅在 internal 网络。
+    VERSION=$(git rev-parse HEAD)
+    bash ops/scripts/deploy.sh \
+      --version "$VERSION" \
+      --deployment-dir "/srv/dls/releases/$VERSION" \
+      --backup-dir /srv/dls/backups/2026-08-11 \
+      --image-manifest "/srv/dls/releases/$VERSION/release-image-manifest.json" \
+      --env-file "/srv/dls/releases/$VERSION/.env.production"
+
+`release-image-manifest.json` 必须是同一 CI run 上传的、经过 `verify-image-manifest.mjs` 校验的清单；脚本从清单读取 registry、tag 和四个 exact digest，生产机不再重新 build。脚本依次验证磁盘与备份、解析 Compose、拉取不可变镜像、迁移、启动、深度健康、私有/公开审计及运行时存储/outbox/job 对账，最后才写 `.current-version`。Caddy 只发布 80/443；PostgreSQL、API、worker、web 仅在 internal 网络。
 
 如使用外部 S3，先按 `filesystem-s3-migration.md` 在维护窗口迁移并验证三个 bucket，再把 `DLS_STORAGE_DRIVER` 切换为 `s3`。生产 Compose 本身不会启动 MinIO。
 

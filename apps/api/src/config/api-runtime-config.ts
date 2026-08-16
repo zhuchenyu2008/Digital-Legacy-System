@@ -1,9 +1,12 @@
+import { type FieldKeyring, parseFieldKeyring } from "@dls/contracts";
+
 export type ApiRuntimeConfig = Readonly<{
   nodeEnv: "development" | "test" | "production";
   databaseUrl: string;
   publicBaseUrl: string;
   setupToken: string;
   sessionSecret: Uint8Array;
+  fieldKeyring: FieldKeyring;
   tokenPepper: Uint8Array;
   contactPasswordPepper: Uint8Array;
   contactConsentVersion: string;
@@ -25,6 +28,13 @@ export type ApiRuntimeConfig = Readonly<{
 
 const DEFAULT_DATABASE_URL = "postgresql://postgres:test@127.0.0.1:55432/dls";
 const DEFAULT_PUBLIC_BASE_URL = "http://localhost:3000";
+const DEFAULT_FIELD_KEYRING = JSON.stringify({
+  version: 1,
+  activeVersion: 1,
+  lookupKey: Buffer.alloc(32, 0x31).toString("base64"),
+  lookupKeys: { 1: Buffer.alloc(32, 0x31).toString("base64") },
+  keys: { 1: Buffer.alloc(32, 0x32).toString("base64") },
+});
 
 function secret(value: string | undefined, fallback: string): Uint8Array {
   return Uint8Array.from(
@@ -71,6 +81,7 @@ export function getApiRuntimeConfig(
       "PUBLIC_BASE_URL",
       "SETUP_TOKEN",
       "SESSION_SECRET",
+      "FIELD_KEYRING",
       "SESSION_PEPPER",
       "TOKEN_PEPPER",
       "CONTACT_PASSWORD_PEPPER",
@@ -87,6 +98,7 @@ export function getApiRuntimeConfig(
   const publicBaseUrl = environment.PUBLIC_BASE_URL ?? DEFAULT_PUBLIC_BASE_URL;
   const setupToken = environment.SETUP_TOKEN ?? "local-setup-token";
   const sessionSecret = secret(environment.SESSION_SECRET, "local-session-secret-0123456789012345");
+  const fieldKeyring = parseFieldKeyring(environment.FIELD_KEYRING ?? DEFAULT_FIELD_KEYRING);
   const tokenPepper = secret(environment.TOKEN_PEPPER, "local-token-pepper-0123456789012345");
   const sessionPepper = secret(
     environment.SESSION_PEPPER,
@@ -159,6 +171,7 @@ export function getApiRuntimeConfig(
     publicBaseUrl,
     setupToken,
     sessionSecret,
+    fieldKeyring,
     tokenPepper,
     contactPasswordPepper,
     contactConsentVersion,

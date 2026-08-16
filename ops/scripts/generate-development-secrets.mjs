@@ -1,5 +1,5 @@
 import { generateKeyPairSync, randomBytes } from "node:crypto";
-import { chmodSync, existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { parse, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -16,7 +16,7 @@ function option(name) {
 
 for (let index = 0; index < args.length; index += 1) {
   const argument = args[index];
-  if (argument === "--rotate") continue;
+  if (argument === "--rotate" || argument === "--rotate-field-keyring") continue;
   if (argument === "--directory") {
     index += 1;
     continue;
@@ -26,6 +26,7 @@ for (let index = 0; index < args.length; index += 1) {
 
 const directory = resolve(option("--directory") ?? process.env.DLS_SECRETS_DIR ?? defaultDirectory);
 const rotate = args.includes("--rotate");
+const rotateFieldKeyring = rotate || args.includes("--rotate-field-keyring");
 if (directory === parse(directory).root) throw new Error("Secret directory must not be a filesystem root");
 const configuredFileMode = process.env.DLS_SECRETS_FILE_MODE;
 // Acceptance Compose runs non-root containers against file-backed secrets.
@@ -79,6 +80,43 @@ function writeKeyPair(purpose) {
   );
 }
 
+function writeFieldKeyring() {
+  const path = resolve(directory, "field-keyring");
+  if (existsSync(path) && !rotateFieldKeyring) return;
+  let keyring;
+  if (existsSync(path) && rotateFieldKeyring) {
+    keyring = JSON.parse(readFileSync(path, "utf8"));
+    if (keyring.version !== 1 || !Number.isSafeInteger(keyring.activeVersion)) {
+      throw new Error("Refusing to rotate an invalid field-keyring");
+    }
+    const previousLookupKeys =
+      keyring.lookupKeys && typeof keyring.lookupKeys === "object"
+        ? keyring.lookupKeys
+        : { [keyring.activeVersion]: keyring.lookupKey };
+    keyring.activeVersion += 1;
+    keyring.keys[String(keyring.activeVersion)] = randomBytes(32).toString("base64");
+    previousLookupKeys[String(keyring.activeVersion)] = randomBytes(32).toString("base64");
+    keyring.lookupKeys = previousLookupKeys;
+    keyring.lookupKey = previousLookupKeys[String(keyring.activeVersion)];
+  } else {
+    const lookupKey = randomBytes(32).toString("base64");
+    keyring = {
+      version: 1,
+      activeVersion: 1,
+      lookupKey,
+      lookupKeys: { 1: lookupKey },
+      keys: { 1: randomBytes(32).toString("base64") },
+    };
+  }
+  writeFileSync(path, `${JSON.stringify(keyring)}\n`, {
+    encoding: "utf8",
+    flag: rotateFieldKeyring ? "w" : "wx",
+    mode: fileMode,
+  });
+  chmodSync(path, fileMode);
+  created.push("field-keyring");
+}
+
 for (const name of [
   "postgres-superuser-password",
   "api-db-password",
@@ -103,6 +141,8 @@ for (const name of [
 ]) {
   writeSecret(name, randomBytes(32).toString("base64"));
 }
+
+writeFieldKeyring();
 
 writeSecret("minio-access-key", randomBytes(16).toString("hex"));
 writeKeyPair("release");

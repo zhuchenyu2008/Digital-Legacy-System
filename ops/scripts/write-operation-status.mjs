@@ -20,6 +20,9 @@ const value = {
   startedAt: option("--started-at"),
   completedAt: new Date().toISOString(),
   ...(process.argv.includes("--artifact") ? { artifact: option("--artifact") } : {}),
+  ...(process.argv.includes("--secret-artifact")
+    ? { secretArtifact: option("--secret-artifact") }
+    : {}),
 };
 await mkdir(dirname(target), { recursive: true });
 const temporary = `${target}.${process.pid}.tmp`;

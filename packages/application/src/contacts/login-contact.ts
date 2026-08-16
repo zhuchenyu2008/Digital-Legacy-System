@@ -3,6 +3,12 @@ import type { SessionService } from "../auth/session-service.js";
 import type { TransactionManager } from "../ports/transaction-manager.js";
 import { ContactUseCaseError, decodeBase64Url, normalizeContactName } from "./contact-common.js";
 
+type LookupHmacResult = Uint8Array | readonly Uint8Array[];
+
+function lookupCandidates(value: LookupHmacResult): readonly Uint8Array[] {
+  return value instanceof Uint8Array ? [value] : value;
+}
+
 export type ContactLoginResult = Readonly<{
   role: "CONTACT";
   contactId: string;
@@ -29,19 +35,24 @@ export async function loginContact(
   }>,
   dependencies: Readonly<{
     transaction: TransactionManager;
-    contactLookupHmac: (displayName: string) => Promise<Uint8Array>;
+    contactLookupHmac: (displayName: string) => Promise<LookupHmacResult>;
     passwordVerifier: (password: string, encodedHash: string) => Promise<boolean>;
     sessionService: SessionService;
   }>,
 ): Promise<ContactLoginResult> {
   const displayName = normalizeContactName(command.displayName);
-  const lookup = await dependencies.contactLookupHmac(displayName);
+  const lookups = lookupCandidates(await dependencies.contactLookupHmac(displayName));
   const result = await dependencies.transaction.run(async (tx) => {
-    const contact = await tx.repositories.contacts.findOneBy?.(
-      "display_name_lookup_hmac",
-      Buffer.from(lookup),
-      { forUpdate: true },
-    );
+    let contact = null;
+    for (const lookup of lookups) {
+      contact =
+        (await tx.repositories.contacts.findOneBy?.(
+          "display_name_lookup_hmac",
+          Buffer.from(lookup),
+          { forUpdate: true },
+        )) ?? null;
+      if (contact !== null) break;
+    }
     if (
       contact === null ||
       contact === undefined ||

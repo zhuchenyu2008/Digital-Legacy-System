@@ -8,10 +8,47 @@ on:
 
 permissions:
   contents: read
+  packages: write
 
 jobs:
+  release-images:
+    name: Build immutable release images once
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+
+      - name: Login to GHCR for production releases
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.actor }}" --password-stdin
+
+      - name: Build release images and record exact digests
+        env:
+          RELEASE_REGISTRY: ghcr.io/${{ github.repository }}
+        run: |
+          mkdir -p .acceptance-artifacts
+          if [ "${{ github.event_name }}" = "push" ] && [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            PUSH_FLAG=--push
+          else
+            PUSH_FLAG=--load
+          fi
+          node ops/scripts/build-release-images.mjs --registry "$RELEASE_REGISTRY" --tag "${{ github.sha }}" --output .acceptance-artifacts/release-image-manifest.json "$PUSH_FLAG"
+          node ops/scripts/verify-image-manifest.mjs .acceptance-artifacts/release-image-manifest.json
+
+      - name: Upload immutable release manifest
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: release-image-manifest-${{ github.sha }}
+          path: .acceptance-artifacts/release-image-manifest.json
+          if-no-files-found: error
+
   acceptance:
     name: Full acceptance
+    needs: release-images
     runs-on: ubuntu-latest
     timeout-minutes: 180
     services:
@@ -49,6 +86,15 @@ jobs:
       - name: Install Playwright browser
         run: pnpm exec playwright install --with-deps chromium firefox webkit
 
+      - name: Verify the exact image manifest used for this release
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: release-image-manifest-${{ github.sha }}
+          path: .acceptance-artifacts
+
+      - name: Verify immutable release image digests
+        run: node ops/scripts/verify-image-manifest.mjs .acceptance-artifacts/release-image-manifest.json
+
       - name: Run complete acceptance
         run: pnpm acceptance
 
@@ -61,23 +107,3 @@ jobs:
           include-hidden-files: true
           if-no-files-found: warn
           retention-days: 7
-
-  production-images:
-    name: Production image build
-    needs: acceptance
-    if: ${{ needs.acceptance.result == 'success' && (github.event_name == 'pull_request' || github.ref == 'refs/heads/main') }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 90
-    steps:
-      - name: Checkout
-        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
-
-      - name: Build production images after acceptance
-        run: |
-          docker buildx build --load --target api --tag dls-api:${{ github.sha }} .
-          docker buildx build --load --target worker --tag dls-worker:${{ github.sha }} .
-          docker buildx build --load --target web --tag dls-web:${{ github.sha }} .
-          docker buildx build --load --target caddy --tag dls-caddy:${{ github.sha }} .

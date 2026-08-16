@@ -9,6 +9,7 @@ const REQUIRED_PRODUCTION_FILES = Object.freeze([
   "backup-db-password",
   "contact-password-pepper",
   "data-backup-key",
+  "field-keyring",
   "health-db-password",
   "migrator-db-password",
   "minio-access-key",
@@ -25,6 +26,7 @@ const REQUIRED_PRODUCTION_FILES = Object.freeze([
   "setup-token",
   "token-pepper",
   "worker-db-password",
+  "config/.env.production",
 ]);
 
 function argument(name, args) {
@@ -74,12 +76,18 @@ async function filesUnder(root) {
   return result.sort((left, right) => left.path.localeCompare(right.path));
 }
 
-function assertSafeSeparation({ source, bundle, keyPath, mediaRoot, production }) {
+function assertSafeSeparation({ source, bundle, keyPath, mediaRoot, configFile, production }) {
   if (source && isWithin(source, bundle)) {
     throw new Error("backup output must be outside the source secret directory");
   }
   if (source && isWithin(source, keyPath)) {
     throw new Error("backup encryption key must be outside the source secret directory");
+  }
+  if (configFile && source && isWithin(source, configFile)) {
+    throw new Error("production config must be outside the source secret directory");
+  }
+  if (configFile && isWithin(dirname(bundle), configFile)) {
+    throw new Error("production config must be outside the encrypted bundle directory");
   }
   if (isWithin(dirname(bundle), keyPath)) {
     throw new Error("backup encryption key must not be stored beside the encrypted bundle");
@@ -173,11 +181,21 @@ async function backup(args) {
   const keyPath = resolve(argument("--key-file", args));
   const production = args.includes("--production");
   const mediaRoot = args.includes("--media-root") ? resolve(argument("--media-root", args)) : null;
-  assertSafeSeparation({ source, bundle: output, keyPath, mediaRoot, production });
+  const configFile = args.includes("--config-file")
+    ? resolve(argument("--config-file", args))
+    : null;
+  if (production && configFile === null) throw new Error("--config-file is required with --production");
+  assertSafeSeparation({ source, bundle: output, keyPath, mediaRoot, configFile, production });
   const sourceStat = await lstat(source);
   if (!sourceStat.isDirectory()) throw new Error("secret backup source must be a directory");
+  if (configFile !== null) {
+    const configStat = await lstat(configFile);
+    if (!configStat.isFile()) throw new Error("production config must be a regular file");
+  }
   const key = await keyFromFile(keyPath);
   const files = await filesUnder(source);
+  if (configFile !== null) files.push({ path: "config/.env.production", bytes: await readFile(configFile) });
+  files.sort((left, right) => left.path.localeCompare(right.path));
   let payload;
   try {
     assertRequiredFiles(files, production);

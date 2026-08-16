@@ -329,14 +329,14 @@ describe("publication crash matrix contract", () => {
       "AFTER_ZIP_VALIDATION",
       "BEFORE_WILL_RENDER",
       "AFTER_WILL_RENDER",
-      "BEFORE_PUBLIC_PROMOTION",
-      "AFTER_PUBLIC_PROMOTION",
       "BEFORE_DB_TRANSACTION",
       "BEFORE_PUBLIC_AUDIT_APPEND",
       "AFTER_PUBLIC_AUDIT_APPEND",
       "BEFORE_NOTIFICATION_OUTBOX",
       "AFTER_NOTIFICATION_OUTBOX",
       "AFTER_DB_TRANSACTION",
+      "BEFORE_PUBLIC_PROMOTION",
+      "AFTER_PUBLIC_PROMOTION",
     ]);
   });
 
@@ -353,8 +353,17 @@ describe("publication crash matrix contract", () => {
         },
       ),
     ).rejects.toThrow(`crash:${point}`);
-    expect([...state.storage.objects.keys()].some((key) => key.startsWith("staging:"))).toBe(false);
-    if (point === "AFTER_DB_TRANSACTION") {
+    const committedPoints: readonly PublicationFaultPoint[] = [
+      "AFTER_DB_TRANSACTION",
+      "BEFORE_PUBLIC_PROMOTION",
+      "AFTER_PUBLIC_PROMOTION",
+    ];
+    const committed = committedPoints.includes(point);
+    const staged = [...state.storage.objects.keys()].some((key) => key.startsWith("staging:"));
+    const publiclyReadable = [...state.storage.objects.keys()].some((key) =>
+      key.startsWith("public:"),
+    );
+    if (committed) {
       expect(state.publications()).toHaveLength(1);
       expect(state.publicEvents()).toHaveLength(5);
       expect(state.outbox()).toHaveLength(1);
@@ -363,14 +372,17 @@ describe("publication crash matrix contract", () => {
       expect(state.publicEvents()).toHaveLength(0);
       expect(state.outbox()).toHaveLength(0);
     }
+    expect(publiclyReadable).toBe(point === "AFTER_PUBLIC_PROMOTION");
+    expect(staged).toBe(point === "AFTER_DB_TRANSACTION" || point === "BEFORE_PUBLIC_PROMOTION");
     await expect(
       finalizePublication(
         { workflowId: state.ids.workflow, aggregateVersion: 4 },
         state.dependencies,
       ),
     ).resolves.toMatchObject({
-      status: point === "AFTER_DB_TRANSACTION" ? "ALREADY_PUBLISHED" : "PUBLISHED",
+      status: committed ? "ALREADY_PUBLISHED" : "PUBLISHED",
     });
+    expect([...state.storage.objects.keys()].some((key) => key.startsWith("public:"))).toBe(true);
   });
 
   it("rejects tampering, truncation, invalid archives, object conflicts, and outages", async () => {
@@ -453,5 +465,8 @@ describe("publication crash matrix contract", () => {
       ),
     ).rejects.toThrow("database unavailable");
     expect(databaseOutage.publications()).toHaveLength(0);
+    expect(
+      [...databaseOutage.storage.objects.keys()].some((key) => key.startsWith("public:")),
+    ).toBe(false);
   });
 });

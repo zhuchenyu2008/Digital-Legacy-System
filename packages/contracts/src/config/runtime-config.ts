@@ -1,6 +1,7 @@
 import { Buffer } from "node:buffer";
 import { resolve } from "node:path";
 import { type ZodType, z } from "zod";
+import { type FieldKeyring, parseFieldKeyring } from "./field-keyring.js";
 
 export type RuntimeConfig = Readonly<{
   nodeEnv: "development" | "test" | "production";
@@ -20,10 +21,22 @@ export type RuntimeConfig = Readonly<{
         forcePathStyle: boolean;
       };
   mail: { transportUrl: string; from: string };
-  security: { sessionSecret: Uint8Array; tokenPepper: Uint8Array; trustedProxyHops: number };
+  security: {
+    sessionSecret: Uint8Array;
+    tokenPepper: Uint8Array;
+    fieldKeyring: FieldKeyring;
+    trustedProxyHops: number;
+  };
 }>;
 
 const booleanString = z.enum(["true", "false"]).transform((value) => value === "true");
+const DEFAULT_FIELD_KEYRING = JSON.stringify({
+  version: 1,
+  activeVersion: 1,
+  lookupKey: Buffer.alloc(32, 0x31).toString("base64"),
+  lookupKeys: { 1: Buffer.alloc(32, 0x31).toString("base64") },
+  keys: { 1: Buffer.alloc(32, 0x32).toString("base64") },
+});
 
 const commonEnvironmentSchema = z
   .object({
@@ -116,6 +129,9 @@ export function parseRuntimeConfig(environment: Record<string, string | undefine
     }
   }
   const common = parseWithVariableNames(commonEnvironmentSchema, environment);
+  if (common.NODE_ENV === "production" && !environment.FIELD_KEYRING?.trim()) {
+    throw new Error("Invalid runtime configuration: FIELD_KEYRING: is required in production");
+  }
   const storage =
     environment.STORAGE_DRIVER === "s3"
       ? (() => {
@@ -151,6 +167,7 @@ export function parseRuntimeConfig(environment: Record<string, string | undefine
     security: freezeObject({
       sessionSecret: decodeSecret("SESSION_SECRET", common.SESSION_SECRET),
       tokenPepper: decodeSecret("TOKEN_PEPPER", common.TOKEN_PEPPER),
+      fieldKeyring: parseFieldKeyring(environment.FIELD_KEYRING ?? DEFAULT_FIELD_KEYRING),
       trustedProxyHops: common.TRUSTED_PROXY_HOPS,
     }),
   };
