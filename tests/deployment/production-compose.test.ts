@@ -40,7 +40,7 @@ describe("production Compose topology", () => {
       /migrator:\s*\n\s*build:\s*!reset null[\s\S]*?image:[^\r\n]*DLS_API_IMAGE_DIGEST[\s\S]*?networks:\s*\[internal\]/u,
     );
     expect(compose.match(/PUBLIC_BASE_URL:\s*https:\/\/\$\{DLS_DOMAIN/gu)).toHaveLength(2);
-    expect(compose.match(/MAIL_TRANSPORT_URL:\s*\$\{DLS_MAIL_TRANSPORT_URL/gu)).toHaveLength(2);
+    expect(compose.match(/MAIL_TRANSPORT_URL:\s*\$\{DLS_MAIL_TRANSPORT_URL/gu)).toHaveLength(3);
     expect(compose.match(/MAIL_FROM:\s*\$\{DLS_MAIL_FROM/gu)).toHaveLength(2);
     expect(compose.match(/DLS_DOMAIN:\s*\$\{DLS_DOMAIN/gu)).toHaveLength(1);
     expect(compose.match(/DLS_TLS_EMAIL:\s*\$\{DLS_TLS_EMAIL/gu)).toHaveLength(1);
@@ -54,7 +54,7 @@ describe("production Compose topology", () => {
     ]) {
       expect(
         compose.match(new RegExp(`${variable}:\\s*["']?\\$\\{DLS_${variable}`, "gu")),
-      ).toHaveLength(2);
+      ).toHaveLength(3);
     }
   });
 
@@ -98,6 +98,11 @@ describe("production Compose topology", () => {
     );
 
     expect(undeclaredImports).toEqual([]);
+    const monitor = await readFile(resolve(root, "ops/scripts/production-monitor.mjs"), "utf8");
+    for (const packageName of ["@aws-sdk/client-s3", "nodemailer", "pg"]) {
+      expect(monitor).toMatch(new RegExp(`from ["']${packageName.replace("/", "\\/")}["']`, "u"));
+      expect(packageManifest.dependencies).toHaveProperty(packageName);
+    }
   });
 
   it("generates matched key capabilities and runs every release safety gate", async () => {

@@ -6,12 +6,17 @@ param(
   [string]$EnvFile = "",
   [string]$ComposeFile = "compose.yaml",
   [string]$ComposeProdFile = "compose.prod.yaml",
+  [Parameter(Mandatory = $true)][string]$EncryptionKeyFile,
   [switch]$DestructiveApproval
 )
 
 $ErrorActionPreference = "Stop"
 $repositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot "../..")).Path
 $backupPath = [IO.Path]::GetFullPath($Backup)
+$encryptionKeyPath = (Resolve-Path -LiteralPath $EncryptionKeyFile).Path
+if ($encryptionKeyPath.StartsWith($backupPath.TrimEnd([IO.Path]::DirectorySeparatorChar) + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase)) {
+  throw "Data backup key must be outside the backup medium"
+}
 $envFilePath = $null
 if (-not [string]::IsNullOrWhiteSpace($EnvFile)) {
   $envFilePath = (Resolve-Path -LiteralPath $EnvFile).Path
@@ -20,6 +25,8 @@ if (-not [string]::IsNullOrWhiteSpace($EnvFile)) {
 if ($LASTEXITCODE -ne 0) { throw "backup artifact verification failed" }
 & node (Join-Path $repositoryRoot "ops/scripts/database-inventory.ts") verify-references $backupPath | Out-Null
 if ($LASTEXITCODE -ne 0) { throw "backup database/object references are inconsistent" }
+& node (Join-Path $repositoryRoot "ops/scripts/backup-artifact-crypto.mjs") verify --input (Join-Path $backupPath "database.dump") --key-file $encryptionKeyPath | Out-Null
+if ($LASTEXITCODE -ne 0) { throw "encrypted database backup authentication failed" }
 $objectPath = [IO.Path]::GetFullPath($ObjectRoot)
 $objectRootPath = [IO.Path]::GetPathRoot($objectPath)
 if ($objectPath.TrimEnd([IO.Path]::DirectorySeparatorChar) -eq $objectRootPath.TrimEnd([IO.Path]::DirectorySeparatorChar)) {
@@ -54,11 +61,16 @@ try {
     Get-ChildItem -LiteralPath $objectPath -Force | Remove-Item -Recurse -Force
   }
   Set-Content -LiteralPath (Join-Path $objectPath "MAINTENANCE") -Value "restore" -NoNewline
-  Invoke-Compose cp (Join-Path $backupPath "database.dump") "postgres:/tmp/dls-restore.dump"
+  $plainDatabaseDump = Join-Path ([IO.Path]::GetTempPath()) ("dls-restore-dump-" + [guid]::NewGuid().ToString("N"))
+  & node (Join-Path $repositoryRoot "ops/scripts/backup-artifact-crypto.mjs") decrypt --input (Join-Path $backupPath "database.dump") --output $plainDatabaseDump --key-file $encryptionKeyPath | Out-Null
+  if ($LASTEXITCODE -ne 0) { throw "database backup decryption failed" }
+  Invoke-Compose cp $plainDatabaseDump "postgres:/tmp/dls-restore.dump"
+  Remove-Item -LiteralPath $plainDatabaseDump -Force
   Invoke-Compose exec --no-TTY postgres pg_restore --username postgres --dbname dls --clean --if-exists --single-transaction --exit-on-error /tmp/dls-restore.dump
   & tar -xf $archive -C $objectPath
   if ($LASTEXITCODE -ne 0) { throw "object restore failed" }
 } finally {
   & docker @compose exec --no-TTY postgres rm -f /tmp/dls-restore.dump 2>$null
+  if ($null -ne $plainDatabaseDump -and (Test-Path -LiteralPath $plainDatabaseDump -PathType Leaf)) { Remove-Item -LiteralPath $plainDatabaseDump -Force }
 }
 Write-Output "Database and objects restored into a maintenance target. Run verify-restore before normal startup."

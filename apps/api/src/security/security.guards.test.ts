@@ -2,11 +2,18 @@ import { GUARDS_METADATA } from "@nestjs/common/constants";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { ContactPasswordController } from "../contacts/contact-auth.controller.js";
+import { ContactActionsController } from "../workflows/contact-actions.controller.js";
+import { OwnerActionsController } from "../workflows/owner-actions.controller.js";
 import { CsrfGuard } from "./csrf.guard.js";
 import { OriginGuard } from "./origin.guard.js";
-import { ContactRateLimitGuard, RateLimiter } from "./rate-limit.guard.js";
+import {
+  ContactRateLimitGuard,
+  OwnerRateLimitGuard,
+  RateLimiter,
+  RateLimitGuard,
+} from "./rate-limit.guard.js";
 import { readRequestContext } from "./request-context.js";
-import { ContactSessionGuard, readSessionToken } from "./session.guard.js";
+import { ContactSessionGuard, OwnerSessionGuard, readSessionToken } from "./session.guard.js";
 
 describe("HTTP security boundaries", () => {
   afterEach(() => vi.unstubAllEnvs());
@@ -73,6 +80,39 @@ describe("HTTP security boundaries", () => {
   it("requires a contact session and CSRF token before rotating a contact password", () => {
     expect(
       Reflect.getMetadata(GUARDS_METADATA, ContactPasswordController.prototype.complete),
-    ).toEqual([ContactRateLimitGuard, ContactSessionGuard, CsrfGuard]);
+    ).toEqual([ContactSessionGuard, ContactRateLimitGuard, CsrfGuard]);
+  });
+
+  it("rate-limits authenticated high-risk workflows by both IP and actor", async () => {
+    const consumed: string[] = [];
+    const guard = new RateLimitGuard(
+      {
+        consume: async (key) => {
+          consumed.push(key);
+          return { allowed: true, retryAfterSeconds: 1 };
+        },
+      },
+      "contact",
+    );
+    await expect(
+      guard.canActivate({
+        switchToHttp: () => ({
+          getRequest: () => ({ ip: "203.0.113.10", user: { actorId: "contact-7" } }),
+        }),
+      } as never),
+    ).resolves.toBe(true);
+    expect(consumed).toEqual(["contact:ip:203.0.113.10", "contact:actor:contact-7"]);
+    expect(Reflect.getMetadata(GUARDS_METADATA, ContactActionsController)).toEqual([
+      ContactSessionGuard,
+      ContactRateLimitGuard,
+      OriginGuard,
+      CsrfGuard,
+    ]);
+    expect(Reflect.getMetadata(GUARDS_METADATA, OwnerActionsController)).toEqual([
+      OwnerSessionGuard,
+      OwnerRateLimitGuard,
+      OriginGuard,
+      CsrfGuard,
+    ]);
   });
 });

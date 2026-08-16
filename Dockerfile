@@ -102,6 +102,7 @@ COPY --from=build --chown=node:node /workspace/ops/scripts/migrator-database-url
 COPY --from=build --chown=node:node /workspace/ops/scripts/migration-status.mjs ./ops/scripts/migration-status.mjs
 COPY --from=build --chown=node:node /workspace/ops/scripts/runtime-reconcile.mjs ./ops/scripts/runtime-reconcile.mjs
 COPY --from=build --chown=node:node /workspace/ops/scripts/verify-audit.mjs ./ops/scripts/verify-audit.mjs
+COPY --from=build --chown=node:node /workspace/ops/scripts/production-monitor.mjs ./ops/scripts/production-monitor.mjs
 
 USER node
 

@@ -2,7 +2,9 @@ import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
   advanceRelease,
+  aliveConfirmationText,
   cancelDeathWorkflow,
+  confirmAlive,
   type StageKeyProvider,
   WorkflowError,
 } from "../../packages/application/src/index.js";
@@ -17,7 +19,7 @@ import {
 } from "./helpers.js";
 
 const transaction = new PgTransactionManager(concurrencyPool);
-const ownerScope = "release-lock-race-owner";
+const ownerScope = randomUUID();
 const stageKeys: StageKeyProvider = {
   async ingressKeyPair() {
     return {
@@ -68,6 +70,30 @@ async function releaseFixture(releaseAtSql: string) {
     2,
   );
   await concurrencyPool.query(
+    `UPDATE app.emergency_contacts
+     SET status = 'ACTIVE', password_phc = 'contact-password-hash',
+         password_changed_at = clock_timestamp(), password_pepper_version = 1,
+         password_kdf_version = 1, password_normalization_version = 1,
+         x25519_public_key = decode(repeat('03', 32), 'hex'),
+         registered_at = clock_timestamp(), active_share_generation_id = $2
+     WHERE id = ANY($1::uuid[])`,
+    [contacts, generationId],
+  );
+  const checkInId = randomUUID();
+  const scheduleId = randomUUID();
+  const scheduleVersion = Date.now() * 1_000 + Math.floor(Math.random() * 1_000);
+  await concurrencyPool.query(
+    `INSERT INTO app.check_ins (id, beijing_date, checked_in_at, source, actor_type, request_id)
+     VALUES ($1, CURRENT_DATE, clock_timestamp(), 'CONCURRENCY_TEST', 'OWNER', gen_random_uuid())`,
+    [checkInId],
+  );
+  await concurrencyPool.query(
+    `INSERT INTO app.checkin_schedules (
+       id, schedule_version, last_check_in_id, threshold_days, deadline_at, status
+     ) VALUES ($1, $2, $3, 30, clock_timestamp(), 'TRIGGERED')`,
+    [scheduleId, scheduleVersion, checkInId],
+  );
+  await concurrencyPool.query(
     `UPDATE app.workflows
      SET release_at = ${releaseAtSql}, version = 0, publish_locked_at = NULL
      WHERE id = $1`,
@@ -81,7 +107,18 @@ async function releaseFixture(releaseAtSql: string) {
        1, 7, 'ACTIVE', clock_timestamp() + interval '24 hours')`,
     [workflowId],
   );
-  return { workflowId, vaultId, contacts };
+  return { workflowId, vaultId, contacts, scheduleId, checkInId };
+}
+
+async function cleanupReleaseFixture(state: Awaited<ReturnType<typeof releaseFixture>>) {
+  await concurrencyPool.query("DELETE FROM app.checkin_schedules WHERE id = $1", [
+    state.scheduleId,
+  ]);
+  await concurrencyPool.query("DELETE FROM app.check_ins WHERE workflow_id = $1 OR id = $2", [
+    state.workflowId,
+    state.checkInId,
+  ]);
+  await cleanupWorkflow(concurrencyPool, state.workflowId, state.vaultId, state.contacts);
 }
 
 async function race(workflowId: string) {
@@ -159,7 +196,7 @@ describe("owner cancellation and irreversible release-lock races", () => {
       expect(workflow.rows[0].publish_locked_at).not.toBeNull();
       expect(events.rows).toEqual([{ event_type: "PUBLICATION_FINALIZE_REQUESTED" }]);
     } finally {
-      await cleanupWorkflow(concurrencyPool, state.workflowId, state.vaultId, state.contacts);
+      await cleanupReleaseFixture(state);
     }
   });
 
@@ -200,7 +237,74 @@ describe("owner cancellation and irreversible release-lock races", () => {
       });
       expect(events.rows).toEqual([{ event_type: "DEATH_WORKFLOW_CANCELLED" }]);
     } finally {
-      await cleanupWorkflow(concurrencyPool, state.workflowId, state.vaultId, state.contacts);
+      await cleanupReleaseFixture(state);
+    }
+  });
+
+  it("makes a contact veto and the formal publish lock mutually exclusive at the deadline", async () => {
+    const state = await releaseFixture("clock_timestamp()");
+    const contactScopes = state.contacts.map((contactId) => `CONTACT:${contactId}`);
+    try {
+      const requests = Array.from({ length: 24 }, (_, index) => {
+        if (index % 2 === 0) {
+          const contactId = state.contacts[index % state.contacts.length] as string;
+          return confirmAlive(
+            {
+              workflowId: state.workflowId,
+              contactId,
+              password: "correct-contact-password",
+              confirmationText: aliveConfirmationText("测试主人"),
+              requestId: randomUUID(),
+            },
+            {
+              transaction,
+              passwordVerifier: async () => true,
+              ownerDisplayName: async () => "测试主人",
+            },
+          );
+        }
+        return advanceRelease(
+          { workflowId: state.workflowId, aggregateVersion: 0 },
+          { transaction, stageKeys },
+        );
+      });
+      const settled = await Promise.allSettled(requests);
+      const successfulVetoes = settled.filter(
+        (result) => result.status === "fulfilled" && "cancelled" in result.value,
+      );
+      const workflow = await concurrencyPool.query(
+        "SELECT state, publish_locked_at FROM app.workflows WHERE id = $1",
+        [state.workflowId],
+      );
+      const events = await concurrencyPool.query(
+        `SELECT event_type FROM app.domain_outbox
+         WHERE aggregate_id = $1
+           AND event_type IN ('PUBLICATION_FINALIZE_REQUESTED', 'DEATH_CANCELLED_BY_CONTACT')
+         ORDER BY event_type`,
+        [state.workflowId],
+      );
+      if (successfulVetoes.length > 0) {
+        expect(successfulVetoes).toHaveLength(1);
+        expect(workflow.rows[0]).toMatchObject({ state: "CANCELLED", publish_locked_at: null });
+        expect(events.rows).toEqual([{ event_type: "DEATH_CANCELLED_BY_CONTACT" }]);
+      } else {
+        expect(workflow.rows[0].state).toBe("RELEASE_PENDING");
+        expect(workflow.rows[0].publish_locked_at).not.toBeNull();
+        expect(events.rows).toEqual([{ event_type: "PUBLICATION_FINALIZE_REQUESTED" }]);
+        for (const result of settled) {
+          if (result.status === "rejected" && result.reason instanceof WorkflowError) {
+            expect(["DLS-RELEASE-LOCKED", "DLS-CONTACT-ACTION-CLOSED"]).toContain(
+              result.reason.code,
+            );
+          }
+        }
+      }
+    } finally {
+      await concurrencyPool.query(
+        "DELETE FROM app.idempotency_records WHERE actor_scope = ANY($1::text[])",
+        [contactScopes],
+      );
+      await cleanupReleaseFixture(state);
     }
   });
 });

@@ -23,7 +23,7 @@
     "test:full-stack-e2e": "node node_modules/@playwright/test/cli.js test --config tests/e2e/playwright.config.ts",
     "test:visual": "node tests/e2e/run.mjs tests/visual",
     "test:a11y": "node tests/e2e/run.mjs tests/accessibility",
-    "test:browser-security": "node tests/e2e/run.mjs tests/security/browser-secrets.spec.ts tests/security/csp.spec.ts",
+    "test:browser-security": "node tests/e2e/run.mjs --production tests/security/browser-secrets.spec.ts tests/security/csp.spec.ts",
     "test:ui-gates": "node tests/e2e/run.mjs tests/visual tests/accessibility tests/security/browser-secrets.spec.ts tests/security/csp.spec.ts",
     "test:security": "vitest run --config vitest.workspace.ts --project security --passWithNoTests",
     "test:deployment": "vitest run --config vitest.workspace.ts --project deployment",
@@ -34,10 +34,12 @@
     "acceptance": "node ops/scripts/run-acceptance.mjs"
   },
   "dependencies": {
-    "@dls/storage": "workspace:*"
+    "@aws-sdk/client-s3": "3.1103.0",
+    "@dls/storage": "workspace:*",
+    "nodemailer": "9.0.5",
+    "pg": "8.22.0"
   },
   "devDependencies": {
-    "@aws-sdk/client-s3": "3.1103.0",
     "@axe-core/playwright": "4.12.1",
     "@biomejs/biome": "2.5.7",
     "@playwright/test": "1.62.1",
@@ -45,7 +47,6 @@
     "@types/pg": "8.15.5",
     "@vitest/coverage-v8": "4.1.10",
     "dotenv": "17.4.2",
-    "pg": "8.22.0",
     "tsx": "4.23.5",
     "typescript": "6.0.3",
     "vitest": "4.1.10"

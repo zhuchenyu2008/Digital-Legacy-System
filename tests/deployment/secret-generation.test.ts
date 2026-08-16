@@ -12,6 +12,8 @@ const generator = resolve(workspaceRoot, "ops/scripts/generate-development-secre
 const expectedFiles = [
   "api-db-password",
   "backup-db-password",
+  "contact-password-pepper",
+  "data-backup-key",
   "health-db-password",
   "migrator-db-password",
   "minio-access-key",

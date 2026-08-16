@@ -36,6 +36,7 @@ const artifactNames = [
   "database.dump",
   "objects.tar",
   "runtime.json",
+  "security-boundary.json",
 ] as const;
 const digestPattern = /^[0-9a-f]{64}$/u;
 const tarBlockBytes = 512;
@@ -242,11 +243,29 @@ function assertManifest(value: unknown): asserts value is BackupManifest {
   }
 }
 
+async function assertSecurityBoundary(backupDirectory: string): Promise<void> {
+  const value = JSON.parse(
+    await readFile(resolve(backupDirectory, "security-boundary.json"), "utf8"),
+  ) as Record<string, unknown>;
+  if (
+    value.version !== 1 ||
+    value.backupClass !== "ordinary-data" ||
+    value.includesApplicationSecrets !== false ||
+    value.includesSecretBackupKey !== false ||
+    value.privateObjectRepresentation !== "client-side-ciphertext" ||
+    value.databaseRepresentation !== "aes-256-gcm-encrypted-pg-dump" ||
+    value.secretsRecoveryDependency !== "separate-encrypted-offsite-bundle"
+  ) {
+    throw new Error("ordinary backup security boundary is invalid");
+  }
+}
+
 export async function createBackupManifest(
   input: CreateBackupManifestInput,
 ): Promise<BackupManifest> {
   if (!/^[A-Za-z0-9._-]+$/u.test(input.project)) throw new Error("backup project name is invalid");
   const backupDirectory = resolve(input.backupDirectory);
+  await assertSecurityBoundary(backupDirectory);
   const artifacts = await Promise.all(
     artifactNames.map(async (name) => ({
       name,
@@ -293,6 +312,7 @@ export async function verifyBackupArtifacts(backupDirectory: string): Promise<Ba
       throw new Error(`backup artifact digest or size mismatch: ${expected.name}`);
     }
   }
+  await assertSecurityBoundary(root);
   return manifest;
 }
 

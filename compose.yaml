@@ -149,6 +149,7 @@ services:
         export SESSION_PEPPER="$$(cat /run/secrets/session_pepper)"
         export SETUP_TOKEN="$$(cat /run/secrets/setup_token)"
         export TOKEN_PEPPER="$$(cat /run/secrets/token_pepper)"
+        export CONTACT_PASSWORD_PEPPER="$$(cat /run/secrets/contact_password_pepper)"
         export RELEASE_INGRESS_PUBLIC_KEY="$$(cat /run/secrets/release_ingress_public_key)"
         export RECOVERY_INGRESS_PUBLIC_KEY="$$(cat /run/secrets/recovery_ingress_public_key)"
         export RECOVERY_INGRESS_PRIVATE_KEY="$$(cat /run/secrets/recovery_ingress_private_key)"
@@ -164,6 +165,7 @@ services:
       - session_pepper
       - setup_token
       - token_pepper
+      - contact_password_pepper
       - api_db_password
       - release_ingress_public_key
       - recovery_ingress_public_key
@@ -482,6 +484,8 @@ secrets:
     file: ${DLS_SECRETS_DIR:-./ops/secrets/generated}/setup-token
   token_pepper:
     file: ${DLS_SECRETS_DIR:-./ops/secrets/generated}/token-pepper
+  contact_password_pepper:
+    file: ${DLS_SECRETS_DIR:-./ops/secrets/generated}/contact-password-pepper
   release_ingress_public_key:
     file: ${DLS_SECRETS_DIR:-./ops/secrets/generated}/release-ingress-public-key
   release_ingress_private_key:

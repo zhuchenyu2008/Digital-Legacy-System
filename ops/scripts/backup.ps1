@@ -7,6 +7,7 @@ param(
   [string]$EnvFile = "",
   [string]$ComposeFile = "compose.yaml",
   [string]$ComposeProdFile = "compose.prod.yaml",
+  [Parameter(Mandatory = $true)][string]$EncryptionKeyFile,
   [ValidateRange(1, 32767)][int]$ReleaseIngressKeyVersion = 1,
   [ValidateRange(1, 32767)][int]$ReleaseStageKeyVersion = 1,
   [ValidateRange(1, 32767)][int]$RecoveryIngressKeyVersion = 1,
@@ -16,6 +17,10 @@ param(
 $ErrorActionPreference = "Stop"
 $repositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot "../..")).Path
 $destinationPath = [IO.Path]::GetFullPath($Destination)
+$encryptionKeyPath = (Resolve-Path -LiteralPath $EncryptionKeyFile).Path
+if ($encryptionKeyPath.StartsWith($destinationPath.TrimEnd([IO.Path]::DirectorySeparatorChar) + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase)) {
+  throw "Data backup key must be outside the backup medium"
+}
 $objectPath = $null
 $envFilePath = $null
 foreach ($path in @($destinationPath)) {
@@ -37,7 +42,7 @@ if (-not [string]::IsNullOrWhiteSpace($EnvFile)) {
   $envFilePath = (Resolve-Path -LiteralPath $EnvFile).Path
 }
 New-Item -ItemType Directory -Force -Path $destinationPath | Out-Null
-$artifactNames = @("database-state.json", "database.dump", "objects.tar", "runtime.json", "manifest.json")
+$artifactNames = @("database-state.json", "database.dump", "objects.tar", "runtime.json", "security-boundary.json", "manifest.json")
 $existingArtifacts = $artifactNames | Where-Object { Test-Path -LiteralPath (Join-Path $destinationPath $_) }
 if ($existingArtifacts.Count -gt 0) { throw "backup destination already contains release artifacts" }
 
@@ -56,6 +61,7 @@ if ($LASTEXITCODE -ne 0 -or $runningServices -notcontains "postgres") { throw "T
 $quiescedServices = @("caddy", "web", "api", "worker") | Where-Object { $runningServices -contains $_ }
 $maintenance = $null
 $temporaryObjectPath = $null
+$plainDatabaseDump = Join-Path ([IO.Path]::GetTempPath()) ("dls-database-dump-" + [guid]::NewGuid().ToString("N"))
 $backupObjectPath = $objectPath
 try {
   if ($StorageDriver -eq "s3") {
@@ -109,18 +115,33 @@ try {
   [IO.File]::WriteAllText((Join-Path $destinationPath "runtime.json"), "$runtime`n", [Text.UTF8Encoding]::new($false))
 
   Invoke-Compose exec --no-TTY postgres pg_dump --username postgres --dbname dls --format custom --file /tmp/dls-backup.dump
-  Invoke-Compose cp "postgres:/tmp/dls-backup.dump" (Join-Path $destinationPath "database.dump")
+  Invoke-Compose cp "postgres:/tmp/dls-backup.dump" $plainDatabaseDump
+  & node (Join-Path $repositoryRoot "ops/scripts/backup-artifact-crypto.mjs") encrypt --input $plainDatabaseDump --output (Join-Path $destinationPath "database.dump") --key-file $encryptionKeyPath | Out-Null
+  if ($LASTEXITCODE -ne 0) { throw "database backup encryption failed" }
+  Remove-Item -LiteralPath $plainDatabaseDump -Force
   & tar -cf (Join-Path $destinationPath "objects.tar") -C $backupObjectPath .
   if ($LASTEXITCODE -ne 0) { throw "object archive failed" }
   & node (Join-Path $repositoryRoot "ops/scripts/backup-manifest.ts") validate-tar --archive (Join-Path $destinationPath "objects.tar") | Out-Null
   if ($LASTEXITCODE -ne 0) { throw "object archive type or path validation failed" }
+  $securityBoundary = [ordered]@{
+    version = 1; backupClass = "ordinary-data"; storageDriver = $StorageDriver
+    includesApplicationSecrets = $false; includesSecretBackupKey = $false
+    privateObjectRepresentation = "client-side-ciphertext"
+    databaseRepresentation = "aes-256-gcm-encrypted-pg-dump"
+    publicObjectRepresentation = "intentionally-published-plaintext"
+    secretsRecoveryDependency = "separate-encrypted-offsite-bundle"
+  } | ConvertTo-Json -Depth 4
+  [IO.File]::WriteAllText((Join-Path $destinationPath "security-boundary.json"), "$securityBoundary`n", [Text.UTF8Encoding]::new($false))
   & node (Join-Path $repositoryRoot "ops/scripts/backup-manifest.ts") create --backup $destinationPath --objects $backupObjectPath --project $ProjectName | Out-Null
   if ($LASTEXITCODE -ne 0) { throw "backup manifest generation failed" }
   & node (Join-Path $repositoryRoot "ops/scripts/database-inventory.ts") verify-references $destinationPath | Out-Null
   if ($LASTEXITCODE -ne 0) { throw "database and object reference reconciliation failed" }
+  & node (Join-Path $repositoryRoot "ops/scripts/backup-artifact-crypto.mjs") verify --input (Join-Path $destinationPath "database.dump") --key-file $encryptionKeyPath | Out-Null
+  if ($LASTEXITCODE -ne 0) { throw "encrypted database backup authentication failed" }
   Write-Output "Consistent backup completed at $destinationPath; database, object, runtime, migration, publication, audit, and outbox state were recorded."
 } finally {
   & docker @compose exec --no-TTY postgres rm -f /tmp/dls-backup.dump 2>$null
+  if (Test-Path -LiteralPath $plainDatabaseDump -PathType Leaf) { Remove-Item -LiteralPath $plainDatabaseDump -Force }
   if ($null -ne $maintenance) { Remove-Item -LiteralPath $maintenance -Force -ErrorAction SilentlyContinue }
   if ($null -ne $temporaryObjectPath -and (Test-Path -LiteralPath $temporaryObjectPath -PathType Container)) {
     $resolvedTemporaryPath = [IO.Path]::GetFullPath($temporaryObjectPath)

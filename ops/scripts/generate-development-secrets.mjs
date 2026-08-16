@@ -95,6 +95,8 @@ for (const name of [
   "session-pepper",
   "setup-token",
   "token-pepper",
+  "contact-password-pepper",
+  "data-backup-key",
   "release-stage-kek",
   "recovery-stage-kek",
   "minio-secret-key",

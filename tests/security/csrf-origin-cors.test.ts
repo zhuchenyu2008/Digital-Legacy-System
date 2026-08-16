@@ -38,6 +38,7 @@ describe("CSRF, Origin, and CORS boundaries", () => {
       SESSION_SECRET: Buffer.alloc(32, 1).toString("base64"),
       SESSION_PEPPER: Buffer.alloc(32, 2).toString("base64"),
       TOKEN_PEPPER: Buffer.alloc(32, 3).toString("base64"),
+      CONTACT_PASSWORD_PEPPER: Buffer.alloc(32, 4).toString("base64"),
       MAIL_TRANSPORT_URL: "smtps://smtp.example:465",
       MAIL_FROM: "Digital Legacy <no-reply@legacy.example>",
       CONTACT_CONSENT_VERSION: "2026-08-11",
@@ -58,6 +59,7 @@ describe("CSRF, Origin, and CORS boundaries", () => {
       "SESSION_SECRET",
       "SESSION_PEPPER",
       "TOKEN_PEPPER",
+      "CONTACT_PASSWORD_PEPPER",
       "MAIL_TRANSPORT_URL",
       "MAIL_FROM",
       "CONTACT_CONSENT_VERSION",
@@ -65,11 +67,22 @@ describe("CSRF, Origin, and CORS boundaries", () => {
     ]) {
       expect(() => getApiRuntimeConfig({ ...production, [variable]: undefined })).toThrow(variable);
     }
-    for (const variable of ["SESSION_SECRET", "SESSION_PEPPER", "TOKEN_PEPPER"]) {
+    for (const variable of [
+      "SESSION_SECRET",
+      "SESSION_PEPPER",
+      "TOKEN_PEPPER",
+      "CONTACT_PASSWORD_PEPPER",
+    ]) {
       expect(() => getApiRuntimeConfig({ ...production, [variable]: "d2Vhaw==" })).toThrow(
         variable,
       );
     }
+    expect(() =>
+      getApiRuntimeConfig({
+        ...production,
+        CONTACT_PASSWORD_PEPPER: production.TOKEN_PEPPER,
+      }),
+    ).toThrow(/distinct key material/u);
     expect(() => getApiRuntimeConfig({ ...production, SETUP_TOKEN: "short" })).toThrow(
       "SETUP_TOKEN",
     );

@@ -73,6 +73,7 @@ export function getApiRuntimeConfig(
       "SESSION_SECRET",
       "SESSION_PEPPER",
       "TOKEN_PEPPER",
+      "CONTACT_PASSWORD_PEPPER",
       "MAIL_TRANSPORT_URL",
       "MAIL_FROM",
       "CONTACT_CONSENT_VERSION",
@@ -91,6 +92,10 @@ export function getApiRuntimeConfig(
     environment.SESSION_PEPPER,
     "local-development-session-pepper-0123456789012345",
   );
+  const contactPasswordPepper = secret(
+    environment.CONTACT_PASSWORD_PEPPER,
+    "local-contact-password-pepper-0123456789012345",
+  );
   const contactConsentVersion = environment.CONTACT_CONSENT_VERSION ?? "2026-08-01";
   const contactConsentSha256 = environment.CONTACT_CONSENT_SHA256 ?? "00".repeat(32);
   const trustedProxyCidrs = Object.freeze(
@@ -104,6 +109,7 @@ export function getApiRuntimeConfig(
       ["SESSION_SECRET", environment.SESSION_SECRET, sessionSecret],
       ["SESSION_PEPPER", environment.SESSION_PEPPER, sessionPepper],
       ["TOKEN_PEPPER", environment.TOKEN_PEPPER, tokenPepper],
+      ["CONTACT_PASSWORD_PEPPER", environment.CONTACT_PASSWORD_PEPPER, contactPasswordPepper],
     ] as const) {
       if (
         value.byteLength < 32 ||
@@ -113,6 +119,27 @@ export function getApiRuntimeConfig(
         throw new Error(
           `Invalid API runtime configuration: ${variable} must be canonical base64 for at least 32 bytes`,
         );
+      }
+    }
+    const purposeSecrets = [
+      ["SESSION_SECRET", sessionSecret],
+      ["SESSION_PEPPER", sessionPepper],
+      ["TOKEN_PEPPER", tokenPepper],
+      ["CONTACT_PASSWORD_PEPPER", contactPasswordPepper],
+    ] as const;
+    for (let left = 0; left < purposeSecrets.length; left += 1) {
+      for (let right = left + 1; right < purposeSecrets.length; right += 1) {
+        const leftSecret = purposeSecrets[left];
+        const rightSecret = purposeSecrets[right];
+        if (
+          leftSecret !== undefined &&
+          rightSecret !== undefined &&
+          Buffer.from(leftSecret[1]).equals(Buffer.from(rightSecret[1]))
+        ) {
+          throw new Error(
+            `Invalid API runtime configuration: ${leftSecret[0]} and ${rightSecret[0]} must use distinct key material`,
+          );
+        }
       }
     }
     if (setupToken.length < 32) {
@@ -133,10 +160,7 @@ export function getApiRuntimeConfig(
     setupToken,
     sessionSecret,
     tokenPepper,
-    contactPasswordPepper: secret(
-      environment.CONTACT_PASSWORD_PEPPER ?? environment.TOKEN_PEPPER,
-      "local-contact-password-pepper-0123456789012345",
-    ),
+    contactPasswordPepper,
     contactConsentVersion,
     contactConsentSha256,
     sessionPepper,

@@ -53,12 +53,17 @@ export async function confirmAlive(
           },
         });
         if (reservation.replay !== undefined) return reservation.replay;
-        const { workflow } = await assertContactCanAct(
+        const { workflow, previousDecision } = await assertContactCanAct(
           tx,
           command.workflowId,
           command.contactId,
           command.password,
           dependencies.passwordVerifier,
+          {
+            allowedStates: ["AWAITING_CONFIRMATIONS", "RELEASE_PENDING"],
+            requirePublishUnlocked: true,
+            allowExistingDeathDecision: true,
+          },
         );
         const ownerName = await dependencies.ownerDisplayName(ownerSnapshot(workflow));
         normalizedExact(command.confirmationText, aliveConfirmationText(ownerName));
@@ -67,14 +72,25 @@ export async function confirmAlive(
           tx.repositories.workflowContactActions,
           "workflow actions",
         );
-        await actions.insert({
-          id: idFactory(),
-          workflow_id: command.workflowId,
-          contact_id: command.contactId,
-          decision: "ALIVE",
-          decision_digest: decisionDigest,
-          created_at: now,
-        });
+        if (previousDecision === undefined) {
+          await actions.insert({
+            id: idFactory(),
+            workflow_id: command.workflowId,
+            contact_id: command.contactId,
+            decision: "ALIVE",
+            decision_digest: decisionDigest,
+            created_at: now,
+          });
+        } else {
+          if (actions.updateById === undefined) {
+            throw new Error("workflow action updates are unavailable");
+          }
+          await actions.updateById(previousDecision.id, {
+            decision: "ALIVE",
+            decision_digest: decisionDigest,
+            created_at: now,
+          });
+        }
         await tx.repositories.workflows.updateVersioned(
           command.workflowId,
           Number(workflow.version ?? 0),
@@ -108,7 +124,10 @@ export async function confirmAlive(
           }
         }
 
-        const schedules = (await tx.repositories.checkinSchedules.findMany?.()) ?? [];
+        const schedules =
+          (await tx.repositories.checkinSchedules.findMany?.(undefined, undefined, {
+            forUpdate: true,
+          })) ?? [];
         const schedule = [...schedules].sort(
           (left, right) => Number(right.schedule_version) - Number(left.schedule_version),
         )[0];

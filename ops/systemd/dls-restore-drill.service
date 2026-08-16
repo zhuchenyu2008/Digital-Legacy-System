@@ -1,0 +1,12 @@
+[Unit]
+Description=Digital Legacy System isolated restore verification
+Requires=docker.service
+After=docker.service dls-backup.service
+
+[Service]
+Type=oneshot
+EnvironmentFile=/etc/dls/automation.env
+ExecStart=/usr/bin/bash ${DLS_REPOSITORY_ROOT}/ops/scripts/scheduled-restore-drill.sh --backup-root ${DLS_BACKUP_ROOT} --drill-root ${DLS_RESTORE_DRILL_ROOT} --env-file ${DLS_ENV_FILE} --status-file ${DLS_DATA_DIR}/operations/restore-drill-status.json --encryption-key-file ${DLS_DATA_BACKUP_KEY_FILE}
+Nice=15
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7

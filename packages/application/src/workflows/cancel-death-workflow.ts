@@ -1,4 +1,4 @@
-import { parseInstant } from "@dls/domain";
+import { beijingDateAt, computeCheckinDeadline, parseInstant } from "@dls/domain";
 import type { OwnerServerPasswordVerifier } from "../owner/login-owner.js";
 import type { TransactionContext, TransactionManager } from "../ports/transaction-manager.js";
 import { sha256, workflowRepository } from "./contact-decision-common.js";
@@ -145,6 +145,47 @@ export async function cancelDeathWorkflow(
       },
     );
     await destroyReleaseSecrets(tx, command.workflowId, now);
+    const schedules =
+      (await tx.repositories.checkinSchedules.findMany?.(undefined, undefined, {
+        forUpdate: true,
+      })) ?? [];
+    const schedule = [...schedules].sort(
+      (left, right) => Number(right.schedule_version) - Number(left.schedule_version),
+    )[0];
+    if (schedule === undefined) {
+      throw new WorkflowError(
+        "DLS-WORKFLOW-SCHEDULE-UNAVAILABLE",
+        "check-in schedule is unavailable",
+        503,
+      );
+    }
+    const thresholdDays = Number(schedule.threshold_days);
+    if (!Number.isSafeInteger(thresholdDays) || thresholdDays < 1) {
+      throw new WorkflowError("DLS-WORKFLOW-SCHEDULE-INVALID", "check-in schedule is invalid", 500);
+    }
+    const nextDeadlineAt = computeCheckinDeadline(now, thresholdDays);
+    const checkInId = dependencies.idFactory?.() ?? crypto.randomUUID();
+    await tx.repositories.checkIns.insert({
+      id: checkInId,
+      beijing_date: beijingDateAt(now),
+      checked_in_at: now,
+      source: "OWNER_RELEASE_CANCELLATION",
+      actor_type: "OWNER",
+      actor_ref: command.ownerId,
+      workflow_id: command.workflowId,
+      request_id: command.requestId,
+    });
+    const nextScheduleVersion = Number(schedule.schedule_version) + 1;
+    await tx.repositories.checkinSchedules.updateVersioned(
+      schedule.id,
+      Number(schedule.version ?? 0),
+      {
+        schedule_version: nextScheduleVersion,
+        last_check_in_id: checkInId,
+        deadline_at: nextDeadlineAt,
+        status: "ACTIVE",
+      },
+    );
     await tx.outbox.enqueue({
       eventType: "DEATH_WORKFLOW_CANCELLED",
       aggregateType: "workflow",
@@ -152,6 +193,17 @@ export async function cancelDeathWorkflow(
       payload: { aggregateId: command.workflowId, aggregateVersion: nextVersion },
       idempotencyKey: `owner-cancel:${command.workflowId}:${nextVersion}`,
       availableAt: now,
+    });
+    await tx.outbox.enqueue({
+      eventType: "CHECKIN_EVALUATE_REQUESTED",
+      aggregateType: "checkin_schedule",
+      aggregateId: String(schedule.id),
+      payload: {
+        aggregateId: String(schedule.id),
+        aggregateVersion: nextScheduleVersion,
+      },
+      idempotencyKey: `checkin-evaluate:${String(schedule.id)}:${nextScheduleVersion}`,
+      availableAt: nextDeadlineAt,
     });
     await tx.audit.append({
       eventId: dependencies.idFactory?.() ?? crypto.randomUUID(),
@@ -162,7 +214,7 @@ export async function cancelDeathWorkflow(
       aggregateId: command.workflowId,
       requestId: command.requestId,
       result: "SUCCESS",
-      metadata: { reason: "OWNER_CONFIRMED_ALIVE" },
+      metadata: { reason: "OWNER_CONFIRMED_ALIVE", nextDeadlineAt },
     });
     const response: CancelDeathWorkflowResult = {
       cancelled: true,

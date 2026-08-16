@@ -112,11 +112,19 @@ export class RateLimitGuard implements CanActivate {
   ) {}
 
   public async canActivate(context: ExecutionContext): Promise<boolean> {
-    const request = context.switchToHttp().getRequest<{ ip?: string }>();
-    const decision = await this.limiter.consume(`${this.key}:${request.ip ?? "unknown"}`);
-    if (!decision.allowed) {
+    const request = context.switchToHttp().getRequest<{
+      ip?: string;
+      user?: Readonly<{ actorId?: string }>;
+    }>();
+    const keys = [`${this.key}:ip:${request.ip ?? "unknown"}`];
+    const actorId = request.user?.actorId?.trim();
+    if (actorId !== undefined && actorId.length > 0) keys.push(`${this.key}:actor:${actorId}`);
+    const decisions = await Promise.all(keys.map((bucket) => this.limiter.consume(bucket)));
+    const blocked = decisions.filter((decision) => !decision.allowed);
+    if (blocked.length > 0) {
+      const retryAfterSeconds = Math.max(...blocked.map((decision) => decision.retryAfterSeconds));
       throw new HttpException(
-        { code: "RATE_LIMITED", retryAfterSeconds: decision.retryAfterSeconds },
+        { code: "RATE_LIMITED", retryAfterSeconds },
         HttpStatus.TOO_MANY_REQUESTS,
       );
     }

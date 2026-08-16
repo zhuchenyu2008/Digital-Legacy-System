@@ -80,7 +80,7 @@ export class ContactPasswordController {
   public constructor(@Inject(CONTACT_RUNTIME) private readonly runtime: ContactRuntime) {}
 
   @Post("complete")
-  @UseGuards(ContactRateLimitGuard, ContactSessionGuard, CsrfGuard)
+  @UseGuards(ContactSessionGuard, ContactRateLimitGuard, CsrfGuard)
   @HttpCode(HttpStatus.OK)
   @ApiBody({ type: ChangeContactPasswordDto })
   @ApiOperation({ summary: "Rotate the contact password and wrapped private key" })

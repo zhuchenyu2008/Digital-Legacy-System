@@ -76,15 +76,38 @@ export async function assertContactCanAct(
   contactId: string,
   password: string,
   passwordVerifier: ContactPasswordVerifier,
-): Promise<Readonly<{ workflow: RepositoryRow; contact: RepositoryRow }>> {
+  options: Readonly<{
+    allowedStates?: readonly string[];
+    requirePublishUnlocked?: boolean;
+    allowExistingDeathDecision?: boolean;
+  }> = {},
+): Promise<
+  Readonly<{
+    workflow: RepositoryRow;
+    contact: RepositoryRow;
+    previousDecision: RepositoryRow | undefined;
+  }>
+> {
   const workflow = await tx.repositories.workflows.findById(workflowId, { forUpdate: true });
   if (workflow === null || workflow.kind !== "DEATH_CONFIRMATION") {
     throw new WorkflowError("DLS-CONTACT-ACTION-NOT-FOUND", "workflow was not found", 404);
   }
-  if (workflow.state !== "AWAITING_CONFIRMATIONS") {
+  const allowedStates = options.allowedStates ?? ["AWAITING_CONFIRMATIONS"];
+  if (!allowedStates.includes(String(workflow.state))) {
     throw new WorkflowError(
       "DLS-CONTACT-ACTION-CLOSED",
       "contact decisions are closed for this workflow",
+      409,
+    );
+  }
+  if (
+    options.requirePublishUnlocked === true &&
+    workflow.publish_locked_at !== null &&
+    workflow.publish_locked_at !== undefined
+  ) {
+    throw new WorkflowError(
+      "DLS-RELEASE-LOCKED",
+      "the publication is locked and can no longer be cancelled",
       409,
     );
   }
@@ -114,14 +137,18 @@ export async function assertContactCanAct(
   }
   const actions = workflowRepository(tx.repositories.workflowContactActions, "workflow actions");
   const existing = (await actions.findMany?.("workflow_id", workflowId, { forUpdate: true })) ?? [];
-  if (existing.some((row) => String(row.contact_id) === contactId)) {
+  const previousDecision = existing.find((row) => String(row.contact_id) === contactId);
+  if (
+    previousDecision !== undefined &&
+    !(options.allowExistingDeathDecision === true && previousDecision.decision === "DECEASED")
+  ) {
     throw new WorkflowError(
       "DLS-CONTACT-ACTION-DUPLICATE",
       "contact already made a final decision",
       409,
     );
   }
-  return { workflow, contact };
+  return { workflow, contact, previousDecision };
 }
 
 export async function reserveDecision<T>(

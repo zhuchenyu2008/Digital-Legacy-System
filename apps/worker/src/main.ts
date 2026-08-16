@@ -1,6 +1,12 @@
 import "reflect-metadata";
 import { redactLogValue } from "@dls/contracts";
-import { createPgPool, JOB_NAMES, PgBossScheduler, PgOutboxDispatcher } from "@dls/persistence";
+import {
+  createPgPool,
+  JOB_NAMES,
+  PgBossScheduler,
+  PgOutboxDispatcher,
+  reconcileDueDeadlines,
+} from "@dls/persistence";
 import { ConsoleLogger } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
 import { PgBoss } from "pg-boss";
@@ -57,6 +63,14 @@ async function bootstrap(): Promise<void> {
     });
   dispatchOutbox();
   setInterval(dispatchOutbox, 1_000);
+  const scanDeadlines = () =>
+    void reconcileDueDeadlines(pool).catch((error: unknown) => {
+      process.stderr.write(
+        `${JSON.stringify(redactLogValue({ level: "error", event: "deadline_scan_failed", error }))}\n`,
+      );
+    });
+  scanDeadlines();
+  setInterval(scanDeadlines, 30_000);
   const heartbeat = app.get(WorkerHeartbeat);
   await heartbeat.beat();
   setInterval(() => void heartbeat.beat(), 30_000);

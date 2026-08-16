@@ -100,7 +100,7 @@ export class OwnerAuthController {
   }
 
   @Post("owner/password-change")
-  @UseGuards(OwnerRateLimitGuard, OwnerSessionGuard, CsrfGuard)
+  @UseGuards(OwnerSessionGuard, OwnerRateLimitGuard, CsrfGuard)
   @ApiBody({ type: ChangeOwnerPasswordDto })
   @ApiOperation({ summary: "Change the owner password and rotate the session" })
   public async changePassword(

@@ -16,6 +16,7 @@ import { ApiBody, ApiOkResponse, ApiOperation, ApiParam, ApiTags } from "@nestjs
 import type { FastifyRequest } from "fastify";
 import { CsrfGuard } from "../security/csrf.guard.js";
 import { OriginGuard } from "../security/origin.guard.js";
+import { OwnerRateLimitGuard } from "../security/rate-limit.guard.js";
 import { OwnerSessionGuard, type SecurityRequest } from "../security/session.guard.js";
 import { CancelDeathWorkflowDto, parseCancelDeathWorkflow } from "./workflows.dto.js";
 import { WORKFLOW_RUNTIME, type WorkflowRuntime } from "./workflows.runtime.js";
@@ -27,7 +28,7 @@ type OwnerActionRequest = FastifyRequest &
 
 @ApiTags("Owner workflow actions")
 @Controller("owner/workflows")
-@UseGuards(OwnerSessionGuard, OriginGuard, CsrfGuard)
+@UseGuards(OwnerSessionGuard, OwnerRateLimitGuard, OriginGuard, CsrfGuard)
 export class OwnerActionsController {
   public constructor(@Inject(WORKFLOW_RUNTIME) private readonly runtime: WorkflowRuntime) {}
 

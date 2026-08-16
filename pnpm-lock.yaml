@@ -20,13 +20,19 @@ importers:
 
   .:
     dependencies:
-      '@dls/storage':
-        specifier: workspace:*
-        version: link:packages/storage
-    devDependencies:
       '@aws-sdk/client-s3':
         specifier: 3.1103.0
         version: 3.1103.0
+      '@dls/storage':
+        specifier: workspace:*
+        version: link:packages/storage
+      nodemailer:
+        specifier: 9.0.5
+        version: 9.0.5
+      pg:
+        specifier: 8.22.0
+        version: 8.22.0
+    devDependencies:
       '@axe-core/playwright':
         specifier: 4.12.1
         version: 4.12.1(playwright-core@1.62.1)
@@ -48,9 +54,6 @@ importers:
       dotenv:
         specifier: 17.4.2
         version: 17.4.2
-      pg:
-        specifier: 8.22.0
-        version: 8.22.0
       tsx:
         specifier: 4.23.5
         version: 4.23.5

@@ -459,4 +459,79 @@ describe("contact workflow decisions", () => {
       schedule_version: 8,
     });
   });
+
+  it("lets any rostered contact veto RELEASE_PENDING until the publish lock is committed", async () => {
+    const state = fixture();
+    Object.assign(state.tables.get("workflows")?.[0] ?? {}, {
+      state: "RELEASE_PENDING",
+      release_at: "2026-08-09T02:00:00.000Z",
+      publish_locked_at: null,
+      approved_count: 2,
+    });
+    state.tables.get("workflowContactActions")?.push({
+      id: "prior-death-action",
+      workflow_id: "workflow-1",
+      contact_id: "contact-1",
+      decision: "DECEASED",
+      decision_digest: new Uint8Array([1]),
+      created_at: "2026-08-08T00:00:00.000Z",
+    });
+    state.tables.get("releaseSecretSessions")?.push({
+      id: "release-session-1",
+      workflow_id: "workflow-1",
+      status: "ACTIVE",
+      stage_key_envelope: new Uint8Array(48),
+      stage_key_nonce: new Uint8Array(24),
+      version: 0,
+    });
+
+    await expect(
+      confirmAlive(
+        {
+          workflowId: "workflow-1",
+          contactId: "contact-1",
+          password: "password-1",
+          confirmationText: aliveConfirmationText("张三"),
+          requestId: "release-pending-veto",
+        },
+        {
+          transaction: state.transaction,
+          passwordVerifier: async () => true,
+          ownerDisplayName: async () => "张三",
+          idFactory: () => crypto.randomUUID(),
+        },
+      ),
+    ).resolves.toMatchObject({ cancelled: true, workflowState: "CANCELLED" });
+    expect(state.tables.get("workflowContactActions")?.[0]).toMatchObject({
+      id: "prior-death-action",
+      decision: "ALIVE",
+    });
+    expect(state.tables.get("releaseSecretSessions")?.[0]).toMatchObject({
+      status: "DESTROYED",
+      stage_key_envelope: null,
+      stage_key_nonce: null,
+    });
+
+    const locked = fixture();
+    Object.assign(locked.tables.get("workflows")?.[0] ?? {}, {
+      state: "RELEASE_PENDING",
+      publish_locked_at: "2026-08-09T02:29:59.999Z",
+    });
+    await expect(
+      confirmAlive(
+        {
+          workflowId: "workflow-1",
+          contactId: "contact-2",
+          password: "password-2",
+          confirmationText: aliveConfirmationText("张三"),
+          requestId: "release-locked-veto",
+        },
+        {
+          transaction: locked.transaction,
+          passwordVerifier: async () => true,
+          ownerDisplayName: async () => "张三",
+        },
+      ),
+    ).rejects.toMatchObject({ code: "DLS-RELEASE-LOCKED", status: 409 });
+  });
 });

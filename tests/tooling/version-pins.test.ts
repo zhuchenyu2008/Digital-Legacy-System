@@ -160,4 +160,17 @@ describe("workspace version pins", () => {
 
     expect(readFileSync(join(workspaceRoot, ".node-version"), "utf8").trim()).toBe("24.18.0");
   });
+
+  test("pins every GitHub Action to an immutable commit", () => {
+    const workflow = readFileSync(join(workspaceRoot, ".github", "workflows", "ci.yml"), "utf8");
+    const uses = [...workflow.matchAll(/^\s*uses:\s*([^\s#]+)(?:\s+#.*)?$/gmu)].map(
+      ([, value]) => value,
+    );
+    expect(uses.length).toBeGreaterThan(0);
+    for (const value of uses) {
+      expect(value, `${value} must be pinned to a full commit SHA`).toMatch(
+        /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+@[a-f0-9]{40}$/u,
+      );
+    }
+  });
 });

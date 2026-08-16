@@ -4,6 +4,7 @@ import type { StorageFactoryConfig } from "@dls/storage";
 import type { Pool } from "pg";
 import { getApiRuntimeConfig } from "../config/api-runtime-config.js";
 import { getPublicRuntimeConfig } from "../config/public-runtime-config.js";
+import { createStorageHealthProbe } from "./health.probes.js";
 
 export const OWNER_SYSTEM_HEALTH_RUNTIME = Symbol("DLS_OWNER_SYSTEM_HEALTH_RUNTIME");
 
@@ -29,13 +30,16 @@ type Queryable = Pick<Pool, "query">;
 type StorageCheck = () => Promise<boolean>;
 
 async function defaultStorageCheck(storage: StorageFactoryConfig): Promise<boolean> {
-  if (storage.driver === "s3") return false;
   try {
-    await Promise.all([
-      access(storage.privateRoot),
-      access(storage.stagingRoot),
-      access(storage.publicRoot),
-    ]);
+    if (storage.driver === "s3") {
+      await createStorageHealthProbe(storage).check();
+    } else {
+      await Promise.all([
+        access(storage.privateRoot),
+        access(storage.stagingRoot),
+        access(storage.publicRoot),
+      ]);
+    }
     return true;
   } catch {
     return false;
@@ -86,38 +90,41 @@ export class PostgresOwnerSystemHealthRuntime implements OwnerSystemHealthRuntim
       };
     }
 
-    const [outbox, notification, audit, storageAvailable, workerHeartbeat] = await Promise.all([
-      this.#pool
-        .query(
-          `SELECT count(*)::int AS count FROM app.domain_outbox
+    const [outbox, notification, deadlineHeartbeat, storageAvailable, workerHeartbeat] =
+      await Promise.all([
+        this.#pool
+          .query(
+            `SELECT count(*)::int AS count FROM app.domain_outbox
            WHERE published_at IS NULL AND available_at <= clock_timestamp()`,
-        )
-        .catch(() => ({ rows: [{ count: 0 }] })),
-      this.#pool
-        .query(
-          `SELECT finished_at::text AS finished_at, result
+          )
+          .catch(() => ({ rows: [{ count: 0 }] })),
+        this.#pool
+          .query(
+            `SELECT finished_at::text AS finished_at, result
            FROM app.notification_attempts ORDER BY finished_at DESC LIMIT 1`,
-        )
-        .catch(() => ({ rows: [] })),
-      this.#pool
-        .query(
-          `SELECT occurred_at::text AS occurred_at FROM audit.private_events
-           WHERE event_type IN ('CHECKIN_EVALUATED', 'DEATH_WORKFLOW_STARTED', 'WORKFLOW_ADVANCED')
-           ORDER BY occurred_at DESC LIMIT 1`,
-        )
-        .catch(() => ({ rows: [] })),
-      this.#storageCheck().catch(() => false),
-      this.#pool
-        .query(
-          `SELECT last_seen_at::text AS last_seen_at,
+          )
+          .catch(() => ({ rows: [] })),
+        this.#pool
+          .query(
+            `SELECT last_seen_at::text AS last_seen_at,
+                    EXTRACT(EPOCH FROM (clock_timestamp() - last_seen_at)) * 1000 AS age_ms
+             FROM app.worker_heartbeats WHERE service = 'deadline-scanner'`,
+          )
+          .catch(() => ({ rows: [] })),
+        this.#storageCheck().catch(() => false),
+        this.#pool
+          .query(
+            `SELECT last_seen_at::text AS last_seen_at,
                   EXTRACT(EPOCH FROM (clock_timestamp() - last_seen_at)) * 1000 AS age_ms
            FROM app.worker_heartbeats WHERE service = 'worker'`,
-        )
-        .catch(() => ({ rows: [] })),
-    ]);
+          )
+          .catch(() => ({ rows: [] })),
+      ]);
 
     const notificationRow = notification.rows[0];
-    const auditRow = audit.rows[0];
+    const deadlineRow = deadlineHeartbeat.rows[0] as
+      | { last_seen_at?: unknown; age_ms?: unknown }
+      | undefined;
     const heartbeatRow = workerHeartbeat.rows[0] as
       | { last_seen_at?: unknown; age_ms?: unknown }
       | undefined;
@@ -128,12 +135,19 @@ export class PostgresOwnerSystemHealthRuntime implements OwnerSystemHealthRuntim
         : heartbeatAge <= this.#workerHeartbeatStaleMs
           ? "ok"
           : "degraded";
+    const deadlineAge = Number(deadlineRow?.age_ms);
+    const deadlineStatus: HealthCategoryStatus =
+      deadlineRow === undefined || !Number.isFinite(deadlineAge)
+        ? "unknown"
+        : deadlineAge <= this.#workerHeartbeatStaleMs
+          ? "ok"
+          : "degraded";
     const notificationResult = String(notificationRow?.result ?? "");
     return {
       serverNow,
       categories: [
         { code: "database", status: "ok" },
-        { code: "storage", status: storageAvailable ? "ok" : "unknown", backend },
+        { code: "storage", status: storageAvailable ? "ok" : "degraded", backend },
         {
           code: "worker",
           status: workerStatus,
@@ -141,8 +155,8 @@ export class PostgresOwnerSystemHealthRuntime implements OwnerSystemHealthRuntim
         },
         {
           code: "deadlineScanner",
-          status: "unknown",
-          lastSeenAt: timestamp(auditRow?.occurred_at),
+          status: deadlineStatus,
+          lastSeenAt: timestamp(deadlineRow?.last_seen_at),
         },
         {
           code: "smtp",

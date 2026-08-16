@@ -56,18 +56,40 @@ for (const signal of ["SIGINT", "SIGTERM"]) {
 let finalExitCode = 1;
 const nextEnvironment = await snapshotGeneratedFile(resolve(workspace, "apps/web/next-env.d.ts"));
 try {
+  const productionMode = process.argv.includes("--production");
+  const requested = process.argv.slice(2).filter((argument) => argument !== "--production");
   const api = start(process.execPath, ["tests/e2e/support/contact-api-stub.mjs"]);
   await waitFor("http://127.0.0.1:4311/health", api);
+  if (productionMode) {
+    const build = start(
+      process.execPath,
+      [resolve(workspace, "apps/web/node_modules/next/dist/bin/next"), "build"],
+      {
+        cwd: resolve(workspace, "apps/web"),
+        env: { ...process.env, DLS_API_INTERNAL_URL: "http://127.0.0.1:4311" },
+      },
+    );
+    const buildExitCode = await new Promise((resolveExit) => {
+      build.once("exit", (code) => resolveExit(code ?? 1));
+    });
+    if (buildExitCode !== 0) throw new Error(`Next.js production build failed (${buildExitCode})`);
+  }
   const web = start(
     process.execPath,
-    [resolve(workspace, "apps/web/node_modules/next/dist/bin/next"), "dev", "--hostname", "127.0.0.1", "--port", "4173"],
+    [
+      resolve(workspace, "apps/web/node_modules/next/dist/bin/next"),
+      productionMode ? "start" : "dev",
+      "--hostname",
+      "127.0.0.1",
+      "--port",
+      "4173",
+    ],
     {
       cwd: resolve(workspace, "apps/web"),
       env: { ...process.env, DLS_API_INTERNAL_URL: "http://127.0.0.1:4311" },
     },
   );
   await waitFor("http://127.0.0.1:4173/contact/workflows/current", web);
-  const requested = process.argv.slice(2);
   const playwright = start(process.execPath, [
     "node_modules/@playwright/test/cli.js",
     "test",

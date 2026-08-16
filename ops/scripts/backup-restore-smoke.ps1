@@ -73,13 +73,13 @@ try {
     Set-Content -LiteralPath $path -Value $entry.Value -NoNewline
   }
 
-  & $powerShell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $root "ops/scripts/backup.ps1") -ProjectName $sourceProject -Destination $backupDirectory -ObjectRoot (Join-Path $sourceData "objects") -ComposeFile (Join-Path $root "compose.yaml") -ComposeProdFile $override
+  & $powerShell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $root "ops/scripts/backup.ps1") -ProjectName $sourceProject -Destination $backupDirectory -ObjectRoot (Join-Path $sourceData "objects") -ComposeFile (Join-Path $root "compose.yaml") -ComposeProdFile $override -EncryptionKeyFile (Join-Path $secretDirectory "data-backup-key")
   if ($LASTEXITCODE -ne 0) { throw "backup failed" }
 
   $env:DLS_BACKUP_DATA_DIR = $targetData
   Invoke-Compose $targetProject --profile ops build migrator worker
   Invoke-Compose $targetProject up --detach --wait postgres
-  & $powerShell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $root "ops/scripts/restore.ps1") -Backup $backupDirectory -ProjectName $targetProject -ObjectRoot (Join-Path $targetData "objects") -ComposeFile (Join-Path $root "compose.yaml") -ComposeProdFile $override
+  & $powerShell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $root "ops/scripts/restore.ps1") -Backup $backupDirectory -ProjectName $targetProject -ObjectRoot (Join-Path $targetData "objects") -ComposeFile (Join-Path $root "compose.yaml") -ComposeProdFile $override -EncryptionKeyFile (Join-Path $secretDirectory "data-backup-key")
   if ($LASTEXITCODE -ne 0) { throw "restore failed" }
   & $powerShell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $root "ops/scripts/verify-restore.ps1") -Backup $backupDirectory -ProjectName $targetProject -ObjectRoot (Join-Path $targetData "objects") -ComposeFile (Join-Path $root "compose.yaml") -ComposeProdFile $override
   if ($LASTEXITCODE -ne 0) { throw "restore verification failed" }

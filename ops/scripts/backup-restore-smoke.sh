@@ -58,12 +58,12 @@ mkdir -p "$SOURCE_DATA/objects/private" "$SOURCE_DATA/objects/staging" "$SOURCE_
 printf private > "$SOURCE_DATA/objects/private/backup-marker.txt"
 printf staging > "$SOURCE_DATA/objects/staging/backup-marker.txt"
 printf public > "$SOURCE_DATA/objects/public/backup-marker.txt"
-bash "$ROOT/ops/scripts/backup.sh" --project "$SOURCE_PROJECT" --destination "$BACKUP" --object-root "$SOURCE_DATA/objects" --compose-file "$ROOT/compose.yaml" --compose-prod-file "$OVERRIDE"
+bash "$ROOT/ops/scripts/backup.sh" --project "$SOURCE_PROJECT" --destination "$BACKUP" --object-root "$SOURCE_DATA/objects" --compose-file "$ROOT/compose.yaml" --compose-prod-file "$OVERRIDE" --encryption-key-file "$SECRETS/data-backup-key"
 
 export DLS_BACKUP_DATA_DIR="$TARGET_DATA"
 compose "$TARGET_PROJECT" --profile ops build migrator worker
 compose "$TARGET_PROJECT" up --detach --wait postgres
-bash "$ROOT/ops/scripts/restore.sh" --backup "$BACKUP" --project "$TARGET_PROJECT" --object-root "$TARGET_DATA/objects" --compose-file "$ROOT/compose.yaml" --compose-prod-file "$OVERRIDE"
+bash "$ROOT/ops/scripts/restore.sh" --backup "$BACKUP" --project "$TARGET_PROJECT" --object-root "$TARGET_DATA/objects" --compose-file "$ROOT/compose.yaml" --compose-prod-file "$OVERRIDE" --encryption-key-file "$SECRETS/data-backup-key"
 bash "$ROOT/ops/scripts/verify-restore.sh" --backup "$BACKUP" --project "$TARGET_PROJECT" --object-root "$TARGET_DATA/objects" --compose-file "$ROOT/compose.yaml" --compose-prod-file "$OVERRIDE"
 reconciliation_output="$(compose "$TARGET_PROJECT" run --rm --no-TTY --entrypoint node worker ops/scripts/runtime-reconcile.mjs)"
 printf '%s\n' "$reconciliation_output" | tail -n 1 > "$RECONCILIATION"

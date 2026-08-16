@@ -82,6 +82,77 @@ services:
         max-size: 20m
         max-file: "5"
 
+  monitor:
+    image: ${DLS_IMAGE_REGISTRY:?DLS_IMAGE_REGISTRY is required}/dls-api:${DLS_IMAGE_TAG:?DLS_IMAGE_TAG is required}@${DLS_API_IMAGE_DIGEST:?DLS_API_IMAGE_DIGEST is required}
+    restart: unless-stopped
+    init: true
+    read_only: true
+    user: "1000:1000"
+    environment:
+      NODE_ENV: production
+      MAIL_TRANSPORT_URL: ${DLS_MAIL_TRANSPORT_URL:?DLS_MAIL_TRANSPORT_URL must be SMTPS or STARTTLS}
+      STORAGE_DRIVER: ${DLS_STORAGE_DRIVER:-filesystem}
+      STORAGE_PRIVATE_ROOT: /var/lib/dls/objects/private
+      STORAGE_STAGING_ROOT: /var/lib/dls/objects/staging
+      STORAGE_PUBLIC_ROOT: /var/lib/dls/objects/public
+      S3_ENDPOINT: "${DLS_S3_ENDPOINT:-}"
+      S3_REGION: "${DLS_S3_REGION:-us-east-1}"
+      S3_PRIVATE_BUCKET: "${DLS_S3_PRIVATE_BUCKET:-}"
+      S3_STAGING_BUCKET: "${DLS_S3_STAGING_BUCKET:-}"
+      S3_PUBLIC_BUCKET: "${DLS_S3_PUBLIC_BUCKET:-}"
+      S3_FORCE_PATH_STYLE: "${DLS_S3_FORCE_PATH_STYLE:-false}"
+      DLS_OPERATIONS_STATUS_DIR: /var/lib/dls/operations
+      MONITOR_INTERVAL_MS: "${DLS_MONITOR_INTERVAL_MS:-60000}"
+      WORKER_HEARTBEAT_STALE_MS: "${DLS_WORKER_HEARTBEAT_STALE_MS:-90000}"
+      BACKUP_STALE_MS: "${DLS_BACKUP_STALE_MS:-129600000}"
+      RESTORE_DRILL_STALE_MS: "${DLS_RESTORE_DRILL_STALE_MS:-691200000}"
+      ALERT_COOLDOWN_MS: "${DLS_ALERT_COOLDOWN_MS:-3600000}"
+    entrypoint: ["/bin/sh", "-ec"]
+    command:
+      - |
+        export DATABASE_URL="postgresql://dls_health:$$(cat /run/secrets/health_db_password)@postgres:5432/dls"
+        export ALERT_WEBHOOK_URL="$$(cat /run/secrets/alert_webhook_url)"
+        if [ "$$STORAGE_DRIVER" = s3 ]; then
+          export S3_ACCESS_KEY_ID="$$(cat /run/secrets/minio_access_key)"
+          export S3_SECRET_ACCESS_KEY="$$(cat /run/secrets/minio_secret_key)"
+        fi
+        exec node ops/scripts/production-monitor.mjs
+    secrets:
+      - health_db_password
+      - alert_webhook_url
+      - minio_access_key
+      - minio_secret_key
+    volumes:
+      - ${DLS_DATA_DIR:?DLS_DATA_DIR is required}/objects/private:/var/lib/dls/objects/private:ro
+      - ${DLS_DATA_DIR:?DLS_DATA_DIR is required}/objects/staging:/var/lib/dls/objects/staging:ro
+      - ${DLS_DATA_DIR:?DLS_DATA_DIR is required}/objects/public:/var/lib/dls/objects/public:ro
+      - ${DLS_DATA_DIR:?DLS_DATA_DIR is required}/operations:/var/lib/dls/operations
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "require('node:fs').stat('/var/lib/dls/operations/monitor-status.json',(e,s)=>{if(e||Date.now()-s.mtimeMs>180000)process.exit(1)})",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 90s
+    networks: [internal]
+    logging:
+      driver: json-file
+      options:
+        max-size: 20m
+        max-file: "5"
+
   web:
     build: !reset null
     image: ${DLS_IMAGE_REGISTRY:?DLS_IMAGE_REGISTRY is required}/dls-web:${DLS_IMAGE_TAG:?DLS_IMAGE_TAG is required}@${DLS_WEB_IMAGE_DIGEST:?DLS_WEB_IMAGE_DIGEST is required}
@@ -170,6 +241,8 @@ secrets:
     file: ${DLS_SECRETS_DIR:?DLS_SECRETS_DIR is required}/setup-token
   token_pepper:
     file: ${DLS_SECRETS_DIR:?DLS_SECRETS_DIR is required}/token-pepper
+  contact_password_pepper:
+    file: ${DLS_SECRETS_DIR:?DLS_SECRETS_DIR is required}/contact-password-pepper
   release_ingress_public_key:
     file: ${DLS_SECRETS_DIR:?DLS_SECRETS_DIR is required}/release-ingress-public-key
   release_ingress_private_key:
@@ -186,3 +259,5 @@ secrets:
     file: ${DLS_S3_ACCESS_KEY_FILE:?DLS_S3_ACCESS_KEY_FILE is required}
   minio_secret_key:
     file: ${DLS_S3_SECRET_KEY_FILE:?DLS_S3_SECRET_KEY_FILE is required}
+  alert_webhook_url:
+    file: ${DLS_SECRETS_DIR:?DLS_SECRETS_DIR is required}/alert-webhook-url

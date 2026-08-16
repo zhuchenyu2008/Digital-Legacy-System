@@ -23,6 +23,7 @@ import {
 import type { FastifyRequest } from "fastify";
 import { CsrfGuard } from "../security/csrf.guard.js";
 import { OriginGuard } from "../security/origin.guard.js";
+import { ContactRateLimitGuard } from "../security/rate-limit.guard.js";
 import { ContactSessionGuard, type SecurityRequest } from "../security/session.guard.js";
 import {
   AffirmDeathDto,
@@ -39,7 +40,7 @@ type ContactActionRequest = FastifyRequest &
 
 @ApiTags("Contact workflow actions")
 @Controller("contact/workflows")
-@UseGuards(ContactSessionGuard, OriginGuard, CsrfGuard)
+@UseGuards(ContactSessionGuard, ContactRateLimitGuard, OriginGuard, CsrfGuard)
 export class ContactActionsController {
   public constructor(@Inject(WORKFLOW_RUNTIME) private readonly runtime: WorkflowRuntime) {}
 

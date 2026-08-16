@@ -1,0 +1,11 @@
+[Unit]
+Description=Verify a real Digital Legacy System backup weekly (Beijing time)
+
+[Timer]
+OnCalendar=Sun *-*-* 04:30:00 Asia/Shanghai
+Persistent=true
+RandomizedDelaySec=30m
+Unit=dls-restore-drill.service
+
+[Install]
+WantedBy=timers.target

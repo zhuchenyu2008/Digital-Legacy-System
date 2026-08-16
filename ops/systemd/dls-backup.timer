@@ -1,0 +1,11 @@
+[Unit]
+Description=Run Digital Legacy System backup every day (Beijing time)
+
+[Timer]
+OnCalendar=*-*-* 03:15:00 Asia/Shanghai
+Persistent=true
+RandomizedDelaySec=15m
+Unit=dls-backup.service
+
+[Install]
+WantedBy=timers.target

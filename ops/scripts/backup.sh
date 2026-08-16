@@ -9,6 +9,7 @@ STORAGE_DRIVER="filesystem"
 ENV_FILE=""
 COMPOSE_FILE="compose.yaml"
 COMPOSE_PROD_FILE="compose.prod.yaml"
+ENCRYPTION_KEY_FILE=""
 while (($#)); do
   case "$1" in
     --project) PROJECT="$2"; shift 2 ;;
@@ -18,14 +19,18 @@ while (($#)); do
     --env-file) ENV_FILE="$2"; shift 2 ;;
     --compose-file) COMPOSE_FILE="$2"; shift 2 ;;
     --compose-prod-file) COMPOSE_PROD_FILE="$2"; shift 2 ;;
+    --encryption-key-file) ENCRYPTION_KEY_FILE="$2"; shift 2 ;;
     *) echo "unknown argument: $1" >&2; exit 2 ;;
   esac
 done
 [[ "$PROJECT" =~ ^[A-Za-z0-9._-]+$ ]] || { echo "--project is required" >&2; exit 2; }
 [[ -n "$DESTINATION" ]] || { echo "--destination is required" >&2; exit 2; }
+[[ -n "$ENCRYPTION_KEY_FILE" ]] || { echo "--encryption-key-file is required" >&2; exit 2; }
 [[ "$STORAGE_DRIVER" == "filesystem" || "$STORAGE_DRIVER" == "s3" ]] || { echo "--storage-driver must be filesystem or s3" >&2; exit 2; }
 DESTINATION="$(realpath -m "$DESTINATION")"
+ENCRYPTION_KEY_FILE="$(realpath -e "$ENCRYPTION_KEY_FILE")"
 [[ "$DESTINATION" != "/" ]] || { echo "backup paths must not be /" >&2; exit 1; }
+[[ "$ENCRYPTION_KEY_FILE" != "$DESTINATION"/* ]] || { echo "data backup key must be outside the backup medium" >&2; exit 1; }
 if [[ "$STORAGE_DRIVER" == "filesystem" ]]; then
   [[ -n "$OBJECT_ROOT" ]] || { echo "--object-root is required for filesystem backups" >&2; exit 2; }
   OBJECT_ROOT="$(realpath -m "$OBJECT_ROOT")"
@@ -34,7 +39,7 @@ if [[ "$STORAGE_DRIVER" == "filesystem" ]]; then
 fi
 [[ -z "$ENV_FILE" ]] || ENV_FILE="$(realpath -e "$ENV_FILE")"
 mkdir -p "$DESTINATION"
-for artifact in database-state.json database.dump objects.tar runtime.json manifest.json; do
+for artifact in database-state.json database.dump objects.tar runtime.json security-boundary.json manifest.json; do
   [[ ! -e "$DESTINATION/$artifact" ]] || { echo "backup destination already contains release artifacts" >&2; exit 1; }
 done
 COMPOSE=(docker compose)
@@ -51,8 +56,10 @@ done
 BACKUP_OBJECT_ROOT="$OBJECT_ROOT"
 MAINTENANCE_PATH=""
 TEMP_OBJECT_ROOT=""
+TEMP_BASE="$(realpath -m "${TMPDIR:-/tmp}")"
+DATABASE_PLAIN="$(mktemp "$TEMP_BASE/dls-database-dump.XXXXXX")"
+rm -f -- "$DATABASE_PLAIN"
 if [[ "$STORAGE_DRIVER" == "s3" ]]; then
-  TEMP_BASE="$(realpath -m "${TMPDIR:-/tmp}")"
   TEMP_OBJECT_ROOT="$(mktemp -d "$TEMP_BASE/dls-s3-backup.XXXXXX")"
   [[ "$TEMP_OBJECT_ROOT" == "$TEMP_BASE"/dls-s3-backup.* ]] || { echo "temporary S3 backup path escaped the temporary directory" >&2; exit 1; }
   BACKUP_OBJECT_ROOT="$TEMP_OBJECT_ROOT"
@@ -64,6 +71,10 @@ cleanup() {
   status=$?
   trap - EXIT INT TERM
   "${COMPOSE[@]}" exec --no-TTY postgres rm -f /tmp/dls-backup.dump >/dev/null 2>&1 || true
+  case "$DATABASE_PLAIN" in
+    "$TEMP_BASE"/dls-database-dump.*) rm -f -- "$DATABASE_PLAIN" ;;
+    *) echo "refused to remove temporary database dump outside the temporary directory" >&2 ;;
+  esac
   [[ -z "$MAINTENANCE_PATH" ]] || rm -f -- "$MAINTENANCE_PATH"
   if [[ -n "$TEMP_OBJECT_ROOT" && -d "$TEMP_OBJECT_ROOT" ]]; then
     case "$TEMP_OBJECT_ROOT" in
@@ -97,9 +108,17 @@ node --input-type=module -e '
 rm -f "$DESTINATION/images.jsonl"
 
 "${COMPOSE[@]}" exec --no-TTY postgres pg_dump --username postgres --dbname dls --format custom --file /tmp/dls-backup.dump
-"${COMPOSE[@]}" cp "postgres:/tmp/dls-backup.dump" "$DESTINATION/database.dump"
+"${COMPOSE[@]}" cp "postgres:/tmp/dls-backup.dump" "$DATABASE_PLAIN"
+node "$ROOT/ops/scripts/backup-artifact-crypto.mjs" encrypt --input "$DATABASE_PLAIN" --output "$DESTINATION/database.dump" --key-file "$ENCRYPTION_KEY_FILE" >/dev/null
+rm -f -- "$DATABASE_PLAIN"
 tar -cf "$DESTINATION/objects.tar" -C "$BACKUP_OBJECT_ROOT" .
 node "$ROOT/ops/scripts/backup-manifest.ts" validate-tar --archive "$DESTINATION/objects.tar" >/dev/null
+node --input-type=module -e '
+  import {writeFileSync} from "node:fs";
+  const [output,storageDriver]=process.argv.slice(1);
+  writeFileSync(output,JSON.stringify({version:1,backupClass:"ordinary-data",storageDriver,includesApplicationSecrets:false,includesSecretBackupKey:false,privateObjectRepresentation:"client-side-ciphertext",databaseRepresentation:"aes-256-gcm-encrypted-pg-dump",publicObjectRepresentation:"intentionally-published-plaintext",secretsRecoveryDependency:"separate-encrypted-offsite-bundle"},null,2)+"\n",{mode:0o600});
+' "$DESTINATION/security-boundary.json" "$STORAGE_DRIVER"
 node "$ROOT/ops/scripts/backup-manifest.ts" create --backup "$DESTINATION" --objects "$BACKUP_OBJECT_ROOT" --project "$PROJECT" >/dev/null
 node "$ROOT/ops/scripts/database-inventory.ts" verify-references "$DESTINATION" >/dev/null
+node "$ROOT/ops/scripts/backup-artifact-crypto.mjs" verify --input "$DESTINATION/database.dump" --key-file "$ENCRYPTION_KEY_FILE" >/dev/null
 echo "Consistent backup completed at $DESTINATION; database, object, runtime, migration, publication, audit, and outbox state were recorded."

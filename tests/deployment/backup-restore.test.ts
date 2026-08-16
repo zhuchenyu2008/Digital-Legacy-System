@@ -125,6 +125,18 @@ describe("backup and restore operator boundaries", () => {
     await writeFile(resolve(backup, "objects.tar"), "archive");
     await writeFile(resolve(backup, "database-state.json"), '{"schemaVersion":18}\n');
     await writeFile(resolve(backup, "runtime.json"), '{"imageVersion":"test"}\n');
+    await writeFile(
+      resolve(backup, "security-boundary.json"),
+      JSON.stringify({
+        version: 1,
+        backupClass: "ordinary-data",
+        includesApplicationSecrets: false,
+        includesSecretBackupKey: false,
+        privateObjectRepresentation: "client-side-ciphertext",
+        databaseRepresentation: "aes-256-gcm-encrypted-pg-dump",
+        secretsRecoveryDependency: "separate-encrypted-offsite-bundle",
+      }),
+    );
 
     const manifest = await createBackupManifest({
       backupDirectory: backup,
@@ -137,6 +149,7 @@ describe("backup and restore operator boundaries", () => {
       "database.dump",
       "objects.tar",
       "runtime.json",
+      "security-boundary.json",
     ]);
     expect(manifest.objects.map((object) => object.path)).toEqual([
       "private/nested/a.bin",

@@ -32,6 +32,19 @@ function fixture(input?: Readonly<{ now?: string; releaseAt?: string }>) {
         },
       ],
     ],
+    [
+      "checkinSchedules",
+      [
+        {
+          id: "schedule-1",
+          schedule_version: 8,
+          threshold_days: 30,
+          status: "SUSPENDED",
+          version: 3,
+        },
+      ],
+    ],
+    ["checkIns", []],
     ["ownerCredentials", [{ singleton_id: true, password_phc: "owner-hash", version: 2 }]],
     [
       "releaseSecretSessions",
@@ -100,8 +113,8 @@ function fixture(input?: Readonly<{ now?: string; releaseAt?: string }>) {
     ownerProfile: repository("unused"),
     ownerCredentials: repository("ownerCredentials"),
     systemSettings: repository("unused"),
-    checkIns: repository("unused"),
-    checkinSchedules: repository("unused"),
+    checkIns: repository("checkIns"),
+    checkinSchedules: repository("checkinSchedules"),
     contacts: repository("unused"),
     oneTimeTokens: repository("oneTimeTokens"),
     vaults: repository("unused"),
