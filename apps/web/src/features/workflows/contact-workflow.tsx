@@ -25,14 +25,14 @@ export function ContactWorkflow({ workflow }: Readonly<{ workflow: ContactWorkfl
       <EmptyState description="当前没有需要你处理的死亡确认或密码恢复任务。" title="没有当前任务" />
     );
   }
-  const alreadyClosed = workflow.decisionAlreadyMade || workflow.legalNextActions.length === 0;
+  const alreadyClosed = workflow.legalNextActions.length === 0;
   const resolved =
     outcome ??
-    (workflow.decisionAlreadyMade
-      ? { state: "PENDING" as const, message: "你的决定已提交，系统正在按服务端最终状态处理。" }
-      : alreadyClosed
-        ? { state: "CLOSED" as const, message: "此工作流当前不再接受你的决定。" }
-        : undefined);
+    (alreadyClosed
+      ? workflow.decisionAlreadyMade
+        ? { state: "PENDING" as const, message: "你的决定已提交，系统正在按服务端最终状态处理。" }
+        : { state: "CLOSED" as const, message: "此工作流当前不再接受你的决定。" }
+      : undefined);
   const isRecovery = workflow.kind === "PASSWORD_RECOVERY";
   const complete = (value: ContactActionOutcome) => {
     setOutcome(value);
@@ -59,7 +59,11 @@ export function ContactWorkflow({ workflow }: Readonly<{ workflow: ContactWorkfl
       <div className="dls-contact-progress">
         <div>
           <StatusBadge tone={isRecovery ? "warning" : "critical"}>
-            {isRecovery ? "恢复审批中" : "第一阶段确认中"}
+            {isRecovery
+              ? "恢复审批中"
+              : workflow.state === "RELEASE_PENDING"
+                ? "发布等待中"
+                : "第一阶段确认中"}
           </StatusBadge>
           <span>
             {workflow.approvedCount} / {workflow.requiredCount} 份有效确认
@@ -84,44 +88,50 @@ export function ContactWorkflow({ workflow }: Readonly<{ workflow: ContactWorkfl
         </section>
       ) : isRecovery ? (
         <section className="dls-contact-decision-list">
-          <article>
-            <div>
-              <span aria-hidden="true">↻</span>
-              <h2>批准本次密码恢复</h2>
-            </div>
-            <p>
-              浏览器只会解开恢复用途分片，并重新封装到 RECOVERY
-              专用入口；达到门槛后管理员仍需邮件验证码和新密码。
-            </p>
-            <Button onClick={() => setOpenAction("APPROVE_RECOVERY")}>审核并批准恢复</Button>
-          </article>
+          {workflow.legalNextActions.includes("APPROVE_RECOVERY") ? (
+            <article>
+              <div>
+                <span aria-hidden="true">↻</span>
+                <h2>批准本次密码恢复</h2>
+              </div>
+              <p>
+                浏览器只会解开恢复用途分片，并重新封装到 RECOVERY
+                专用入口；达到门槛后管理员仍需邮件验证码和新密码。
+              </p>
+              <Button onClick={() => setOpenAction("APPROVE_RECOVERY")}>审核并批准恢复</Button>
+            </article>
+          ) : null}
         </section>
       ) : (
         <section className="dls-contact-decision-list" aria-label="可选决定">
-          <article className="dls-contact-decision dls-contact-decision--critical">
-            <div>
-              <span aria-hidden="true">!</span>
-              <h2>可能或确认已经离世</h2>
-            </div>
-            <p>提交死亡用途分片。只有达到门槛且经过服务端验证后，流程才会进入下一阶段。</p>
-            <code>{deathConfirmationText(workflow.ownerDisplayName)}</code>
-            <Button onClick={() => setOpenAction("CONFIRM_DEATH")} tone="danger">
-              选择：可能或确认已经离世
-            </Button>
-          </article>
-          <article className="dls-contact-decision dls-contact-decision--alive">
-            <div>
-              <span aria-hidden="true">✓</span>
-              <h2>仍然健在</h2>
-            </div>
-            <p>
-              立即终止本次死亡确认并重新安排签到；该决定会向管理员披露本次工作流快照中的联系人姓名。
-            </p>
-            <code>{aliveConfirmationText(workflow.ownerDisplayName)}</code>
-            <Button onClick={() => setOpenAction("CONFIRM_ALIVE")} tone="secondary">
-              选择：仍然健在
-            </Button>
-          </article>
+          {workflow.legalNextActions.includes("CONFIRM_DEATH") ? (
+            <article className="dls-contact-decision dls-contact-decision--critical">
+              <div>
+                <span aria-hidden="true">!</span>
+                <h2>可能或确认已经离世</h2>
+              </div>
+              <p>提交死亡用途分片。只有达到门槛且经过服务端验证后，流程才会进入下一阶段。</p>
+              <code>{deathConfirmationText(workflow.ownerDisplayName)}</code>
+              <Button onClick={() => setOpenAction("CONFIRM_DEATH")} tone="danger">
+                选择：可能或确认已经离世
+              </Button>
+            </article>
+          ) : null}
+          {workflow.legalNextActions.includes("CONFIRM_ALIVE") ? (
+            <article className="dls-contact-decision dls-contact-decision--alive">
+              <div>
+                <span aria-hidden="true">✓</span>
+                <h2>仍然健在</h2>
+              </div>
+              <p>
+                立即终止本次死亡确认并重新安排签到；该决定会向管理员披露本次工作流快照中的联系人姓名。
+              </p>
+              <code>{aliveConfirmationText(workflow.ownerDisplayName)}</code>
+              <Button onClick={() => setOpenAction("CONFIRM_ALIVE")} tone="secondary">
+                选择：仍然健在
+              </Button>
+            </article>
+          ) : null}
         </section>
       )}
 

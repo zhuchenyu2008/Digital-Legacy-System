@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { parseInstant } from "@dls/domain";
+import { isWorkflowDecision, parseInstant } from "@dls/domain";
 import { describe, expect, it } from "vitest";
 import type { TransactionContext } from "../ports/transaction-manager.js";
 import { affirmDeath, deathConfirmationText } from "./affirm-death.js";
@@ -105,6 +105,29 @@ function fixture() {
     ["checkIns", []],
     ["oneTimeTokens", []],
   ]);
+  const validateMutation = (table: string, input: Record<string, unknown>) => {
+    if (
+      table === "workflowContactActions" &&
+      "decision" in input &&
+      !isWorkflowDecision(input.decision)
+    ) {
+      throw new Error(`invalid workflow decision fixture: ${String(input.decision)}`);
+    }
+  };
+  const rows = (table: string): readonly Record<string, unknown>[] => tables.get(table) ?? [];
+  const seed = (table: string, input: Record<string, unknown>) => {
+    validateMutation(table, input);
+    const row = { ...copy(input), version: Number(input.version ?? 0) };
+    tables.set(table, [...(tables.get(table) ?? []), row]);
+    return row;
+  };
+  const patchRow = (table: string, id: unknown, input: Record<string, unknown>) => {
+    validateMutation(table, input);
+    const row = tables.get(table)?.find((value) => value.id === id);
+    if (row === undefined) throw new Error(`missing ${table}`);
+    Object.assign(row, copy(input));
+    return row;
+  };
   const repository = (table: string) => ({
     async findById(id: unknown) {
       return tables.get(table)?.find((row) => row.id === id || row.singleton_id === id) ?? null;
@@ -120,22 +143,18 @@ function fixture() {
       return field === undefined ? rows : rows.filter((row) => row[field] === value);
     },
     async insert(input: Record<string, unknown>) {
-      const row = { ...copy(input), version: Number(input.version ?? 0) };
-      tables.set(table, [...(tables.get(table) ?? []), row]);
-      return row;
+      return seed(table, input);
     },
-    async updateById(id: unknown, patch: Record<string, unknown>) {
-      const row = tables.get(table)?.find((value) => value.id === id);
-      if (row === undefined) throw new Error(`missing ${table}`);
-      Object.assign(row, copy(patch));
-      return row;
+    async updateById(id: unknown, input: Record<string, unknown>) {
+      return patchRow(table, id, input);
     },
-    async updateVersioned(id: unknown, expected: number, patch: Record<string, unknown>) {
+    async updateVersioned(id: unknown, expected: number, input: Record<string, unknown>) {
       const row = tables.get(table)?.find((value) => value.id === id);
       if (row === undefined || Number(row.version ?? 0) !== expected) {
         throw new Error(`stale ${table}`);
       }
-      Object.assign(row, copy(patch), { version: expected + 1 });
+      validateMutation(table, input);
+      Object.assign(row, copy(input), { version: expected + 1 });
       return row;
     },
   });
@@ -193,7 +212,9 @@ function fixture() {
   return {
     now,
     outbox,
-    tables,
+    rows,
+    seed,
+    patch: patchRow,
     transaction: {
       run: async <T>(work: (tx: TransactionContext) => Promise<T>) => work(context),
     },
@@ -271,13 +292,13 @@ describe("contact workflow decisions", () => {
     );
 
     expect(result).toEqual({ accepted: true, processing: true, fragmentId: "fragment-1" });
-    expect(state.tables.get("workflowKeyFragments")?.[0]).toMatchObject({
+    expect(state.rows("workflowKeyFragments")[0]).toMatchObject({
       status: "PENDING",
       decision_digest: new Uint8Array(
         createHash("sha256").update(deathConfirmationText("张三"), "utf8").digest(),
       ),
     });
-    expect(state.tables.get("workflowContactActions")).toHaveLength(0);
+    expect(state.rows("workflowContactActions")).toHaveLength(0);
     expect(JSON.stringify(state.outbox)).not.toContain("ciphertext");
 
     await expect(
@@ -298,7 +319,7 @@ describe("contact workflow decisions", () => {
         },
       ),
     ).resolves.toEqual(result);
-    expect(state.tables.get("workflowKeyFragments")).toHaveLength(1);
+    expect(state.rows("workflowKeyFragments")).toHaveLength(1);
   });
 
   it("rejects wrong password and any whitespace or punctuation deviation in legal text", async () => {
@@ -320,7 +341,7 @@ describe("contact workflow decisions", () => {
         },
       ),
     ).rejects.toMatchObject({ code: "DLS-CONTACT-REAUTH-REQUIRED", status: 401 });
-    expect(wrongPassword.tables.get("workflowKeyFragments")).toHaveLength(0);
+    expect(wrongPassword.rows("workflowKeyFragments")).toHaveLength(0);
 
     const wrongText = fixture();
     await expect(
@@ -340,7 +361,7 @@ describe("contact workflow decisions", () => {
         },
       ),
     ).rejects.toMatchObject({ code: "DLS-CONTACT-CONFIRMATION-TEXT", status: 400 });
-    expect(wrongText.tables.get("workflowKeyFragments")).toHaveLength(0);
+    expect(wrongText.rows("workflowKeyFragments")).toHaveLength(0);
   });
 
   it("records validated approvals and stages VK exactly once at the snapshotted threshold", async () => {
@@ -385,17 +406,17 @@ describe("contact workflow decisions", () => {
       releaseAt: "2026-08-10T02:30:00Z",
     });
     expect(replay).toEqual(second);
-    expect(state.tables.get("workflowContactActions")).toHaveLength(2);
-    expect(state.tables.get("releaseSecretSessions")?.[0]).toMatchObject({
+    expect(state.rows("workflowContactActions")).toHaveLength(2);
+    expect(state.rows("releaseSecretSessions")[0]).toMatchObject({
       workflow_id: "workflow-1",
       stage_key_version: 6,
       stage_key_protocol_version: 1,
       expires_at: "2026-08-10T02:30:00Z",
     });
     expect(
-      state.tables
-        .get("workflowKeyFragments")
-        ?.every(
+      state
+        .rows("workflowKeyFragments")
+        .every(
           (row) =>
             row.status === "DESTROYED" &&
             row.fragment_ciphertext === null &&
@@ -406,7 +427,7 @@ describe("contact workflow decisions", () => {
 
   it("lets one exact alive decision cancel, destroy fragments, and create a proxy check-in", async () => {
     const state = fixture();
-    state.tables.get("workflowKeyFragments")?.push({
+    state.seed("workflowKeyFragments", {
       id: "fragment-1",
       workflow_id: "workflow-1",
       contact_id: "contact-1",
@@ -441,48 +462,58 @@ describe("contact workflow decisions", () => {
       workflowState: "CANCELLED",
       nextDeadlineAt: "2026-08-12T16:00:00Z",
     });
-    expect(state.tables.get("workflowKeyFragments")?.[0]).toMatchObject({
+    expect(state.rows("workflowKeyFragments")[0]).toMatchObject({
       status: "DESTROYED",
       fragment_ciphertext: null,
       fragment_nonce: null,
       stage_key_version: null,
     });
-    expect(state.tables.get("checkIns")?.[0]).toMatchObject({
+    expect(state.rows("checkIns")[0]).toMatchObject({
       actor_type: "CONTACT",
       actor_ref: "contact-1",
       workflow_id: "workflow-1",
       beijing_date: "2026-08-09",
     });
-    expect(state.tables.get("checkinSchedules")?.[0]).toMatchObject({
+    expect(state.rows("checkinSchedules")[0]).toMatchObject({
       status: "ACTIVE",
       deadline_at: "2026-08-12T16:00:00Z",
       schedule_version: 8,
     });
   });
 
-  it("lets any rostered contact veto RELEASE_PENDING until the publish lock is committed", async () => {
+  it("lets a DEATH_LIKELY voter reverse the complete release-pending flow", async () => {
     const state = fixture();
-    Object.assign(state.tables.get("workflows")?.[0] ?? {}, {
+    for (const contact of [1, 2]) {
+      await affirmDeath(
+        {
+          workflowId: "workflow-1",
+          contactId: `contact-${contact}`,
+          password: `password-${contact}`,
+          confirmationText: deathConfirmationText("张三"),
+          fragment: fragment(contact),
+          requestId: `release-pending-death-${contact}`,
+        },
+        {
+          transaction: state.transaction,
+          passwordVerifier: async () => true,
+          ownerDisplayName: async () => "张三",
+          idFactory: () => `release-pending-fragment-${contact}`,
+        },
+      );
+    }
+    const dependencies = fragmentDependencies(state);
+    await processReleaseFragment({ fragmentId: "release-pending-fragment-1" }, dependencies);
+    await expect(
+      processReleaseFragment({ fragmentId: "release-pending-fragment-2" }, dependencies),
+    ).resolves.toMatchObject({ status: "RELEASE_PENDING", approvedCount: 2 });
+
+    const priorAction = state
+      .rows("workflowContactActions")
+      .find((row) => row.contact_id === "contact-1");
+    expect(priorAction).toMatchObject({ decision: "DEATH_LIKELY" });
+    expect(state.rows("workflows")[0]).toMatchObject({
       state: "RELEASE_PENDING",
-      release_at: "2026-08-09T02:00:00.000Z",
-      publish_locked_at: null,
       approved_count: 2,
-    });
-    state.tables.get("workflowContactActions")?.push({
-      id: "prior-death-action",
-      workflow_id: "workflow-1",
-      contact_id: "contact-1",
-      decision: "DECEASED",
-      decision_digest: new Uint8Array([1]),
-      created_at: "2026-08-08T00:00:00.000Z",
-    });
-    state.tables.get("releaseSecretSessions")?.push({
-      id: "release-session-1",
-      workflow_id: "workflow-1",
-      status: "ACTIVE",
-      stage_key_envelope: new Uint8Array(48),
-      stage_key_nonce: new Uint8Array(24),
-      version: 0,
     });
 
     await expect(
@@ -502,18 +533,32 @@ describe("contact workflow decisions", () => {
         },
       ),
     ).resolves.toMatchObject({ cancelled: true, workflowState: "CANCELLED" });
-    expect(state.tables.get("workflowContactActions")?.[0]).toMatchObject({
-      id: "prior-death-action",
+    expect(state.rows("workflowContactActions")).toHaveLength(2);
+    expect(
+      state.rows("workflowContactActions").find((row) => row.contact_id === "contact-1"),
+    ).toMatchObject({
+      id: priorAction?.id,
       decision: "ALIVE",
     });
-    expect(state.tables.get("releaseSecretSessions")?.[0]).toMatchObject({
+    expect(state.rows("workflows")[0]).toMatchObject({
+      state: "CANCELLED",
+      approved_count: 2,
+      end_reason: "CONTACT_CONFIRMED_ALIVE",
+      denying_contact_id: "contact-1",
+    });
+    expect(state.rows("releaseSecretSessions")[0]).toMatchObject({
       status: "DESTROYED",
       stage_key_envelope: null,
       stage_key_nonce: null,
     });
+    expect(state.rows("checkIns")[0]).toMatchObject({
+      source: "CONTACT_ALIVE_CONFIRMATION",
+      workflow_id: "workflow-1",
+      actor_ref: "contact-1",
+    });
 
     const locked = fixture();
-    Object.assign(locked.tables.get("workflows")?.[0] ?? {}, {
+    locked.patch("workflows", "workflow-1", {
       state: "RELEASE_PENDING",
       publish_locked_at: "2026-08-09T02:29:59.999Z",
     });

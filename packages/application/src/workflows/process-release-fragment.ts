@@ -1,5 +1,5 @@
 import { timingSafeEqual } from "node:crypto";
-import { addExactDays, parseInstant } from "@dls/domain";
+import { addExactDays, parseInstant, WORKFLOW_DECISION } from "@dls/domain";
 import type { RepositoryRow } from "../ports/repositories.js";
 import type {
   FragmentCryptography,
@@ -177,7 +177,7 @@ export async function processReleaseFragment(
             id: idFactory(),
             workflow_id: workflowId,
             contact_id: contactId,
-            decision: "DEATH_LIKELY",
+            decision: WORKFLOW_DECISION.DEATH_LIKELY,
             decision_digest: decisionDigest,
             created_at: actionAt,
           });
@@ -200,19 +200,23 @@ export async function processReleaseFragment(
         } finally {
           decisionDigest.fill(0);
         }
-      } else if (existing.decision !== "DEATH_LIKELY") {
+      } else if (existing.decision !== WORKFLOW_DECISION.DEATH_LIKELY) {
         return { status: "CLOSED" };
       } else {
         return {
           status: "RECORDED",
-          approvedCount: currentActions.filter((row) => row.decision === "DEATH_LIKELY").length,
+          approvedCount: currentActions.filter(
+            (row) => row.decision === WORKFLOW_DECISION.DEATH_LIKELY,
+          ).length,
           thresholdReached: false,
           workflowState: "AWAITING_CONFIRMATIONS",
         };
       }
       const recordedActions =
         (await actions.findMany?.("workflow_id", workflowId, { forUpdate: true })) ?? [];
-      const approvedActions = recordedActions.filter((row) => row.decision === "DEATH_LIKELY");
+      const approvedActions = recordedActions.filter(
+        (row) => row.decision === WORKFLOW_DECISION.DEATH_LIKELY,
+      );
       const approvedCount = approvedActions.length;
       const requiredCount = positiveInteger(workflow.required_count_snapshot, "required count");
       if (approvedCount < requiredCount) {

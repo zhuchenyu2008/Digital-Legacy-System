@@ -1,4 +1,5 @@
 import { randomInt } from "node:crypto";
+import { WORKFLOW_DECISION } from "@dls/domain";
 import type { RepositoryRow } from "../ports/repositories.js";
 import type {
   FragmentCryptography,
@@ -317,7 +318,7 @@ export async function approveRecovery(
       id: crypto.randomUUID(),
       workflow_id: command.workflowId,
       contact_id: command.contactId,
-      decision: "RECOVERY_APPROVE",
+      decision: WORKFLOW_DECISION.RECOVERY_APPROVE,
       decision_digest: recoverySha256(command.requestId),
       created_at: now,
     });

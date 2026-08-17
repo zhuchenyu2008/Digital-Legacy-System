@@ -1,3 +1,4 @@
+import { isWorkflowDecision, WORKFLOW_DECISION } from "@dls/domain";
 import type { RepositoryRow, VersionedRepository } from "../ports/repositories.js";
 import type { WorkflowFragmentPurpose } from "../ports/stage-key-provider.js";
 import type { TransactionManager } from "../ports/transaction-manager.js";
@@ -35,13 +36,33 @@ function purposeOf(workflow: RepositoryRow): WorkflowFragmentPurpose {
 
 function legalActions(
   workflow: RepositoryRow,
-  acted: boolean,
+  action: RepositoryRow | undefined,
 ): readonly ("CONFIRM_DEATH" | "CONFIRM_ALIVE" | "APPROVE_RECOVERY")[] {
-  if (acted) return [];
-  if (workflow.kind === "DEATH_CONFIRMATION" && workflow.state === "AWAITING_CONFIRMATIONS") {
-    return ["CONFIRM_DEATH", "CONFIRM_ALIVE"];
+  if (action !== undefined && !isWorkflowDecision(action.decision)) {
+    throw new WorkflowError(
+      "DLS-WORKFLOW-DATA-INTEGRITY",
+      "stored workflow decision is invalid",
+      500,
+    );
   }
-  if (workflow.kind === "PASSWORD_RECOVERY" && workflow.state === "AWAITING_APPROVALS") {
+  if (workflow.kind === "DEATH_CONFIRMATION") {
+    if (workflow.state === "AWAITING_CONFIRMATIONS") {
+      if (action === undefined) return ["CONFIRM_DEATH", "CONFIRM_ALIVE"];
+      return action.decision === WORKFLOW_DECISION.DEATH_LIKELY ? ["CONFIRM_ALIVE"] : [];
+    }
+    if (
+      workflow.state === "RELEASE_PENDING" &&
+      (workflow.publish_locked_at === null || workflow.publish_locked_at === undefined) &&
+      (action === undefined || action.decision === WORKFLOW_DECISION.DEATH_LIKELY)
+    ) {
+      return ["CONFIRM_ALIVE"];
+    }
+  }
+  if (
+    action === undefined &&
+    workflow.kind === "PASSWORD_RECOVERY" &&
+    workflow.state === "AWAITING_APPROVALS"
+  ) {
     return ["APPROVE_RECOVERY"];
   }
   return [];
@@ -95,7 +116,7 @@ export async function getContactWorkflow(
       approvedCount: Number(workflow.approved_count),
       requiredCount: Number(workflow.required_count_snapshot),
       decisionAlreadyMade: action !== undefined,
-      legalNextActions: legalActions(workflow, action !== undefined),
+      legalNextActions: legalActions(workflow, action),
       share: {
         generationId: String(workflow.share_generation_id),
         shareIndex: Number(share.share_index),

@@ -1,4 +1,4 @@
-import { beijingDateAt, computeCheckinDeadline } from "@dls/domain";
+import { beijingDateAt, computeCheckinDeadline, WORKFLOW_DECISION } from "@dls/domain";
 import { scheduleCheckinReminders } from "../owner/check-in-reminders.js";
 import type { TransactionManager } from "../ports/transaction-manager.js";
 import {
@@ -78,7 +78,7 @@ export async function confirmAlive(
             id: idFactory(),
             workflow_id: command.workflowId,
             contact_id: command.contactId,
-            decision: "ALIVE",
+            decision: WORKFLOW_DECISION.ALIVE,
             decision_digest: decisionDigest,
             created_at: now,
           });
@@ -87,7 +87,7 @@ export async function confirmAlive(
             throw new Error("workflow action updates are unavailable");
           }
           await actions.updateById(previousDecision.id, {
-            decision: "ALIVE",
+            decision: WORKFLOW_DECISION.ALIVE,
             decision_digest: decisionDigest,
             created_at: now,
           });

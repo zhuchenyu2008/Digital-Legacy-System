@@ -11,5 +11,6 @@ export * from "./vault/share-generation-lifecycle.js";
 export * from "./workflows/death-workflow.js";
 export * from "./workflows/recovery-workflow.js";
 export * from "./workflows/release-workflow.js";
+export * from "./workflows/workflow-decision.js";
 export * from "./workflows/workflow-events.js";
 export * from "./workflows/workflow-state.js";

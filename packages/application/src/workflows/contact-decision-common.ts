@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { isWorkflowDecision, WORKFLOW_DECISION } from "@dls/domain";
 import type { RepositoryRow, VersionedRepository } from "../ports/repositories.js";
 import type { TransactionContext } from "../ports/transaction-manager.js";
 import { WorkflowError } from "./start-death-workflow.js";
@@ -138,9 +139,19 @@ export async function assertContactCanAct(
   const actions = workflowRepository(tx.repositories.workflowContactActions, "workflow actions");
   const existing = (await actions.findMany?.("workflow_id", workflowId, { forUpdate: true })) ?? [];
   const previousDecision = existing.find((row) => String(row.contact_id) === contactId);
+  if (previousDecision !== undefined && !isWorkflowDecision(previousDecision.decision)) {
+    throw new WorkflowError(
+      "DLS-WORKFLOW-DATA-INTEGRITY",
+      "stored workflow decision is invalid",
+      500,
+    );
+  }
   if (
     previousDecision !== undefined &&
-    !(options.allowExistingDeathDecision === true && previousDecision.decision === "DECEASED")
+    !(
+      options.allowExistingDeathDecision === true &&
+      previousDecision.decision === WORKFLOW_DECISION.DEATH_LIKELY
+    )
   ) {
     throw new WorkflowError(
       "DLS-CONTACT-ACTION-DUPLICATE",

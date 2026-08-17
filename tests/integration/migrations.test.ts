@@ -1,3 +1,4 @@
+import { WORKFLOW_DECISIONS } from "@dls/domain";
 import { Client } from "pg";
 import { describe, expect, it } from "vitest";
 
@@ -43,6 +44,18 @@ describe("production migration inventory", () => {
       const applied = await runner.up();
       expect(applied.map((migration) => migration.version)).toEqual([
         1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22,
+      ]);
+
+      const workflowDecisionEnum = await client.query(
+        `SELECT enumlabel
+         FROM pg_enum
+         JOIN pg_type ON pg_type.oid = pg_enum.enumtypid
+         JOIN pg_namespace ON pg_namespace.oid = pg_type.typnamespace
+         WHERE pg_namespace.nspname = 'app' AND pg_type.typname = 'workflow_decision'
+         ORDER BY enumsortorder`,
+      );
+      expect(workflowDecisionEnum.rows.map((row) => row.enumlabel)).toEqual([
+        ...WORKFLOW_DECISIONS,
       ]);
 
       const result = await client.query(

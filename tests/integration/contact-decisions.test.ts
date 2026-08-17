@@ -5,7 +5,10 @@ import { ContactActionsController } from "../../apps/api/src/workflows/contact-a
 import type { WorkflowRuntime } from "../../apps/api/src/workflows/workflows.runtime.js";
 import {
   affirmDeath,
+  aliveConfirmationText,
+  confirmAlive,
   deathConfirmationText,
+  getContactWorkflow,
   processReleaseFragment,
   type ReleaseFragmentCryptography,
 } from "../../packages/application/src/index.js";
@@ -43,7 +46,10 @@ async function cleanup(pool: Pool): Promise<void> {
     ids.contacts.map((contact) => `CONTACT:${contact}`),
   ]);
   await pool.query("DELETE FROM app.checkin_schedules WHERE id = $1", [ids.schedule]);
-  await pool.query("DELETE FROM app.check_ins WHERE id = $1", [ids.checkIn]);
+  await pool.query("DELETE FROM app.check_ins WHERE workflow_id = $1 OR id = $2", [
+    ids.workflow,
+    ids.checkIn,
+  ]);
   await pool.query("DELETE FROM app.contact_key_shares WHERE generation_id = $1", [ids.generation]);
   await pool.query("DELETE FROM app.emergency_contacts WHERE id = ANY($1::uuid[])", [
     [...ids.contacts],
@@ -250,7 +256,7 @@ function workerDependencies(transaction: PgTransactionManager) {
 }
 
 describe("contact decisions with PostgreSQL", () => {
-  it("creates one release session at threshold and destroys all transient fragments", async () => {
+  it("lets a recorded death voter reverse the real release-pending flow", async () => {
     const pool = createPgPool({
       connectionString:
         process.env.DATABASE_URL ?? "postgresql://postgres:test@127.0.0.1:55432/dls",
@@ -321,6 +327,93 @@ describe("contact decisions with PostgreSQL", () => {
             row.fragment_nonce === null,
         ),
       ).toBe(true);
+
+      const contactView = await getContactWorkflow(ids.contacts[0], {
+        transaction,
+        ownerDisplayName: async () => "张三",
+        ingressPublicKey: async () => ({
+          version: 4,
+          publicKey: new Uint8Array(32).fill(1),
+        }),
+      });
+      expect(contactView).toMatchObject({
+        state: "RELEASE_PENDING",
+        decisionAlreadyMade: true,
+        legalNextActions: ["CONFIRM_ALIVE"],
+      });
+
+      await expect(
+        confirmAlive(
+          {
+            workflowId: ids.workflow,
+            contactId: ids.contacts[0],
+            password: "correct",
+            confirmationText: aliveConfirmationText("张三"),
+            requestId: "00000000-0000-4000-8000-000000000259",
+          },
+          {
+            transaction,
+            passwordVerifier: async () => true,
+            ownerDisplayName: async () => "张三",
+            idFactory: () => randomUUID(),
+          },
+        ),
+      ).resolves.toMatchObject({ cancelled: true, workflowState: "CANCELLED" });
+
+      const cancelledWorkflow = await pool.query(
+        `SELECT state, approved_count, end_reason, denying_contact_id
+         FROM app.workflows WHERE id = $1`,
+        [ids.workflow],
+      );
+      expect(cancelledWorkflow.rows[0]).toMatchObject({
+        state: "CANCELLED",
+        approved_count: 2,
+        end_reason: "CONTACT_CONFIRMED_ALIVE",
+        denying_contact_id: ids.contacts[0],
+      });
+      const actions = await pool.query(
+        `SELECT contact_id, decision
+         FROM app.workflow_contact_actions WHERE workflow_id = $1 ORDER BY contact_id`,
+        [ids.workflow],
+      );
+      expect(actions.rows).toHaveLength(2);
+      expect(actions.rows).toContainEqual({
+        contact_id: ids.contacts[0],
+        decision: "ALIVE",
+      });
+      expect(actions.rows).toContainEqual({
+        contact_id: ids.contacts[1],
+        decision: "DEATH_LIKELY",
+      });
+      const destroyedSession = await pool.query(
+        `SELECT status, stage_key_envelope, stage_key_nonce
+         FROM app.release_secret_sessions WHERE workflow_id = $1`,
+        [ids.workflow],
+      );
+      expect(destroyedSession.rows[0]).toMatchObject({
+        status: "DESTROYED",
+        stage_key_envelope: null,
+        stage_key_nonce: null,
+      });
+      const proxyCheckIn = await pool.query(
+        `SELECT source, actor_type, actor_ref
+         FROM app.check_ins WHERE workflow_id = $1`,
+        [ids.workflow],
+      );
+      expect(proxyCheckIn.rows).toEqual([
+        {
+          source: "CONTACT_ALIVE_CONFIRMATION",
+          actor_type: "CONTACT",
+          actor_ref: ids.contacts[0],
+        },
+      ]);
+      const cancellationEvents = await pool.query(
+        `SELECT count(*)::int AS count
+         FROM app.domain_outbox
+         WHERE aggregate_id = $1 AND event_type = 'DEATH_CANCELLED_BY_CONTACT'`,
+        [ids.workflow],
+      );
+      expect(cancellationEvents.rows[0]).toEqual({ count: 1 });
     } finally {
       await cleanup(pool);
       await pool.end();

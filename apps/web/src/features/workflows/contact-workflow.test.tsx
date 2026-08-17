@@ -55,6 +55,21 @@ describe("contact workflow", () => {
     );
     expect(closed).toContain("你的决定已提交");
     expect(closed).not.toContain("确认提交：可能或确认已经离世");
+
+    const reversible = renderToStaticMarkup(
+      <ContactWorkflow
+        workflow={{
+          ...deathWorkflow,
+          state: "RELEASE_PENDING",
+          decisionAlreadyMade: true,
+          legalNextActions: ["CONFIRM_ALIVE"],
+        }}
+      />,
+    );
+    expect(reversible).toContain("发布等待中");
+    expect(reversible).toContain(aliveConfirmationText("陈明"));
+    expect(reversible).not.toContain(deathConfirmationText("陈明"));
+    expect(reversible).not.toContain("你的决定已提交");
   });
 
   test("matches NFC exactly without trimming and blocks transfer only for confirmation text", () => {

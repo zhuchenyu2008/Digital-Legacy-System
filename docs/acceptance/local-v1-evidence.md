@@ -1,8 +1,8 @@
 # Local V1 Acceptance Evidence
 
-- 开始（北京时间）：2026年8月16日 18:00:35
-- 结束（北京时间）：2026年8月16日 18:29:57
-- Git commit：`9a9991b9fb42d5a1df93c49fafe2c894e8554fbb`
+- 开始（北京时间）：2026年8月17日 13:06:47
+- 结束（北京时间）：2026年8月17日 13:32:10
+- Git commit：`1a2cfb109a2ec3d05f36ab5bb0b97015a5dfe411`
 - 工作树：dirty（证据生成期间允许 evidence 文件变化）
 - Gate 汇总：24 passed / 0 failed / 0 skipped
 - 时区：`Asia/Shanghai`
@@ -11,14 +11,14 @@
 - 协议版本: `1`
 - Protocol SHA-256: `faf3b7bb4f5524ba4b1fb84d9e1b7cc24dab09fb50de122b4bc26d3119f44c01`
 - Vectors SHA-256: `46b54d72b09126a6282804922f9d4c8dfd011987e7f8826a45bc0d5127fa859c`
-- Application SHA-256: `113ce1754e7260ddd55bb65da8e63b9512acff958fcf407fc32c04d6ca4837ac`
+- Application SHA-256: `856a8d8c4f585fe41aeed45255f2946401b0fa667082cfb298dad91578ed60f5`
 
 ## 工具与版本
 
-- docker: Docker version 29.2.0, build 0b9d198
-- trivy: aquasec/trivy:0.73.0@sha256:7cced7cae583819fc7806d4cbc0dbbc7cad18b99f7d3e235192e6da8c091045c
-- pnpm: 11.20.0
 - dockerCompose: Docker Compose version v5.0.2
+- pnpm: 11.20.0
+- trivy: aquasec/trivy:0.73.0@sha256:7cced7cae583819fc7806d4cbc0dbbc7cad18b99f7d3e235192e6da8c091045c
+- docker: Docker version 29.2.0, build 0b9d198
 - node: v24.18.0
 
 ## 发行镜像
@@ -37,30 +37,30 @@
 
 | Gate | 状态 | Exit | 耗时 ms | 测试统计 | 命令 |
 |---|---|---:|---:|---|---|
-| versions | passed | 0 | 896 | — | node ops/scripts/release-metadata.mjs --verify |
-| format | passed | 0 | 2557 | — | corepack pnpm check; corepack pnpm typecheck |
-| unit | passed | 0 | 11766 | 584 passed | corepack pnpm test:unit |
-| migration-up-down-up | passed | 0 | 3210 | 2 passed | start disposable PostgreSQL; corepack pnpm test:migrations |
-| integration | passed | 0 | 14937 | 56 passed | corepack pnpm test:integration |
-| concurrency | passed | 0 | 5380 | 11 passed | corepack pnpm test:concurrency |
-| crypto | passed | 0 | 5917 | 45 passed | corepack pnpm test:crypto; docker build --target rust-test |
-| storage-filesystem | passed | 0 | 1909 | 16 passed | corepack pnpm test:storage:filesystem |
-| storage-s3 | passed | 0 | 98329 | — | PowerShell -File ops/scripts/storage-s3-contract.ps1 |
-| email | passed | 0 | 1884 | 13 passed | corepack pnpm test:email |
-| build | passed | 0 | 7818 | — | corepack pnpm build |
-| openapi | passed | 0 | 4999 | — | corepack pnpm openapi:check |
-| compose-smoke | passed | 0 | 109116 | — | PowerShell -File ops/scripts/compose-smoke.ps1 -DeleteVolumes |
-| simulation | passed | 0 | 15281 | 56 passed | corepack pnpm exec vitest run tests/integration/simulation-isolation.test.ts |
-| visual | passed | 0 | 99638 | 47 passed | corepack pnpm test:visual |
-| a11y | passed | 0 | 170403 | 47 passed | corepack pnpm test:a11y |
-| e2e-fixtures | passed | 0 | 9879 | 2 passed | corepack pnpm test:e2e |
-| full-stack-e2e | passed | 0 | 446089 | 12 passed | corepack pnpm test:full-stack-e2e |
-| security | passed | 0 | 579417 | 29 passed；5 passed | corepack pnpm test:security; corepack pnpm test:browser-security; PowerShell -File ops/scripts/security-scan.ps1 |
-| publication-crash-matrix | passed | 0 | 1438 | 20 passed | corepack pnpm test:publication-crash-matrix |
-| deployment | passed | 0 | 16944 | 56 passed | corepack pnpm test:deployment |
-| production-compose | passed | 0 | 1601 | 4 passed | corepack pnpm test:production-compose; docker compose --env-file .env.production.example -f compose.yaml -f compose.prod.yaml config --quiet |
-| backup-blank-restore | passed | 0 | 152241 | — | PowerShell -File ops/scripts/backup-restore-smoke.ps1 |
-| reconciliation | passed | 0 | 331 | — | validate runtime-reconcile.mjs output from blank restore |
+| versions | passed | 0 | 698 | — | node ops/scripts/release-metadata.mjs --verify |
+| format | passed | 0 | 2272 | — | corepack pnpm check; corepack pnpm typecheck |
+| unit | passed | 0 | 10008 | 584 passed | corepack pnpm test:unit |
+| migration-up-down-up | passed | 0 | 2988 | 2 passed | start disposable PostgreSQL; corepack pnpm test:migrations |
+| integration | passed | 0 | 13862 | 56 passed | corepack pnpm test:integration |
+| concurrency | passed | 0 | 4751 | 11 passed | corepack pnpm test:concurrency |
+| crypto | passed | 0 | 9772 | 45 passed | corepack pnpm test:crypto; docker build --target rust-test |
+| storage-filesystem | passed | 0 | 1569 | 16 passed | corepack pnpm test:storage:filesystem |
+| storage-s3 | passed | 0 | 105019 | — | PowerShell -File ops/scripts/storage-s3-contract.ps1 |
+| email | passed | 0 | 1701 | 13 passed | corepack pnpm test:email |
+| build | passed | 0 | 6975 | — | corepack pnpm build |
+| openapi | passed | 0 | 4362 | — | corepack pnpm openapi:check |
+| compose-smoke | passed | 0 | 100834 | — | PowerShell -File ops/scripts/compose-smoke.ps1 -DeleteVolumes |
+| simulation | passed | 0 | 13517 | 56 passed | corepack pnpm exec vitest run tests/integration/simulation-isolation.test.ts |
+| visual | passed | 0 | 95602 | 47 passed | corepack pnpm test:visual |
+| a11y | passed | 0 | 168189 | 47 passed | corepack pnpm test:a11y |
+| e2e-fixtures | passed | 0 | 8561 | 2 passed | corepack pnpm test:e2e |
+| full-stack-e2e | passed | 0 | 425962 | 12 passed | corepack pnpm test:full-stack-e2e |
+| security | passed | 0 | 435763 | 29 passed；5 passed | corepack pnpm test:security; corepack pnpm test:browser-security; PowerShell -File ops/scripts/security-scan.ps1 |
+| publication-crash-matrix | passed | 0 | 1201 | 20 passed | corepack pnpm test:publication-crash-matrix |
+| deployment | passed | 0 | 15580 | 56 passed | corepack pnpm test:deployment |
+| production-compose | passed | 0 | 1386 | 4 passed | corepack pnpm test:production-compose; docker compose --env-file .env.production.example -f compose.yaml -f compose.prod.yaml config --quiet |
+| backup-blank-restore | passed | 0 | 92628 | — | PowerShell -File ops/scripts/backup-restore-smoke.ps1 |
+| reconciliation | passed | 0 | 258 | — | validate runtime-reconcile.mjs output from blank restore |
 
 ## Artifact SHA-256
 
