@@ -55,10 +55,14 @@ test("a strict CSRF cookie survives reload and is attached without local or sess
   const requestPromise = page.waitForRequest((request) =>
     request.url().endsWith("/api/owner/check-ins"),
   );
+  const mainFrame = page.mainFrame();
+  const reloadPromise = page.waitForEvent("framenavigated", (frame) => frame === mainFrame);
   await page.getByRole("button", { name: "验证签到" }).click();
   const request = await requestPromise;
   expect(request.headers()["x-csrf-token"]).toBe(csrf);
   expect(request.url()).not.toContain(password);
+  await reloadPromise;
+  await page.waitForLoadState("domcontentloaded");
   await expect(passwordField).toHaveValue("");
   const browserState = await page.evaluate(async () => ({
     localStorage: Object.entries(localStorage),
