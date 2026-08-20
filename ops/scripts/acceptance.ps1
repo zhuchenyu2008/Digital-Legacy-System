@@ -17,7 +17,11 @@ $blocked = $false
 $acceptanceExitCode = 0
 $acceptancePostgresContainer = "dls-e2e-acceptance-postgres-$([guid]::NewGuid().ToString('N'))"
 $acceptancePostgresImage = "postgres:18.4-bookworm@sha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382"
+$acceptanceMailpitContainer = "dls-e2e-acceptance-mailpit-$([guid]::NewGuid().ToString('N'))"
+$acceptanceMailpitImage = "axllent/mailpit:v1.30.6@sha256:7f33095f80e901f6ad08028f06ca284aa58fe84942be5496008d041d3b9f4d4d"
 $env:DATABASE_URL = "postgresql://postgres:test@127.0.0.1:55432/dls"
+$env:MAILPIT_HTTP_URL = "http://127.0.0.1:18025"
+$env:MAILPIT_SMTP_URL = "smtp://127.0.0.1:11025"
 
 function Start-AcceptancePostgres {
   docker run --detach --name $acceptancePostgresContainer `
@@ -49,6 +53,39 @@ function Start-AcceptancePostgres {
 
 function Stop-AcceptancePostgres {
   docker rm --force $acceptancePostgresContainer 2>$null | Out-Null
+}
+
+function Start-AcceptanceMailpit {
+  docker run --detach --name $acceptanceMailpitContainer `
+    --publish "127.0.0.1:18025:8025" `
+    --publish "127.0.0.1:11025:1025" `
+    $acceptanceMailpitImage
+  if ($LASTEXITCODE -ne 0) { throw "Failed to start disposable Mailpit container $acceptanceMailpitContainer" }
+
+  for ($attempt = 0; $attempt -lt 90; $attempt++) {
+    try {
+      $response = Invoke-WebRequest -UseBasicParsing -Uri "$($env:MAILPIT_HTTP_URL)/readyz" -TimeoutSec 2
+      if ($response.StatusCode -eq 200) { return }
+    } catch {
+      Start-Sleep -Milliseconds 1000
+    }
+  }
+
+  docker logs $acceptanceMailpitContainer 2>&1
+  throw "Timed out waiting for disposable Mailpit health"
+}
+
+function Stop-AcceptanceMailpit {
+  docker rm --force $acceptanceMailpitContainer 2>$null | Out-Null
+}
+
+function Invoke-IntegrationGate {
+  try {
+    Start-AcceptanceMailpit
+    corepack pnpm test:integration
+  } finally {
+    Stop-AcceptanceMailpit
+  }
 }
 
 function Invoke-Gate([string]$Name, [string]$CommandText, [scriptblock]$Action) {
@@ -93,8 +130,9 @@ try {
   Invoke-Gate "versions" "node ops/scripts/release-metadata.mjs --verify" { node ops/scripts/release-metadata.mjs --verify }
   Invoke-Gate "format" "corepack pnpm check; corepack pnpm typecheck" { corepack pnpm check; if ($LASTEXITCODE -eq 0) { corepack pnpm typecheck } }
   Invoke-Gate "unit" "corepack pnpm test:unit" { corepack pnpm test:unit }
+  Invoke-Gate "domain-mutations" "corepack pnpm --filter @dls/domain test:mutations" { corepack pnpm --filter @dls/domain test:mutations }
   Invoke-Gate "migration-up-down-up" "start disposable PostgreSQL; corepack pnpm test:migrations" { Start-AcceptancePostgres; if ($LASTEXITCODE -eq 0) { corepack pnpm test:migrations } }
-  Invoke-Gate "integration" "corepack pnpm test:integration" { corepack pnpm test:integration }
+  Invoke-Gate "integration" "start disposable Mailpit; corepack pnpm test:integration" { Invoke-IntegrationGate }
   Invoke-Gate "concurrency" "corepack pnpm test:concurrency" { corepack pnpm test:concurrency }
   Invoke-Gate "crypto" "corepack pnpm test:crypto; docker build --target rust-test" { corepack pnpm test:crypto; if ($LASTEXITCODE -eq 0) { docker build --target rust-test --tag dls-rust-test . } }
   Invoke-Gate "storage-filesystem" "corepack pnpm test:storage:filesystem" { corepack pnpm test:storage:filesystem }
@@ -153,5 +191,6 @@ try {
   if ($failed) { $acceptanceExitCode = 1 }
 } finally {
   Stop-AcceptancePostgres
+  Stop-AcceptanceMailpit
 }
 exit $acceptanceExitCode

@@ -67,6 +67,7 @@ try {
 
   Invoke-Compose config --quiet
   Invoke-Compose --profile ops build migrator api worker web
+  Invoke-Compose run --rm --no-deps --entrypoint node api ops/scripts/verify-runtime-migrations.mjs
   $composeStarted = $true
   Invoke-Compose up --detach postgres mailpit
   Invoke-Compose --profile ops run --rm migrator

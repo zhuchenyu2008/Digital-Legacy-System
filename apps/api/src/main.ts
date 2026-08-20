@@ -11,6 +11,7 @@ import { registerBinaryBodyParser } from "./bootstrap/binary-body-parser.js";
 import { getApiRuntimeConfig } from "./config/api-runtime-config.js";
 import { loadApiKeyCapabilities } from "./config/key-capabilities.js";
 import { loadApiConfig } from "./config/load-config.js";
+import { StableErrorFilter } from "./security/error.filter.js";
 
 async function bootstrap(): Promise<void> {
   const config = loadApiConfig();
@@ -24,6 +25,7 @@ async function bootstrap(): Promise<void> {
   const app = await NestFactory.create<NestFastifyApplication>(AppModule, adapter, {
     logger: new ConsoleLogger({ json: true, prefix: "api" }),
   });
+  app.useGlobalFilters(new StableErrorFilter());
   const server = adapter.getInstance();
   registerBinaryBodyParser(server);
 

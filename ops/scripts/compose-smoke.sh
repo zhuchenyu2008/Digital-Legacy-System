@@ -75,6 +75,7 @@ export DLS_HTTP_PORT=${DLS_HTTP_PORT:-18080}
 node "$repository_root/ops/scripts/generate-development-secrets.mjs"
 compose config --quiet
 compose --profile ops build migrator api worker web
+compose run --rm --no-deps --entrypoint node api ops/scripts/verify-runtime-migrations.mjs
 compose_started=true
 compose up --detach postgres mailpit
 compose --profile ops run --rm migrator

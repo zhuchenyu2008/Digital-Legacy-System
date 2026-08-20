@@ -116,6 +116,10 @@ describe("production Compose topology", () => {
       ),
     );
     const dockerfile = await readFile(resolve(root, "Dockerfile"), "utf8");
+    const buildVerifier = await readFile(
+      resolve(root, "ops/scripts/verify-build-artifacts.mjs"),
+      "utf8",
+    );
     for (const init of ["init-secrets.ps1", "init-secrets.sh"]) {
       const text = await readFile(resolve(root, "ops/scripts", init), "utf8");
       expect(text).toContain("generate-development-secrets.mjs");
@@ -128,6 +132,16 @@ describe("production Compose topology", () => {
     expect(dockerfile).toContain("runtime-reconcile.mjs");
     expect(dockerfile).toContain("verify-audit.mjs");
     expect(dockerfile).toContain("migration-status.mjs");
+    expect(dockerfile).toContain("verify-runtime-migrations.mjs");
+    expect(dockerfile).toContain(
+      "COPY --from=build --chown=node:node /workspace/packages/persistence/migrations ./packages/persistence/migrations",
+    );
+    expect(buildVerifier).toContain("migration versions must be continuous from 001");
+    expect(buildVerifier).toContain("must have both up and down SQL");
+    for (const smokeScript of ["compose-smoke.ps1", "compose-smoke.sh"]) {
+      const smoke = await readFile(resolve(root, "ops/scripts", smokeScript), "utf8");
+      expect(smoke).toContain("verify-runtime-migrations.mjs");
+    }
     expect(dockerfile).toContain("node packages/vss-wasm/scripts/write-checksums.mjs");
     expect(dockerfile).toMatch(
       /FROM \$\{CADDY_RUNTIME_IMAGE\} AS caddy[\s\S]*mkdir -p \/data \/config[\s\S]*chown -R 1000:1000 \/data \/config/u,

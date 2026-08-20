@@ -36,6 +36,7 @@ describe("Linux container acceptance", () => {
       "versions",
       "format",
       "unit",
+      "domain-mutations",
       "crypto",
       "storage-filesystem",
       "email",

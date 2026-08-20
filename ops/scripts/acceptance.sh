@@ -13,7 +13,11 @@ FAILED=0
 BLOCKED=0
 ACCEPTANCE_POSTGRES_CONTAINER="dls-e2e-acceptance-postgres-$(node -e 'process.stdout.write(crypto.randomUUID().replaceAll("-", ""))')"
 ACCEPTANCE_POSTGRES_IMAGE="postgres:18.4-bookworm@sha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382"
+ACCEPTANCE_MAILPIT_CONTAINER="dls-e2e-acceptance-mailpit-$(node -e 'process.stdout.write(crypto.randomUUID().replaceAll("-", ""))')"
+ACCEPTANCE_MAILPIT_IMAGE="axllent/mailpit:v1.30.6@sha256:7f33095f80e901f6ad08028f06ca284aa58fe84942be5496008d041d3b9f4d4d"
 export DATABASE_URL="postgresql://postgres:test@127.0.0.1:55432/dls"
+export MAILPIT_HTTP_URL="http://127.0.0.1:18025"
+export MAILPIT_SMTP_URL="smtp://127.0.0.1:11025"
 
 start_acceptance_postgres() {
   docker run --detach --name "$ACCEPTANCE_POSTGRES_CONTAINER" \
@@ -47,11 +51,42 @@ stop_acceptance_postgres() {
   docker rm --force "$ACCEPTANCE_POSTGRES_CONTAINER" >/dev/null 2>&1 || true
 }
 
+start_acceptance_mailpit() {
+  docker run --detach --name "$ACCEPTANCE_MAILPIT_CONTAINER" \
+    --publish 127.0.0.1:18025:8025 \
+    --publish 127.0.0.1:11025:1025 \
+    "$ACCEPTANCE_MAILPIT_IMAGE"
+
+  local attempt
+  for attempt in $(seq 1 90); do
+    if curl --fail --silent --show-error "$MAILPIT_HTTP_URL/readyz" >/dev/null 2>&1; then return 0; fi
+    sleep 1
+  done
+
+  docker logs "$ACCEPTANCE_MAILPIT_CONTAINER" 2>&1 || true
+  return 1
+}
+
+stop_acceptance_mailpit() {
+  docker rm --force "$ACCEPTANCE_MAILPIT_CONTAINER" >/dev/null 2>&1 || true
+}
+
 run_migration_gate() {
   start_acceptance_postgres && corepack pnpm test:migrations
 }
 
-trap stop_acceptance_postgres EXIT
+run_integration_gate() {
+  start_acceptance_mailpit
+  local code=$?
+  if [[ "$code" -eq 0 ]]; then
+    corepack pnpm test:integration
+    code=$?
+  fi
+  stop_acceptance_mailpit
+  return "$code"
+}
+
+trap 'stop_acceptance_mailpit; stop_acceptance_postgres' EXIT
 
 record() {
   node --input-type=module -e 'import {appendFile} from "node:fs/promises"; const [file,name,command,status,exitCode,durationMs,startedAt,endedAt,outputFile]=process.argv.slice(1); await appendFile(file,JSON.stringify({name,command,status,exitCode:exitCode==="null"?null:Number(exitCode),durationMs:Number(durationMs),startedAt,endedAt,outputFile})+"\n");' "$RECORDS" "$1" "$2" "$3" "$4" "$5" "$6" "$7" "$8"
@@ -98,8 +133,9 @@ run_gate() {
 run_gate "versions" "node ops/scripts/release-metadata.mjs --verify" node ops/scripts/release-metadata.mjs --verify
 run_gate "format" "corepack pnpm check; corepack pnpm typecheck" bash -c 'corepack pnpm check && corepack pnpm typecheck'
 run_gate "unit" "corepack pnpm test:unit" corepack pnpm test:unit
+run_gate "domain-mutations" "corepack pnpm --filter @dls/domain test:mutations" corepack pnpm --filter @dls/domain test:mutations
 run_gate "migration-up-down-up" "start disposable PostgreSQL; corepack pnpm test:migrations" run_migration_gate
-run_gate "integration" "corepack pnpm test:integration" corepack pnpm test:integration
+run_gate "integration" "start disposable Mailpit; corepack pnpm test:integration" run_integration_gate
 run_gate "concurrency" "corepack pnpm test:concurrency" corepack pnpm test:concurrency
 run_gate "crypto" "corepack pnpm test:crypto; docker build --target rust-test" bash -c 'corepack pnpm test:crypto && docker build --target rust-test --tag dls-rust-test .'
 run_gate "storage-filesystem" "corepack pnpm test:storage:filesystem" corepack pnpm test:storage:filesystem

@@ -105,7 +105,9 @@ describe("cross-platform operational scripts", () => {
 
     expect(posix).toContain("dls-e2e-acceptance-postgres-");
     expect(posix).toMatch(/start_acceptance_postgres/iu);
-    expect(posix).toMatch(/trap\s+stop_acceptance_postgres\s+EXIT/iu);
+    expect(posix).toContain("dls-e2e-acceptance-mailpit-");
+    expect(posix).toMatch(/start_acceptance_mailpit/iu);
+    expect(posix).toMatch(/trap[^\n]*stop_acceptance_mailpit[^\n]*stop_acceptance_postgres/iu);
     expect(posix.indexOf("start_acceptance_postgres")).toBeLessThan(
       posix.indexOf('run_gate "migration-up-down-up"'),
     );

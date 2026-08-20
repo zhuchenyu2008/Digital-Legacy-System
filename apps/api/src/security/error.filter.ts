@@ -34,11 +34,22 @@ export class StableErrorFilter implements ExceptionFilter {
             ? "INTERNAL_ERROR"
             : "REQUEST_INVALID";
     const message =
-      exception instanceof Error
-        ? exception.message
-        : typeof rawRecord.message === "string"
-          ? rawRecord.message
-          : "Request failed";
-    response.status(status).send({ error: { code, message, requestId, details: null } });
+      status >= 500
+        ? "Internal server error"
+        : exception instanceof SessionError
+          ? exception.message
+          : typeof rawRecord.message === "string"
+            ? rawRecord.message
+            : exception instanceof Error
+              ? exception.message
+              : "Request failed";
+    response.status(status).send({
+      error: {
+        code,
+        message,
+        requestId,
+        details: status >= 500 ? null : (rawRecord.details ?? null),
+      },
+    });
   }
 }

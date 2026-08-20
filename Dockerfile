@@ -95,11 +95,13 @@ COPY --from=build --chown=node:node /workspace/packages/crypto/dist ./packages/c
 COPY --from=build --chown=node:node /workspace/packages/domain/dist ./packages/domain/dist
 COPY --from=build --chown=node:node /workspace/packages/email-templates/dist ./packages/email-templates/dist
 COPY --from=build --chown=node:node /workspace/packages/persistence/dist ./packages/persistence/dist
+COPY --from=build --chown=node:node /workspace/packages/persistence/migrations ./packages/persistence/migrations
 COPY --from=build --chown=node:node /workspace/packages/storage/dist ./packages/storage/dist
 COPY --from=build --chown=node:node /workspace/packages/test-fixtures/dist ./packages/test-fixtures/dist
 COPY --from=build --chown=node:node /workspace/packages/vss-wasm/dist ./packages/vss-wasm/dist
 COPY --from=build --chown=node:node /workspace/ops/scripts/migrator-database-url.mjs ./ops/scripts/migrator-database-url.mjs
 COPY --from=build --chown=node:node /workspace/ops/scripts/migration-status.mjs ./ops/scripts/migration-status.mjs
+COPY --from=build --chown=node:node /workspace/ops/scripts/verify-runtime-migrations.mjs ./ops/scripts/verify-runtime-migrations.mjs
 COPY --from=build --chown=node:node /workspace/ops/scripts/runtime-reconcile.mjs ./ops/scripts/runtime-reconcile.mjs
 COPY --from=build --chown=node:node /workspace/ops/scripts/verify-audit.mjs ./ops/scripts/verify-audit.mjs
 COPY --from=build --chown=node:node /workspace/ops/scripts/production-monitor.mjs ./ops/scripts/production-monitor.mjs

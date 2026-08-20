@@ -34,6 +34,11 @@ try {
     const caseRoot = path.join(temporaryRoot, mutation.id);
     await cp(path.join(packageRoot, "src"), path.join(caseRoot, "src"), { recursive: true });
     await cp(path.join(packageRoot, "package.json"), path.join(caseRoot, "package.json"));
+    await writeFile(
+      path.join(caseRoot, "vitest.config.ts"),
+      `import { defineConfig } from "vitest/config";\n\nexport default defineConfig({\n  test: {\n    environment: "node",\n    include: ["src/**/*.test.ts"],\n  },\n});\n`,
+      "utf8",
+    );
 
     const target = path.join(caseRoot, mutation.file);
     const source = await readFile(target, "utf8");
@@ -47,7 +52,15 @@ try {
 
     const result = spawnSync(
       process.execPath,
-      [vitestEntry, "run", "--root", caseRoot, "--no-file-parallelism"],
+      [
+        vitestEntry,
+        "run",
+        "--root",
+        caseRoot,
+        "--config",
+        path.join(caseRoot, "vitest.config.ts"),
+        "--no-file-parallelism",
+      ],
       {
         cwd: caseRoot,
         encoding: "utf8",

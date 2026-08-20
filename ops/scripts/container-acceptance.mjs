@@ -34,6 +34,10 @@ const gates = [
     ],
   },
   { name: "unit", command: ["corepack", "pnpm", "test:unit"] },
+  {
+    name: "domain-mutations",
+    command: ["corepack", "pnpm", "--filter", "@dls/domain", "test:mutations"],
+  },
   { name: "crypto", command: ["corepack", "pnpm", "test:crypto"] },
   { name: "storage-filesystem", command: ["corepack", "pnpm", "test:storage:filesystem"] },
   { name: "email", command: ["corepack", "pnpm", "test:email"] },
