@@ -521,6 +521,21 @@ describe("death workflow", () => {
       ),
     ).toThrow("snapshot");
   });
+
+  test("accepts a one-contact death snapshot when the threshold is one", () => {
+    const workflow = createDeathWorkflow({
+      contactIds: [contactA],
+      requiredConfirmations: 1,
+    });
+
+    expect(() =>
+      transitionDeathWorkflow(
+        workflow,
+        { type: "CANCEL", reason: "valid", expectedVersion: workflow.version },
+        at,
+      ),
+    ).not.toThrow();
+  });
 });
 
 describe("recovery workflow", () => {
@@ -692,6 +707,21 @@ describe("recovery workflow", () => {
         at,
       ),
     ).toThrow("snapshot");
+  });
+
+  test("accepts a one-contact recovery snapshot when the threshold is one", () => {
+    const workflow = createRecoveryWorkflow({
+      contactIds: [contactA],
+      requiredApprovals: 1,
+    });
+
+    expect(() =>
+      transitionRecoveryWorkflow(
+        workflow,
+        { type: "CANCEL", expectedVersion: workflow.version },
+        at,
+      ),
+    ).not.toThrow();
   });
 
   test.each(["AWAITING_APPROVALS", "REWRAP_PENDING"] as const)(

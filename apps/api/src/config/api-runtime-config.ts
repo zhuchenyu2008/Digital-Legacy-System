@@ -24,6 +24,7 @@ export type ApiRuntimeConfig = Readonly<{
     token: Readonly<{ windowMs: number; maxAttempts: number }>;
   }>;
   workerHeartbeatStaleMs: number;
+  databasePoolMax: number;
 }>;
 
 const DEFAULT_DATABASE_URL = "postgresql://postgres:test@127.0.0.1:55432/dls";
@@ -196,5 +197,6 @@ export function getApiRuntimeConfig(
       token: rateLimit(environment, "TOKEN", { windowMs: 60_000, maxAttempts: 20 }),
     }),
     workerHeartbeatStaleMs: positiveInteger(environment.WORKER_HEARTBEAT_STALE_MS, 90_000),
+    databasePoolMax: Math.min(100, positiveInteger(environment.DATABASE_POOL_MAX, 8)),
   });
 }

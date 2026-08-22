@@ -2,6 +2,7 @@ import "reflect-metadata";
 import { randomUUID } from "node:crypto";
 import type { IncomingMessage } from "node:http";
 import { redactLogValue } from "@dls/contracts";
+import { configurePgPoolMax } from "@dls/persistence";
 import helmet from "@fastify/helmet";
 import { ConsoleLogger } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
@@ -16,6 +17,7 @@ import { StableErrorFilter } from "./security/error.filter.js";
 async function bootstrap(): Promise<void> {
   const config = loadApiConfig();
   const apiRuntime = getApiRuntimeConfig();
+  configurePgPoolMax(apiRuntime.databasePoolMax);
   await loadApiKeyCapabilities();
   const adapter = new FastifyAdapter({
     trustProxy: apiRuntime.trustedProxyCidrs.length > 0 ? [...apiRuntime.trustedProxyCidrs] : false,

@@ -141,7 +141,7 @@ try {
   Invoke-Gate "build" "corepack pnpm build" { corepack pnpm build }
   Invoke-Gate "openapi" "corepack pnpm openapi:check" { corepack pnpm openapi:check }
   Invoke-Gate "compose-smoke" "PowerShell -File ops/scripts/compose-smoke.ps1 -DeleteVolumes" { & $powerShell -NoProfile -ExecutionPolicy Bypass -File ops/scripts/compose-smoke.ps1 -DeleteVolumes }
-  Invoke-Gate "simulation" "corepack pnpm exec vitest run tests/integration/simulation-isolation.test.ts" { corepack pnpm test:integration -- tests/integration/simulation-isolation.test.ts }
+  Invoke-Gate "simulation" "node node_modules/vitest/vitest.mjs run --config vitest.workspace.ts --project integration tests/integration/simulation-isolation.test.ts" { node node_modules/vitest/vitest.mjs run --config vitest.workspace.ts --project integration tests/integration/simulation-isolation.test.ts }
   Invoke-Gate "visual" "corepack pnpm test:visual" { corepack pnpm test:visual }
   Invoke-Gate "a11y" "corepack pnpm test:a11y" { corepack pnpm test:a11y }
   Invoke-Gate "e2e-fixtures" "corepack pnpm test:e2e" { corepack pnpm test:e2e }

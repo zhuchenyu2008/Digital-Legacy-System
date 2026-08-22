@@ -18,7 +18,7 @@ import {
 import { verifyServerPassword } from "@dls/crypto/node";
 import { createPgPool, PgTransactionManager } from "@dls/persistence";
 import { renderWill } from "@dls/storage";
-import { Pool, type PoolClient } from "pg";
+import type { Pool, PoolClient } from "pg";
 import { getApiRuntimeConfig } from "../config/api-runtime-config.js";
 import {
   getSimulationRuntimeConfig,
@@ -355,7 +355,7 @@ export function createSimulationRuntime(): SimulationRuntime {
   const config = getSimulationRuntimeConfig();
   if (!config.enabled) return new DisabledSimulationRuntime();
   return new EnabledSimulationRuntime(
-    new Pool({ connectionString: config.databaseUrl }),
+    createPgPool({ connectionString: config.databaseUrl }),
     config,
     new PgTransactionManager(createPgPool({ connectionString: getApiRuntimeConfig().databaseUrl })),
   );

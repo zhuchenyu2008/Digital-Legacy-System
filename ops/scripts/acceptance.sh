@@ -144,7 +144,7 @@ run_gate "email" "corepack pnpm test:email" corepack pnpm test:email
 run_gate "build" "corepack pnpm build" corepack pnpm build
 run_gate "openapi" "corepack pnpm openapi:check" corepack pnpm openapi:check
 run_gate "compose-smoke" "bash ops/scripts/compose-smoke.sh --delete-volumes" bash ops/scripts/compose-smoke.sh --delete-volumes
-run_gate "simulation" "corepack pnpm test:integration -- tests/integration/simulation-isolation.test.ts" corepack pnpm test:integration -- tests/integration/simulation-isolation.test.ts
+run_gate "simulation" "node node_modules/vitest/vitest.mjs run --config vitest.workspace.ts --project integration tests/integration/simulation-isolation.test.ts" node node_modules/vitest/vitest.mjs run --config vitest.workspace.ts --project integration tests/integration/simulation-isolation.test.ts
 run_gate "visual" "corepack pnpm test:visual" corepack pnpm test:visual
 run_gate "a11y" "corepack pnpm test:a11y" corepack pnpm test:a11y
 run_gate "e2e-fixtures" "corepack pnpm test:e2e" corepack pnpm test:e2e

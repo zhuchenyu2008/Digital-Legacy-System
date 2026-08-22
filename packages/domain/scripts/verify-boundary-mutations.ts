@@ -25,7 +25,9 @@ if (uncoveredComparisons.length > 0) {
   throw new Error(`Missing boundary mutations:\n${uncoveredComparisons.join("\n")}`);
 }
 
-const mutationWorkspace = path.join(repositoryRoot, ".superpowers");
+// Keep generated mutation cases inside the package so Node/Vitest can resolve
+// the package's own dependencies through pnpm's isolated node_modules layout.
+const mutationWorkspace = path.join(packageRoot, ".superpowers");
 await mkdir(mutationWorkspace, { recursive: true });
 const temporaryRoot = await mkdtemp(path.join(mutationWorkspace, "mutation-domain-"));
 
@@ -33,6 +35,11 @@ try {
   for (const mutation of mutations) {
     const caseRoot = path.join(temporaryRoot, mutation.id);
     await cp(path.join(packageRoot, "src"), path.join(caseRoot, "src"), { recursive: true });
+    await cp(
+      path.join(packageRoot, "scripts", "boundary-mutations.ts"),
+      path.join(caseRoot, "scripts", "boundary-mutations.ts"),
+      { recursive: true },
+    );
     await cp(path.join(packageRoot, "package.json"), path.join(caseRoot, "package.json"));
     await writeFile(
       path.join(caseRoot, "vitest.config.ts"),
